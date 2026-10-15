@@ -36,6 +36,9 @@ let W,H;
 function rs(){const d=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;g.setTransform(d,0,0,d,0,0)}
 addEventListener('resize',rs);rs();
 let S;
+let best=(()=>{try{return JSON.parse(localStorage.getItem('esBest'))||{lvl:1,kills:0}}catch(e){return{lvl:1,kills:0}}})();
+function saveBest(){if(!S)return;best.lvl=Math.max(best.lvl,S.lvl);best.kills=Math.max(best.kills,S.kills);try{localStorage.setItem('esBest',JSON.stringify(best))}catch(e){}}
+addEventListener('pagehide',saveBest);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveBest()});
 const maxHp=()=>C.baseHp+C.hpLvl*(S.lvl-1), dmg=()=>C.baseDmg+C.dmgLvl*(S.lvl-1),
  rate=()=>C.fireRate*(1+C.rateAug*S.nr), shots=()=>1+S.nm, need=()=>C.xpBase+C.xpLvl*S.lvl;
 function init(){S={x:0,y:0,lvl:1,xp:0,hp:C.baseHp,t:0,kills:0,nr:0,nm:0,nb:0,cd:0,inv:0,en:[],eb:[],bl:[],gm:[],tx:[],sp:0,state:'play'};$('ov').style.display='none';hud()}
@@ -55,7 +58,7 @@ function hit(e,d){e.hp-=d;e.fl=.1;S.tx.push({x:e.x,y:e.y-20,t:.6,s:d});if(e.hp<=
 function mmss(t){t=Math.floor(t);return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}
 function hud(){$('lv').textContent='Lv '+S.lvl;$('time').textContent=mmss(S.t);$('kl').textContent=S.kills+' kills';
  $('xpf').style.width=100*S.xp/need()+'%';$('hpf').style.width=100*Math.max(0,S.hp)/maxHp()+'%';
- $('hpt').textContent=Math.max(0,Math.ceil(S.hp))+' / '+maxHp()+' HP  ·  '+dmg()+' dmg'}
+ $('hpt').textContent=Math.max(0,Math.ceil(S.hp))+' / '+maxHp()+' HP  ·  '+dmg()+' dmg  ·  Best: Lv '+Math.max(best.lvl,S.lvl)+', '+Math.max(best.kills,S.kills)+' kills'}
 // ===== Level up / game over =====
 function levelUp(){S.lvl++;S.xp-=need()-C.xpLvl;S.hp=maxHp();S.state='pick';
  const r=rate(),o=$('ov');o.style.display='flex';
@@ -64,8 +67,8 @@ function levelUp(){S.lvl++;S.xp-=need()-C.xpLvl;S.hp=maxHp();S.state='pick';
   ['nm','+1 Multishot',shots()+' → '+(shots()+1)+' bullets per shot'],
   ['nb','+1 Bullet Bounce',S.nb+' → '+(S.nb+1)+' bounces on hit']].map(a=>'<button class="opt" data-k="'+a[0]+'"><b>'+a[1]+'</b><span>'+a[2]+'</span></button>').join('');
  o.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{S[b.dataset.k]++;o.style.display='none';S.state='play';joy=null;last=performance.now();hud()})}
-function over(){S.state='over';const o=$('ov');o.style.display='flex';
- o.innerHTML='<h1>You fell</h1><p>Survived '+mmss(S.t)+' · Level '+S.lvl+' · '+S.kills+' kills</p><button class="opt" id="rs"><b>Play again</b><span>Start a new run</span></button>';
+function over(){S.state='over';const nl=S.lvl>best.lvl,nk=S.kills>best.kills;saveBest();const o=$('ov');o.style.display='flex';
+ o.innerHTML='<h1>You fell</h1><p>Survived '+mmss(S.t)+'</p><p>Level '+S.lvl+(nl?' · New best!':'')+'</p><p>'+S.kills+' kills'+(nk?' · New best!':'')+'</p><p style="opacity:.75">Highest level '+best.lvl+' · Highest kills '+best.kills+'</p><button class="opt" id="rs"><b>Play again</b><span>Start a new run</span></button>';
  $('rs').onclick=init}
 // ===== Update =====
 function update(dt){
