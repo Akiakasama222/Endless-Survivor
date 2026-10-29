@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Endless Survivor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<!-- Game screen (everything is drawn on this canvas) -->
+<canvas id="c"></canvas>
+<div id="hud">
+<div id="row"><span id="lv">Lv 1</span><span id="time">00:00</span><span id="kl">0 kills</span></div>
+<div class="bar"><i id="xpf"></i></div>
+<div class="bar" id="hpb"><i id="hpf" style="width:100%"></i></div>
+<div id="hpt" style="font-size:15px;margin-top:2px;text-shadow:0 2px 0 #0007"></div>
+<div id="cds">
+<div class="cd" id="cdd"><i></i><span></span></div>
+<div class="cd" id="cdm"><i></i><span></span></div></div></div>
+
+<button id="pb" aria-label="Menu">☰</button>
+<div id="warn"><b id="wb">⚠ WARNING ⚠</b><span id="wt"></span></div>
+<div id="bb"><span>Giant Zombie</span>
+<div class="bar"><i id="bbf"></i></div></div>
+<div id="ov"></div>
+
+<!--
+  Game code. The scripts share one global scope and MUST stay in this order
+  (each file only uses things defined in the files above it, or inside functions that run later).
+  Images and sounds are loaded from the assets/ folder, so serve the folder over http
+  (for example: python3 -m http.server) instead of opening index.html straight from disk.
+-->
+<script src="js/config.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/buildings.js"></script>
+<script src="js/state.js"></script>
+<script src="js/player-data.js"></script>
+<script src="js/input.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/boss.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/grimoire.js"></script>
+<script src="js/levelup.js"></script>
+<script src="js/menus.js"></script>
+<script src="js/update.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
