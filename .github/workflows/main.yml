@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Limbo APK
 on:
   push:
     branches: [main]
@@ -22,6 +22,12 @@ jobs:
       - run: npx cap sync android
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Name the APK Limbo.apk
+        run: |
+          APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          echo "Built: $APK"
+          if [ "$APK" != "android/app/build/outputs/apk/debug/Limbo.apk" ]; then mv "$APK" android/app/build/outputs/apk/debug/Limbo.apk; fi
+          ls -la android/app/build/outputs/apk/debug/
       - uses: actions/upload-artifact@v4
         with:
           name: Limbo-apk
