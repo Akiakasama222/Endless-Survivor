@@ -6,7 +6,7 @@
 // Where the Feedback button sends players' feedback: the address of your feedback website (see the feedback website's README).
 // Example (Vercel): 'https://your-project.vercel.app/api/feedback'   - the default below is only for testing on your own computer.
 // Leave '' to turn sending off (the form then tells players feedback is unavailable).
-const FEEDBACK_URL = 'http://localhost:3000/api/feedback';
+const FEEDBACK_URL = 'https://limbo-feedback-site.vercel.app/api/feedback';
 
 // C holds every tunable number of the game (damage, speeds, ranges, boss timings...). Change values here to rebalance.
 const C = {
@@ -14,7 +14,9 @@ const C = {
   gmZap: 320, // Lightning turret zap range
   gmChain: 170, // Lightning turret chain distance between enemies
   gmFireR: 75, // Fire turret explosion radius (base)
-  gmFireSplash: .9, // Fire turret: damage dealt to the other enemies in the explosion radius, as a share of the direct hit (.9 = 90%)
+  gmFireSplash: 1, // Fire turret: damage dealt to the other enemies in the explosion radius, as a share of the direct hit (.9 = 90%)
+  gmFireD:.20,// Fire turret Damage scale
+  gmEnlight: 5,
   atkR: 520, // Attack range: weapons only target enemies this close
   gmThR: 90, // Thunder Strike area radius
   aosGuard: .8, // Death guard: a hit that would kill you while above this share of max HP...
@@ -81,12 +83,12 @@ const C = {
   xpLvl: 2, // Extra XP needed per level
   spawnBase: 0.7, // Enemy spawns per second at the start
   spawnGrow: 1 / 60, // Spawn rate growth per second
-  bulletSpeed: 1000, // Staff bullet speed (px per second)
+  bulletSpeed: 420, // Staff bullet speed (px per second)
   bulletLife: 1.3, // Staff bullet lifetime in seconds (range = speed x lifetime)
   gmShotSpeed: 420, // Grimoire orb speed (px per second)
-  gmShotLife: 5, // Grimoire orb lifetime in seconds (range = speed x lifetime)
+  gmShotLife: 1.3, // Grimoire orb lifetime in seconds (range = speed x lifetime)
   gmShotTurn: 5, // Grimoire orb homing strength (0 = flies straight, higher = turns sharper towards enemies)
-  gmShotSeek: 1000, // How far from the orb an enemy can be for the orb to steer towards it
+  gmShotSeek: 450, // How far from the orb an enemy can be for the orb to steer towards it
   bounceRange: 320 // Projectile Bounce: how far a bullet looks for the next enemy
 };
 

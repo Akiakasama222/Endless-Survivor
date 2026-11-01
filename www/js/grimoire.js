@@ -84,7 +84,7 @@ SPR.gm = spr(32, 32, (x, u, v) => {
 // Grimoire stat helpers: damage / radius / chain / stun / slow values for each turret and Health Siphon at the current augment levels.
 const gFire = n => C.gmFireR * (1 + .01 * Math.max(0, (n === undefined ? S.nf : n) - 1));
 
-const gFireD = n => 1 + .05 * Math.max(0, (n === undefined ? S.nf : n) - 1);
+const gFireD = n => 1 + C.gmFireD * Math.max(0, (n === undefined ? S.nf : n) - 1);
 
 const gChain = n => Math.max(0, (n === undefined ? S.nl : n) - 1);
 
@@ -422,7 +422,7 @@ const SG = [
     () => 'Attack speed +100% (shots and turrets) · ' + rate().toFixed(1) + ' → ' + (rate() + C.fireRate).toFixed(1) + ' per second'
   ],
   ['nsp', 'Lightning Step', () => 'Move speed +' + 50 * S.nsp + '% → +' + 50 * (S.nsp + 1) + '%'],
-  ['ne', 'Enlightenment', () => 'Multiply your current damage by 5 (' + dmg() + ' → ' + dmg() * 5 + ')'],
+  ['ne', 'Enlightenment', () => 'Multiply your current damage by 5 (' + dmg() + ' → ' + dmg() * C.gmEnlight + ')'],
   ['ns', 'Ice Shield', () => '+1 damage-instance shield, +1 charge per 10 kills · max ' + S.ns + ' → ' + (S.ns + 1)],
   [
     'nts', 'Thunder Strike',
@@ -438,7 +438,7 @@ const SG = [
 // Builds the three basic augment buttons offered to a Grimoire player.
 function grimoireOpts() {
   return [
-    ['nf', S.nf ? '🔥 Fire Turret Lv ' + (S.nf + 1) : '🔥 Fire Turret', S.nf ? 'Fireball damage +5% · ' + Math.round(100 * gFireD()) + '% → ' + Math.round(100 * gFireD(S.nf + 1)) + '% · AOE radius +1% (' + gFire().toFixed(1) + ' → ' + gFire(S.nf + 1).toFixed(1) + ')' : 'Adds a turret that auto-fires Fireballs: 100% damage + ' + Math.round(100 * C.gmFireSplash) + '% damage AOE on hit'],
+    ['nf', S.nf ? '🔥 Fire Turret Lv ' + (S.nf + 1) : '🔥 Fire Turret', S.nf ? 'Fireball damage +'+ Math.round(100 * C.gmFireD) +'% · ' + Math.round(100 * gFireD()) + '% → ' + Math.round(100 * gFireD(S.nf + 1)) + '% · AOE radius +1% (' + gFire().toFixed(1) + ' → ' + gFire(S.nf + 1).toFixed(1) + ')' : 'Adds a turret that auto-fires Fireballs: 100% damage + ' + Math.round(100 * C.gmFireSplash) + '% damage AOE on hit'],
     ['nl', S.nl ? '⚡ Lightning Turret Lv ' + (S.nl + 1) : '⚡ Lightning Turret', S.nl ? '+1 chain · +0.5s stun (' + gChain() + ' → ' + gChain(S.nl + 1) + ' chains, stun ' + gStun().toFixed(1) + 's → ' + gStun(S.nl + 1).toFixed(1) + 's)' : 'Adds a turret that auto-zaps enemies in range for 100% damage and stuns them for 0.5s'],
     ['ni', S.ni ? '❄️ Ice Turret Lv ' + (S.ni + 1) : '❄️ Ice Turret', S.ni ? 'Slow +50% per level, stacks hyperbolically (never reaches 100%) · ' + Math.round(100 * gSlowP()) + '% → ' + Math.round(100 * gSlowP(S.ni + 1)) + '% slow · AOE radius +1% (' + gIce().toFixed(1) + ' → ' + gIce(S.ni + 1).toFixed(1) + ')' : 'Adds a turret that shoots Ice: 75% damage in an AOE and slows enemies by 50%']
   ].map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('');

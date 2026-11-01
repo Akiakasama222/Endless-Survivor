@@ -89,7 +89,7 @@ const WG = [
     t: 'grimoire',
     d: 'Fires purple homing arcane orbs and can summon auto-firing turrets that follow you.',
     b: [
-      ['Fire Turret', 'A turret that auto-fires Fireballs: 100% damage plus ' + Math.round(100 * C.gmFireSplash) + '% damage in an AOE. Each level: +5% damage and +1% AOE radius.'],
+      ['Fire Turret', 'A turret that auto-fires Fireballs: 100% damage plus ' + Math.round(100 * C.gmFireSplash) + '% damage in an AOE. Each level: +'+ Math.round(100 * C.gmFireD) + '% damage and +1% AOE radius.'],
       ['Lightning Turret', 'A turret that zaps enemies in range for 100% damage and stuns them for 0.5s. Each level: +1 chain and +0.5s stun.'],
       ['Ice Turret', 'A turret that shoots Ice: 75% damage in an AOE and slows enemies by 50%. Each level: stronger slow (stacks, never reaches 100%) and +1% AOE radius.']
     ],

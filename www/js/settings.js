@@ -112,7 +112,8 @@ function settings(from) {
   const o = $('ov');
   o.style.display = 'flex';
   const pc = v => Math.round(v * 100);
-  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button><button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level and test options</span></button><button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
+  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button><button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
+  // <button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level and test options</span></button>
   $('sr1').oninput = e => {
     vol.sfx = e.target.value / 100;
     $('sv').textContent = e.target.value + '%';
@@ -131,7 +132,7 @@ function settings(from) {
   $('sr2').onchange = saveVol;
   $('snt').onclick = () => toggleSnd(() => settings(from));
   $('sdv').onclick = () => saveData(from);
-  $('dvb').onclick = () => devSettings(from);
+  // $('dvb').onclick = () => devSettings(from);
   $('bk2').onclick = () => {
     if (from === 'pause') {
       S.state = 'play';

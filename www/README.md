@@ -47,8 +47,8 @@ All scripts share one global scope, so keep the order in `index.html`.
 
 ## Feedback button
 
-The main menu and the pause menu have a **Feedback** button. Players tick *Anonymous* or *Use my name*, write a title and a
-message, and press Submit. It is sent to the feedback website (a separate project, see its README), where you can read,
+The main menu and the pause menu have a **Feedback** button. Players rate the game with **1 to 5 stars** (required), tick
+*Anonymous* or *Use my name*, optionally write a title and a message (a comment needs both), and press Submit. Stars alone are enough. It is sent to the feedback website (a separate project, see its README), where you can read,
 edit, hide and delete it. Set the website's address in `js/config.js` (`FEEDBACK_URL`), for example
 `https://your-project.vercel.app/api/feedback`.
 

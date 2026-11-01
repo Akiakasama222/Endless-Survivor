@@ -660,3 +660,40 @@ textarea.fbin {
   margin: 0 auto;
   text-align: center;
 }
+
+/* Star rating in the Feedback form (js/feedback.js) */
+.fbstars {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.fbstar {
+  background: none;
+  border: 0;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 46px;
+  line-height: 1;
+  color: #5b6082;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .1s, color .1s;
+}
+
+.fbstar.on {
+  color: var(--gold);
+  text-shadow: 0 0 12px #ffc94a88, 0 3px 0 #0009;
+}
+
+.fbstar:active {
+  transform: scale(.88);
+}
+
+.fbstarhint {
+  text-align: center;
+  font-size: 16px;
+  min-height: 1.3em;
+  margin-top: -4px;
+  opacity: .85;
+}
