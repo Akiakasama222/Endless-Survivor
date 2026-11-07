@@ -17,6 +17,8 @@ jobs:
           java-version: 17
       - run: npm install
       - run: npx cap add android
+      - name: Install app icon
+        run: cp -r android-res/. android/app/src/main/res/
       - name: Lock to portrait
         run: sed -i 's/<activity/<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
       - run: npx cap sync android
