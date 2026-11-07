@@ -697,3 +697,474 @@ textarea.fbin {
   margin-top: -4px;
   opacity: .85;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Loading screen (index.html #loading, js/loader.js)                      */
+/* ---------------------------------------------------------------------- */
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: linear-gradient(180deg, #272652, #011929);
+  transition: opacity .45s;
+}
+
+#loading.done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ld-title {
+  position: absolute;
+  top: 26%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: clamp(54px, 16vw, 80px);
+  line-height: 1;
+  color: #fbc549;
+  text-shadow: 0 5px 0 #0009;
+}
+
+/* the walking area: bar at the bottom, zombie and mage standing on it */
+.ld-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(66vw, 320px);
+  height: 84px;
+  transform: translateX(-50%);
+}
+
+.ld-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+  border-radius: 999px;
+  background: #c8d1d9;
+  overflow: hidden;
+}
+
+.ld-track i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: #7ed957;
+  transition: width .3s linear;
+}
+
+.ld-sprite {
+  position: absolute;
+  bottom: 18px;
+  background-repeat: no-repeat;
+}
+
+/* zombie: row 7 of the zombie sheet (walking right), 8 frames, drawn at half size */
+.ld-zombie {
+  left: 0;
+  width: 39.5px;
+  height: 54px;
+  margin-left: -20px;
+  background-image: url(../assets/images/zombie-sheet.png);
+  background-size: 316px 432px;
+  background-position: 0 -378px;
+  animation: ld-walk .8s steps(8) infinite;
+  transition: left .3s linear;
+}
+
+@keyframes ld-walk {
+  to {
+    background-position: -316px -378px;
+  }
+}
+
+/* mage: first frame of the mage sheet, half size, floating */
+.ld-mage {
+  right: 2%;
+  width: 44px;
+  height: 63px;
+  background-image: url(../assets/images/player-mage-sheet.png);
+  background-size: 352px 63px;
+  animation: ld-float 1.6s ease-in-out infinite;
+}
+
+@keyframes ld-float {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Main menu (menu() in js/menus.js): full-screen art with the buttons on top */
+/* ---------------------------------------------------------------------- */
+.menu-card {
+  box-sizing: border-box;
+  position: absolute;
+  inset: 0;
+  width: min(100%, 520px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 clamp(24px, 8vw, 46px) calc(env(safe-area-inset-bottom, 0px) + 15vh);     /* (percent paddings would follow the page width, so vw / vh are used) */
+  background: #0b0c18 url(../assets/images/menu-background.webp) center top / cover no-repeat;
+  overflow-y: auto;          /* only scrolls when the screen is too short for all the buttons */
+}
+
+/* pushes the whole stack to the bottom; when there is no room left the margin collapses and the menu scrolls from the top */
+#ov .mtitle {
+  margin-top: auto;
+}
+
+/* darkens the bottom of the art a little so the buttons stay readable */
+.menu-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, #0b0c18cc, transparent 55%);
+  pointer-events: none;
+}
+
+.menu-card > * {
+  position: relative;
+}
+
+/* on a wide screen (computer) the menu is a phone-shaped card in the middle */
+@media (min-width: 700px) {
+  .menu-card {
+    top: 14px;
+    bottom: 14px;
+    border: 3px solid #141f3e;
+    border-radius: 26px;
+    box-shadow: 0 12px 40px #000b;
+  }
+}
+
+#ov .mtitle {
+  margin-bottom: 0;
+  font-size: clamp(54px, 16vw, 76px);
+  line-height: 1;
+  color: #fbc549;
+  -webkit-text-stroke: 5px #1b1440;
+  paint-order: stroke fill;
+  text-shadow: 0 5px 0 #1b1440aa;
+}
+
+#ov .msub {
+  margin: 4px 0 18px;
+  font-size: clamp(15px, 4.4vw, 19px);
+  letter-spacing: .5px;
+  color: #fff;
+  -webkit-text-stroke: 4px #1b1440;
+  paint-order: stroke fill;
+}
+
+.mbtn {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 10px 8px;
+  font-family: inherit;
+  font-size: clamp(20px, 5.6vw, 26px);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 2px 0 #000a;
+  background: linear-gradient(180deg, #14203ee8, #011929e8);
+  border: 3px solid #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 #0007;
+  cursor: pointer;
+}
+
+.mbtn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #0007;
+}
+
+.mbtn.play {
+  margin-top: 4px;
+  padding: 8px 10px 10px;
+  font-size: clamp(38px, 11.5vw, 50px);
+  color: #7ed957;
+  border-color: #7ed957;
+}
+
+.mbtn.quit {
+  color: #ff5757;
+  border-color: #ff5757;
+}
+
+/* Weapon Guide + Feedback side by side */
+.mrow {
+  box-sizing: border-box;
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.mrow .mbtn {
+  flex: 1;
+  margin-top: 0;
+  padding: 6px 4px 7px;
+  font-size: clamp(14px, 4vw, 18px);
+}
+
+#ov .minfo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 2.5%);
+  margin: 0;
+  font-size: 13px;
+  color: #fff;
+  opacity: .85;
+  text-shadow: 0 1px 3px #000;
+}
+
+/* short screens (phone held sideways): tighter spacing */
+@media (max-height: 640px) {
+  .menu-card {
+    padding-bottom: 5vh;
+  }
+
+  #ov .minfo {
+    display: none;
+  }
+
+  #ov .mtitle {
+    font-size: 46px;
+  }
+
+  #ov .msub {
+    margin-bottom: 8px;
+  }
+
+  .mbtn {
+    margin-top: 6px;
+    padding-top: 3px;
+    padding-bottom: 4px;
+  }
+
+  .mbtn.play {
+    font-size: 32px;
+  }
+}
+
+/* very short screens (phone held sideways) */
+@media (max-height: 480px) {
+  #ov .mtitle {
+    font-size: 38px;
+  }
+
+  #ov .msub {
+    margin: 0 0 4px;
+    font-size: 14px;
+  }
+
+  .mbtn {
+    margin-top: 4px;
+    padding-top: 1px;
+    padding-bottom: 2px;
+    font-size: 18px;
+  }
+
+  .mbtn.play {
+    font-size: 26px;
+  }
+
+  .mrow {
+    margin-top: 4px;
+  }
+
+  .mrow .mbtn {
+    font-size: 14px;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Editor mode (js/editor.js)                                              */
+/* ---------------------------------------------------------------------- */
+.edhint {
+  margin: 0;
+  font-size: 15px;
+  text-align: center;
+  opacity: .85;
+}
+
+#ov .edhint {
+  font-size: 15px;
+}
+
+.edsearch {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.edwrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edgrp {
+  background: linear-gradient(180deg, #2a2f4a, #1d2033);
+  border: 2px solid #fff3;
+  border-radius: 14px;
+  padding: 6px 12px 8px;
+  flex-shrink: 0;
+}
+
+.edgrp > summary {
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--gold);
+  padding: 6px 0;
+}
+
+.edtip {
+  margin: 0 0 6px;
+  font-size: 13px;
+  text-align: left;
+  opacity: .75;
+}
+
+.edrow {
+  display: grid;
+  grid-template-columns: 1fr 104px 32px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0 6px 0;
+  border-top: 1px solid #fff1;
+}
+
+.edrow.changed {
+  padding-left: 8px;
+  border-left: 3px solid var(--gold);
+  background: #ffc94a14;
+}
+
+.edlab {
+  font-size: 15px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.edlab small {
+  display: block;
+  font-size: 12px;
+  opacity: .6;
+}
+
+.edin {
+  box-sizing: border-box;
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  text-align: right;
+  color: #fff;
+  background: #10121f;
+  border: 2px solid #fff6;
+  border-radius: 8px;
+  padding: 6px 8px;
+  /* the page blocks text selection; typing needs it back (iOS Safari) */
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: auto;
+}
+
+.edin:focus {
+  outline: none;
+  border-color: #9be15d;
+}
+
+.edundo {
+  padding: 2px 0;
+  font-size: 16px;
+  color: #fff;
+  background: none;
+  border: 2px solid #fff4;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.edcount {
+  margin: 0;
+  font-size: 14px;
+  text-align: center;
+  opacity: .8;
+}
+
+.edbtns {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.edbtns .opt {
+  flex: 1;
+  text-align: center;
+}
+
+.edjson {
+  flex: 1;
+  min-height: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  font-family: monospace;
+  font-size: 13px;
+  resize: none;
+}
+
+/* (the overlay styles every <p> and <b> bigger, so the Editor needs these more specific rules) */
+#ov .edtip {
+  margin: 0 0 6px;
+  font-size: 13px;
+  text-align: left;
+  opacity: .75;
+}
+
+#ov .edcount {
+  margin: 0;
+  font-size: 14px;
+}
+
+#ov .edbtns .opt {
+  padding: 8px 4px;
+}
+
+#ov .edbtns .opt b {
+  font-size: 15px;
+}
+
+/* Editor mode: "Show hitboxes" switch */
+.edtoggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .08);
+  cursor: pointer;
+}
+.edtoggle input {
+  width: 22px;
+  height: 22px;
+  accent-color: #3ce6ff;
+}
+.edtoggle small {
+  opacity: .7;
+}

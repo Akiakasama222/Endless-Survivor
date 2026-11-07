@@ -4,10 +4,32 @@
 <meta charset="utf-8">
 <title>Limbo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Limbo: Oblivion Survivor - survive the endless horde as a hooded mage.">
+<meta name="theme-color" content="#272652">
+
+<!-- Icon (browser tab, bookmarks, "Add to Home Screen") and the app manifest. The pictures are in assets/icons -->
+<link rel="icon" href="assets/icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Limbo">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
 <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
+<!-- Loading screen: covers the game until the images are ready (see js/loader.js) -->
+<div id="loading" role="status" aria-label="Loading">
+  <div class="ld-title">Limbo</div>
+  <div class="ld-play">
+    <div class="ld-sprite ld-zombie" id="ldZombie"></div>
+    <div class="ld-sprite ld-mage"></div>
+    <div class="ld-track"><i id="ldFill"></i></div>
+  </div>
+</div>
+
 <!-- Game screen (everything is drawn on this canvas) -->
 <canvas id="c"></canvas>
 <div id="hud">
@@ -31,13 +53,21 @@
   Images and sounds are loaded from the assets/ folder, so serve the folder over http
   (for example: python3 -m http.server) instead of opening index.html straight from disk.
 -->
+<script src="js/loader.js"></script>
 <script src="js/config.js"></script>
+<script src="js/tuning.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/buildings.js"></script>
+<script src="js/biome.js"></script>
+<script src="js/trees.js"></script>
+<script src="js/chests.js"></script>
+<script src="js/atmosphere.js"></script>
+<script src="js/craters.js"></script>
 <script src="js/state.js"></script>
 <script src="js/player-data.js"></script>
+<script src="js/editor.js"></script>
 <script src="js/input.js"></script>
 <script src="js/combat.js"></script>
 <script src="js/boss.js"></script>

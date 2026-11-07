@@ -24,6 +24,8 @@ Any static web host works too (upload the whole folder).
 
 | File | What is in it |
 |------|---------------|
+| loader.js | the list of image files (`IMAGE_FILES`) and the loading screen (progress bar, zombie chasing the mage) |
+| tuning.js | remembers the default of every number in `C`, applies the changes saved by the Editor mode, and small text helpers (`pc`, `pcn`, `pcl`) |
 | config.js | `C` = every tunable number (damage, speeds, ranges, boss timings), canvas shortcuts |
 | sprites.js | loads character / sword art, builds tinted + pixelated sprite sheets |
 | audio.js | Web Audio: synthesized beeps, sound files, music, sword swing |
@@ -37,6 +39,7 @@ Any static web host works too (upload the whole folder).
 | hud.js | taking damage, damage over time, on-screen HUD |
 | grimoire.js | Grimoire weapon, turrets, shared explosion / homing-heal effects, Grimoire augments |
 | levelup.js | Staff / Sword special augments, augment picking, level-up and game-over screens |
+| editor.js | Editor mode screen (Settings > Developer > Editor mode) |
 | menus.js | pause menu, Weapon Guide, main menu, inventory, chest opening |
 | feedback.js | the Feedback form (name / anonymous, title, message) and sending it to the feedback website |
 | update.js | one simulation step (`update(dt)`) |
@@ -44,6 +47,35 @@ Any static web host works too (upload the whole folder).
 | main.js | starts the game and runs the animation loop |
 
 All scripts share one global scope, so keep the order in `index.html`.
+
+## Editor mode (change the game's numbers without code)
+
+**Settings > Developer > Editor mode** lists the game's numbers in groups, each with its default value:
+
+* **Weapons: base damage by tier** (and the chest drop weight of every tier),
+* **Player**, **Enemies** and **Boss** (HP, damage, speed, spawn rates, boss attack timings),
+* **Multipliers** (Overload levels / steps, Enlightenment),
+* **Projectiles** (Staff bullet, Grimoire orb),
+* **Augments** for the Staff, Sword and Grimoire: every "per level" value (% damage, range, chance, radius, seconds...),
+* **Other numbers**: everything else in `config.js`.
+
+Type new values (percent rows are in %), use the search box to find a setting, and press **Save & restart**. The changed rows are highlighted and the little
+arrow next to a row puts its default back. **Export / Import** gives you your changes as text (to back them up or move them to another device) and
+**Reset all** removes every change. Changes are stored in the browser (`localStorage` key `limboEditor`), so they only affect that device.
+The augment cards and the Weapon Guide show the edited numbers after the restart.
+
+The defaults are the values in `js/config.js` (and the tier table in `js/player-data.js`). To change the defaults for everybody, edit those files.
+Before you release the game set `DEV_TOOLS = false` in `js/config.js`: the Developer button (and with it the Editor) disappears.
+
+## Icon, loading screen and main menu
+
+* **Icon:** `assets/icons/` holds the game icon in every size (browser tab `favicon.ico` + 32 px, iOS home screen 180 px, Android 192 / 512 px and a
+  "maskable" 512 px one). `index.html` links them and `manifest.webmanifest` describes the app (name, colours, icons), so "Add to Home Screen" shows the icon.
+  To change the icon, replace those files (keep the names) - a bigger source picture (1024 px) gives sharper big icons.
+* **Loading screen:** `#loading` in `index.html`, styled at the end of `css/style.css`, driven by `js/loader.js`. It waits for the images and the font
+  (at least 1 second), then fades out. A new image file must be added to `IMAGE_FILES` in `js/loader.js`.
+* **Main menu:** full-screen art `assets/images/menu-background.webp` with the title and buttons on top (`menu()` in `js/menus.js`, styles `.menu-card` / `.mbtn`
+  in `css/style.css`). **Quit** tries to close the tab; browsers usually refuse that for a normal page, so a "Thanks for playing" screen is shown instead.
 
 ## Feedback button
 
@@ -63,10 +95,11 @@ Images (`assets/images/`)
 | player-mage-sheet.png | player (hooded mage), 8 directions |
 | sword-blade.png / sword-hilt.png | sword (blade stretches with Sword Range) |
 | staff-bullet.png | Staff bullet (tinted per rarity) |
-| fx-fireball-explosion.png / fx-fireball-smoke.png | Fire turret explosion |
-| fx-ice-burst.png | Ice turret burst |
+| fx-fireball-explosion.png / fx-fireball-smoke.png | Fire turret explosion (the explosion sheet is cut with `FX_FRAMES` in `js/grimoire.js`) |
+| fx-ice-burst.png | Ice turret burst (cut with `ICE_FRAMES` in `js/grimoire.js`) |
 | fx-death-explosion.png | Death Explosion / Bleed explosion |
 | fx-boss-stomp.webp | boss stomp shockwave |
+| menu-background.webp | main menu art |
 
 Sounds (`assets/audio/`) are listed in `SOUND_FILES` in `js/audio.js` (key -> file);
 the sword swing file is `SWING_FILE` in the same place. To replace a sound, overwrite the file or change the path there.

@@ -8,6 +8,9 @@
 // Leave '' to turn sending off (the form then tells players feedback is unavailable).
 const FEEDBACK_URL = 'https://limbo-feedback-site.vercel.app/api/feedback';
 
+// Developer tools (Settings > Developer: start level, free chests, Editor mode). Set to false before you release the game so players cannot see them.
+const DEV_TOOLS = false;
+
 // C holds every tunable number of the game (damage, speeds, ranges, boss timings...). Change values here to rebalance.
 const C = {
   gmTR: 460, // Grimoire turret range
@@ -22,9 +25,9 @@ const C = {
   aosGuard: .8, // Death guard: a hit that would kill you while above this share of max HP...
   aosEnd: .2, // ...leaves you at this share of max HP instead
   gmIceA: 1, // Ice burst opacity
-  pixEnemies: 1, // 1 = pixelated look for enemies
+  pixEnemies: 0, // 1 = pixelated look for enemies
   dwdTick: .5, // Dance with Death: seconds between damage ticks
-  gmFx: 1.5, // Fireball explosion sprite scale
+  gmFx: 1, // Fireball explosion sprite scale
   gmIceR: 70, // Ice turret explosion radius (base)
   gmSlow: .5, // Ice turret slow strength (base)
   gmSlowT: 2, // Ice turret slow duration in seconds
@@ -40,6 +43,8 @@ const C = {
   eDmg: 10, // Enemy base damage
   eDmgLvl: 10, // Enemy damage gained per player level
   eSpeed: 48, // Enemy base speed
+  pHitR: 10, // Player hitbox radius (px): enemies and enemy bullets hurt you when their hitbox touches this circle
+  eHitR: 10, // Normal enemy hitbox radius (px): your bullets, sword and spells hit when they touch this circle
   eSpeedStep: 0.5, // Enemy speed gained every eSpeedEvery levels
   eSpeedEvery: 10, // Levels between enemy speed increases
   capBase: 20, // Base number of enemies allowed at once
@@ -78,18 +83,53 @@ const C = {
   rangerRange: 420, // Ranged zombie shooting range
   rangerCd: 2, // Ranged zombie seconds between shots
   eBulletSpeed: 220, // Enemy bullet speed
-  pSpeed: 130, // Player movement speed
+  pSpeed: 150, // Player movement speed
   xpBase: 3, // XP needed for level 2
   xpLvl: 2, // Extra XP needed per level
   spawnBase: 0.7, // Enemy spawns per second at the start
   spawnGrow: 1 / 60, // Spawn rate growth per second
-  bulletSpeed: 420, // Staff bullet speed (px per second)
+  bulletSpeed: 1000, // Staff bullet speed (px per second)
   bulletLife: 1.3, // Staff bullet lifetime in seconds (range = speed x lifetime)
   gmShotSpeed: 420, // Grimoire orb speed (px per second)
   gmShotLife: 1.3, // Grimoire orb lifetime in seconds (range = speed x lifetime)
   gmShotTurn: 5, // Grimoire orb homing strength (0 = flies straight, higher = turns sharper towards enemies)
   gmShotSeek: 450, // How far from the orb an enemy can be for the orb to steer towards it
-  bounceRange: 320 // Projectile Bounce: how far a bullet looks for the next enemy
+  bounceRange: 320, // Projectile Bounce: how far a bullet looks for the next enemy
+
+  // ---- Augment numbers: the "per level" values of the augments (all of them can be edited in Editor mode) ----
+  overloadLvl: 4, // Multishot / Sword Attack Speed: the level where the next pick is the Overload (damage multiplier)
+  overloadStep: 5, // Overload: the damage multiplier grows by this much each time (x5, x10, x15...)
+  lifesteal: .1, // Lifesteal: share of the damage you deal that heals you, per level
+  shieldKills: 10, // Shield: kills needed to regain one shield charge
+  moveSpeedPerLvl: .5, // Move Speed / Lightning Step: extra movement speed per level (.5 = +50%)
+  magnetBase: 100, // Magnet: XP pickup range in pixels without the augment
+  magnetPerLvl: 1, // Magnet: extra pickup range per level (1 = +100%)
+  missileChance: .1, // Arcane Missile: chance on hit per level
+  missileMaxLvl: 10, // Arcane Missile: highest level
+  missileDmg: 1, // Arcane Missile: explosion damage as a share of your damage
+  deathBoomChance: .1, // Death Explosion: chance per level that an enemy explodes when it dies
+  deathBoomDmg: 2, // Death Explosion: explosion damage at level 1 (2 = 200% of your damage)
+  deathBoomDmgPerLvl: .5, // Death Explosion: extra damage per level after the first
+  deathBoomR: 80, // Death Explosion: explosion radius
+  swordRangePerLvl: .5, // Sword Range augment: extra sword range per level (.5 = +50%)
+  ddTicksPerLvl: 2, // Dance with Death: how many ticks the damage is split into, per level
+  swirlEvery: 3, // Swirl: a sword is thrown on every Nth attack
+  swirlStayPerLvl: 1, // Swirl: seconds the sword hovers, per level
+  bleedPerLvl: .01, // Bleed: damage per tick as a share of the hit, per level
+  bleedBoomDmg: 1, // Bleed: explosion damage when a bleeding enemy dies, level 1 (1 = 100%)
+  bleedBoomPerLvl: .1, // Bleed: extra explosion damage per level after the first
+  bleedBoomR: 80, // Bleed: explosion radius
+  pushPerLvl: .1, // Slash Push: push strength per level (as a share of pushBase)
+  gmFireRPerLvl: .01, // Fire turret: extra explosion radius per level (.01 = +1%)
+  gmIceRPerLvl: .01, // Ice turret: extra burst radius per level (.01 = +1%)
+  gmIceDmg: .75, // Ice turret: damage as a share of your damage
+  gmChainPerLvl: 1, // Lightning turret: extra chain jumps per level
+  gmStunPerLvl: .5, // Lightning turret: extra stun seconds per level
+  spellcaster: 1, // Spellcaster: attack speed bonus (1 = +100%)
+  thunderChance: .1, // Thunder Strike: chance on hit per level
+  thunderMaxLvl: 10, // Thunder Strike: highest level
+  thunderDmg: 1, // Thunder Strike: damage as a share of your damage
+  siphonPerLvl: .5 // Health Siphon: extra drain damage per level after the first (.5 = +50%)
 };
 
 // cv = the game canvas, g = its 2D drawing context, $(id) = shortcut for document.getElementById.

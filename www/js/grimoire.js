@@ -15,23 +15,66 @@ const GL = { f: 'nf', l: 'nl', i: 'ni' };
 // Effect sheets: SMI fireball smoke, ICI ice burst, BSI boss stomp, DEI death explosion, FXI fireball explosion (all loaded from assets/images).
 const SMI = new Image();
 
-SMI.src = 'assets/images/fx-fireball-smoke.png';
+SMI.src = IMAGE_FILES.fireballSmoke;
 
 const ICI = new Image();
 
-ICI.src = 'assets/images/fx-ice-burst.png';
+ICI.src = IMAGE_FILES.iceBurst;
 
 const BSI = new Image();
 
-BSI.src = 'assets/images/fx-boss-stomp.webp';
+BSI.src = IMAGE_FILES.bossStomp;
 
 const DEI = new Image();
 
-DEI.src = 'assets/images/fx-death-explosion.png';
+DEI.src = IMAGE_FILES.deathExplosion;
 
 const FXI = new Image();
 
-FXI.src = 'assets/images/fx-fireball-explosion.png';
+FXI.src = IMAGE_FILES.fireballExplosion;
+
+// ---- Frames of the fireball-explosion sheet (FXI) and the ice-burst sheet (ICI) ----
+// Fireball sheet (fx-fireball-explosion.png): 1000 x 720, 15 frames on an exact grid, 5 columns x 3 rows, every frame 200 x 240.
+// Ice sheet (fx-ice-burst.png): 528 x 276, 8 frames on an exact grid, 4 columns x 2 rows, every frame 132 x 138 (play left to right, top row first; the bottom row is the falling-ice part).
+// Every frame has its own entry:
+//   [x, y, width, height, anchorX, anchorY]
+// = the part of the picture to cut out, and the point inside that part which is drawn exactly on the spot where the effect happens.
+// Fireball: the anchor is the middle of the base of the blast (the blast grows upward from it; a bigger anchor Y lifts it higher off the ground). Ice: the anchor is the ground point under the burst.
+// The anchors are the same for every frame on purpose, so the animation stays where the artist drew it. If you swap the pictures, re-measure these numbers.
+const FX_FRAMES = [
+  [   0,    0, 200, 240, 100, 240],
+  [ 200,    0, 200, 240, 100, 240],
+  [ 400,    0, 200, 240, 100, 240],
+  [ 600,    0, 200, 240, 100, 240],
+  [ 800,    0, 200, 240, 100, 240],
+  [   0,  240, 200, 240, 100, 240],
+  [ 200,  240, 200, 240, 100, 240],
+  [ 400,  240, 200, 240, 100, 240],
+  [ 600,  240, 200, 240, 100, 240],
+  [ 800,  240, 200, 240, 100, 240],
+  [   0,  480, 200, 240, 100, 240],
+  [ 200,  480, 200, 240, 100, 240],
+  [ 400,  480, 200, 240, 100, 240],
+  [ 600,  480, 200, 240, 100, 240],
+  [ 800,  480, 200, 240, 100, 240]
+];
+
+const ICE_FRAMES = [
+  [   0,    0, 132, 138,  66, 115],
+  [ 132,    0, 132, 138,  66, 115],
+  [ 264,    0, 132, 138,  66, 115],
+  [ 396,    0, 132, 138,  66, 115],
+  [   0,  138, 132, 138,  66, 115],
+  [ 132,  138, 132, 138,  66, 115],
+  [ 264,  138, 132, 138,  66, 115],
+  [ 396,  138, 132, 138,  66, 115]
+];
+
+// How wide the explosion is in the picture (in picture pixels). The game scales the picture so this width covers the real damage area
+// (radius r). For the fireball, C.gmFx = 1.5 means "exactly the damage area"; a bigger / smaller gmFx draws it bigger / smaller.
+const FX_FOOT = 190;     // bigger number = smaller explosion
+
+const ICE_FOOT = 130;
 
 // The Grimoire's main bullet: a glowing purple orb (drawn once here, stamped every frame in draw.js).
 SPR.orb = spr(40, 40, (x, u, v) => {
@@ -82,27 +125,29 @@ SPR.gm = spr(32, 32, (x, u, v) => {
 });
 
 // Grimoire stat helpers: damage / radius / chain / stun / slow values for each turret and Health Siphon at the current augment levels.
-const gFire = n => C.gmFireR * (1 + .01 * Math.max(0, (n === undefined ? S.nf : n) - 1));
+const gFire = n => C.gmFireR * (1 + C.gmFireRPerLvl * Math.max(0, (n === undefined ? S.nf : n) - 1));
 
 const gFireD = n => 1 + C.gmFireD * Math.max(0, (n === undefined ? S.nf : n) - 1);
 
-const gChain = n => Math.max(0, (n === undefined ? S.nl : n) - 1);
+const gChain = n => Math.floor(C.gmChainPerLvl * Math.max(0, (n === undefined ? S.nl : n) - 1));
 
-const gStun = n => .5 * (n === undefined ? S.nl : n);
+const gStun = n => C.gmStunPerLvl * (n === undefined ? S.nl : n);
 
-const gIce = n => C.gmIceR * (1 + .01 * Math.max(0, (n === undefined ? S.ni : n) - 1));
+const gIce = n => C.gmIceR * (1 + C.gmIceRPerLvl * Math.max(0, (n === undefined ? S.ni : n) - 1));
 
 const gSlowP = n => {
   n = n === undefined ? S.ni : n;
-  return n / (n + 1);
+  const s = Math.min(.95, Math.max(0, C.gmSlow));     // slow of ONE level of the Ice turret (C.gmSlow in config.js)
+  const k = s / (1 - s);                               // levels stack so the enemy speed becomes 1 / (1 + k x level): never 100%
+  return n * k / (n * k + 1);                          // (with gmSlow = .5 this is the old n / (n + 1))
 };
 
-const gSip = n => 1 + .5 * Math.max(0, (n === undefined ? S.nhs : n) - 1);
+const gSip = n => 1 + C.siphonPerLvl * Math.max(0, (n === undefined ? S.nhs : n) - 1);
 
 // Area damage: hits every living enemy within radius r of (x, y) for d damage, except enemy s. If `pr` is set, each hit enemy may also trigger Thunder Strike.
 function aoe(x, y, d, r, s, pr) {
   for (const o of S.en)
-    if (o !== s && o.hp > 0 && (o.x - x) ** 2 + (o.y - y) ** 2 < (r + (o.hr || 16) - 16) ** 2) {
+    if (o !== s && o.hp > 0 && (o.x - x) ** 2 + (o.y - y) ** 2 < (r + (o.hr || C.eHitR) - 16) ** 2) {
       hit(o, d);
       if (pr)
         proc(o);
@@ -166,7 +211,7 @@ function xhStep(dt) {
     for (const e of S.en) {
       if (e.hp <= 0)
         continue;
-      if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < (6 + (e.hr || 16)) ** 2) {
+      if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < (6 + (e.hr || C.eHitR)) ** 2) {
         S.nols = 1;
         hit(e, p.d);
         S.nols = 0;
@@ -231,6 +276,8 @@ function fireBoom(x, y, d, r) {
   if (S.fe.length > 24)
     S.fe.shift();
   S.fe.push({ x, y, r, t: .7 });
+  craterAdd(x, y, r);
+  trBlast(x, y, r);
   sfx('fexp');
 }
 
@@ -238,12 +285,12 @@ function fireBoom(x, y, d, r) {
 function thunder(x, y) {
   S.bolt.push({ x, y, t: .28 });
   sfx('tstrike');
-  aoe(x, y, dmg(), C.gmThR);
+  aoe(x, y, dmg() * C.thunderDmg, C.gmThR);
 }
 
 // Thunder Strike chance (10% per level, max 100%) when enemy e is hit.
 function proc(e) {
-  if (S.nts && Math.random() < Math.min(1, .1 * S.nts))
+  if (S.nts && Math.random() < Math.min(1, C.thunderChance * S.nts))
     thunder(e.x, e.y);
 }
 
@@ -334,7 +381,7 @@ function grimoireStep(dt) {
         if (e.hp <= 0)
           continue;
         const d2 = (e.x - lx) ** 2 + (e.y - ly) ** 2;
-        const rr = 30 + (e.hr || 16);
+        const rr = 30 + (e.hr || C.eHitR);
         if (d2 < rr * rr && d2 < bd) {
           bd = d2;
           n = e;
@@ -349,15 +396,17 @@ function grimoireStep(dt) {
       if (S.fe.length > 24)
         S.fe.shift();
       S.fe.push({ x: lx, y: ly, r: gFire(), t: .7 });
+      craterAdd(lx, ly, gFire());
+      trBlast(lx, ly, gFire());
       sfx('fexp');
     }
     else {
       const r = gIce();
-      const d = dmg() * .75;
+      const d = dmg() * C.gmIceDmg;
       for (const o of S.en) {
         if (o.hp <= 0)
           continue;
-        if ((o.x - lx) ** 2 + (o.y - ly) ** 2 < (r + (o.hr || 16) - 16) ** 2) {
+        if ((o.x - lx) ** 2 + (o.y - ly) ** 2 < (r + (o.hr || C.eHitR) - 16) ** 2) {
           hit(o, d);
           if (o.hp > 0 && !o.boss)
             o.slow = Math.max(o.slow || 0, C.gmSlowT);
@@ -419,27 +468,27 @@ function grimoireStep(dt) {
 const SG = [
   [
     'nsc', 'Spellcaster',
-    () => 'Attack speed +100% (shots and turrets) · ' + rate().toFixed(1) + ' → ' + (rate() + C.fireRate).toFixed(1) + ' per second'
+    () => 'Attack speed +' + pc(C.spellcaster) + '% (shots and turrets) · ' + rate().toFixed(1) + ' → ' + (rate() + C.fireRate * C.spellcaster).toFixed(1) + ' per second'
   ],
-  ['nsp', 'Lightning Step', () => 'Move speed +' + 50 * S.nsp + '% → +' + 50 * (S.nsp + 1) + '%'],
-  ['ne', 'Enlightenment', () => 'Multiply your current damage by 5 (' + dmg() + ' → ' + dmg() * C.gmEnlight + ')'],
-  ['ns', 'Ice Shield', () => '+1 damage-instance shield, +1 charge per 10 kills · max ' + S.ns + ' → ' + (S.ns + 1)],
+  ['nsp', 'Lightning Step', () => 'Move speed +' + pcn(C.moveSpeedPerLvl, S.nsp) + '% → +' + pcn(C.moveSpeedPerLvl, S.nsp + 1) + '%'],
+  ['ne', 'Enlightenment', () => 'Multiply your current damage by ' + C.gmEnlight + ' (' + dmg() + ' → ' + dmg() * C.gmEnlight + ')'],
+  ['ns', 'Ice Shield', () => '+1 damage-instance shield, +1 charge per ' + C.shieldKills + ' kills · max ' + S.ns + ' → ' + (S.ns + 1)],
   [
     'nts', 'Thunder Strike',
-    () => Math.min(100, 10 * S.nts) + '% → ' + Math.min(100, 10 * (S.nts + 1)) + '% chance on hit to call lightning from above (AOE, 100% damage)'
+    () => pcl(C.thunderChance, S.nts) + '% → ' + pcl(C.thunderChance, S.nts + 1) + '% chance on hit to call lightning from above (AOE, ' + pc(C.thunderDmg) + '% damage)'
   ],
   [
     'nhs', 'Health Siphon',
-    () => S.nhs ? 'Drain damage +50% (' + Math.round(100 * gSip()) + '% → ' + Math.round(100 * gSip(S.nhs + 1)) + '%) · drains ' + S.nhs + ' → ' + (S.nhs + 1) + ' targets ' + rate().toFixed(1) + 'x per second (attack speed) · every instance of excess healing becomes a homing projectile' : 'Drains your nearest target (within attack range) for 100% damage at your attack speed · a red projectile flies from it to you and heals you for the damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
+    () => S.nhs ? 'Drain damage +' + pc(C.siphonPerLvl) + '% (' + Math.round(100 * gSip()) + '% → ' + Math.round(100 * gSip(S.nhs + 1)) + '%) · drains ' + S.nhs + ' → ' + (S.nhs + 1) + ' targets ' + rate().toFixed(1) + 'x per second (attack speed) · every instance of excess healing becomes a homing projectile' : 'Drains your nearest target (within attack range) for 100% damage at your attack speed · a red projectile flies from it to you and heals you for the damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
   ],
-  ['nxp', 'Magnet', () => 'EXP pickup range +' + 100 * S.nxp + '% → +' + 100 * (S.nxp + 1) + '%']
+  ['nxp', 'Magnet', () => 'EXP pickup range +' + pcn(C.magnetPerLvl, S.nxp) + '% → +' + pcn(C.magnetPerLvl, S.nxp + 1) + '%']
 ];
 
 // Builds the three basic augment buttons offered to a Grimoire player.
 function grimoireOpts() {
   return [
-    ['nf', S.nf ? '🔥 Fire Turret Lv ' + (S.nf + 1) : '🔥 Fire Turret', S.nf ? 'Fireball damage +'+ Math.round(100 * C.gmFireD) +'% · ' + Math.round(100 * gFireD()) + '% → ' + Math.round(100 * gFireD(S.nf + 1)) + '% · AOE radius +1% (' + gFire().toFixed(1) + ' → ' + gFire(S.nf + 1).toFixed(1) + ')' : 'Adds a turret that auto-fires Fireballs: 100% damage + ' + Math.round(100 * C.gmFireSplash) + '% damage AOE on hit'],
-    ['nl', S.nl ? '⚡ Lightning Turret Lv ' + (S.nl + 1) : '⚡ Lightning Turret', S.nl ? '+1 chain · +0.5s stun (' + gChain() + ' → ' + gChain(S.nl + 1) + ' chains, stun ' + gStun().toFixed(1) + 's → ' + gStun(S.nl + 1).toFixed(1) + 's)' : 'Adds a turret that auto-zaps enemies in range for 100% damage and stuns them for 0.5s'],
-    ['ni', S.ni ? '❄️ Ice Turret Lv ' + (S.ni + 1) : '❄️ Ice Turret', S.ni ? 'Slow +50% per level, stacks hyperbolically (never reaches 100%) · ' + Math.round(100 * gSlowP()) + '% → ' + Math.round(100 * gSlowP(S.ni + 1)) + '% slow · AOE radius +1% (' + gIce().toFixed(1) + ' → ' + gIce(S.ni + 1).toFixed(1) + ')' : 'Adds a turret that shoots Ice: 75% damage in an AOE and slows enemies by 50%']
+    ['nf', S.nf ? '🔥 Fire Turret Lv ' + (S.nf + 1) : '🔥 Fire Turret', S.nf ? 'Fireball damage +'+ Math.round(100 * C.gmFireD) +'% · ' + Math.round(100 * gFireD()) + '% → ' + Math.round(100 * gFireD(S.nf + 1)) + '% · AOE radius +' + pc(C.gmFireRPerLvl) + '% (' + gFire().toFixed(1) + ' → ' + gFire(S.nf + 1).toFixed(1) + ')' : 'Adds a turret that auto-fires Fireballs: 100% damage + ' + Math.round(100 * C.gmFireSplash) + '% damage AOE on hit'],
+    ['nl', S.nl ? '⚡ Lightning Turret Lv ' + (S.nl + 1) : '⚡ Lightning Turret', S.nl ? '+' + C.gmChainPerLvl + ' chain · +' + C.gmStunPerLvl + 's stun (' + gChain() + ' → ' + gChain(S.nl + 1) + ' chains, stun ' + gStun().toFixed(1) + 's → ' + gStun(S.nl + 1).toFixed(1) + 's)' : 'Adds a turret that auto-zaps enemies in range for 100% damage and stuns them for ' + C.gmStunPerLvl + 's'],
+    ['ni', S.ni ? '❄️ Ice Turret Lv ' + (S.ni + 1) : '❄️ Ice Turret', S.ni ? 'Slow +' + pc(C.gmSlow) + '% per level, stacks hyperbolically (never reaches 100%) · ' + Math.round(100 * gSlowP()) + '% → ' + Math.round(100 * gSlowP(S.ni + 1)) + '% slow · AOE radius +' + pc(C.gmIceRPerLvl) + '% (' + gIce().toFixed(1) + ' → ' + gIce(S.ni + 1).toFixed(1) + ')' : 'Adds a turret that shoots Ice: ' + pc(C.gmIceDmg) + '% damage in an AOE and slows enemies by ' + pc(C.gmSlow) + '%']
   ].map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('');
 }

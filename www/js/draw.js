@@ -1,6 +1,6 @@
 // ======================================================================
 // RENDERING
-// Draws one frame: isometric ground, buildings, characters, projectiles and effects.
+// Draws one frame: isometric ground, characters, projectiles and effects.
 // ======================================================================
 
 // Draws one frame of the game.
@@ -8,15 +8,16 @@ function draw() {
   // Isometric view: the game logic stays on a flat ground plane; only the drawing is projected (2:1 diamond tiles, upright sprites)
   const SX = (x, y) => W / 2 + ((x - S.x) - (y - S.y));
   const SY = (x, y) => H / 2 + ((x - S.x) + (y - S.y)) * .5;
-  g.fillStyle = '#8a8da3';
+  g.fillStyle = 'rgb(125, 172, 119)';
   g.fillRect(0, 0, W, H);
-  const T = 80;
+  const T = BIO.tile;   // ground tile size (biome.js)
   const B = W / 4 + H / 2 + T;
   const i0 = Math.floor((S.x - B) / T);
   const i1 = Math.ceil((S.x + B) / T);
   const j0 = Math.floor((S.y - B) / T);
   const j1 = Math.ceil((S.y + B) / T);
-  g.fillStyle = '#9496ab';
+  if (!bioDrawGround(g, W, H, SX, SY, T, i0, i1, j0, j1)) {   // biome.js grass images; plain colour ground if they are missing
+  g.fillStyle = 'rgb(90, 173, 97)';
   for (let i = i0; i < i1; i++)
     for (let j = j0; j < j1; j++) {
       const ax = SX(i * T, j * T);
@@ -32,7 +33,7 @@ function draw() {
         g.fill();
       }
     }
-  g.strokeStyle = '#ffffff30';
+  g.strokeStyle = '#142c15';
   g.lineWidth = 1.5;
   g.beginPath();
   for (let i = i0; i < i1; i++)
@@ -46,252 +47,9 @@ function draw() {
       g.lineTo(ax + T, ay + T / 2);
     }
   g.stroke();
-  const bdPoly = (c, pts, st) => {
-    g.fillStyle = c;
-    g.beginPath();
-    g.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++)
-      g.lineTo(pts[i][0], pts[i][1]);
-    g.closePath();
-    g.fill();
-    if (st) {
-      g.strokeStyle = 'rgba(15,15,35,.35)';
-      g.lineWidth = 1;
-      g.stroke();
-    }
-  };
-  const bdDraw = (p, al, sh) => {
-    const P = (x, y, z) => [SX(x, y), SY(x, y) - z];
-    const { x0, x1, y0, y1, h, rh } = p;
-    const ym = (y0 + y1) / 2;
-    const w = x1 - x0;
-    const dd = y1 - y0;
-    const cxm = (x0 + x1) / 2;
-    const K = bdK;
-    const fl = (c, a, b, z0, z1, st) => bdPoly(c, [P(a, y1, z0), P(b, y1, z0), P(b, y1, z1), P(a, y1, z1)], st);
-    const fr = (c, a, b, z0, z1, st) => bdPoly(c, [P(x1, a, z0), P(x1, b, z0), P(x1, b, z1), P(x1, a, z1)], st);
-    const wc = k => bdHash(p.s, k, 7) < .25 ? '#ffd57a' : '#6c9bc4';
-    const bx = (xa, ya, xb, yb, z0, z1) => {
-      bdPoly('#9aa0a8', [P(xa, yb, z0), P(xb, yb, z0), P(xb, yb, z1), P(xa, yb, z1)], 1);
-      bdPoly('#7b818a', [P(xb, yb, z0), P(xb, ya, z0), P(xb, ya, z1), P(xb, yb, z1)], 1);
-      bdPoly('#b4bac2', [P(xa, ya, z1), P(xb, ya, z1), P(xb, yb, z1), P(xa, yb, z1)], 1);
-    };
-    g.globalAlpha = al;
-    if (sh) {
-      const o = Math.min(50 * K, h * .35);
-      const m = 4 * K;
-      bdPoly('rgba(0,0,0,.2)', [P(x0 - m, y0 - m, 0), P(x1 + m + o, y0 - m, 0), P(x1 + m + o, y1 + m, 0), P(x0 - m, y1 + m, 0)]);
-    }
-    bdPoly(p.cL, [P(x0, y1, 0), P(x1, y1, 0), P(x1, y1, h), P(x0, y1, h)], 1);
-    bdPoly(p.cR, [P(x1, y1, 0), P(x1, y0, 0), P(x1, y0, h), P(x1, y1, h)], 1);
-    if (p.kind === 'house') {
-      fl('#5a3a24', cxm - 8 * K, cxm + 8 * K, 0, 32 * K, 1);
-      fl(wc(1), x0 + w * .14, x0 + w * .14 + 14 * K, 24 * K, 42 * K, 1);
-      fl(wc(2), x1 - w * .14 - 14 * K, x1 - w * .14, 24 * K, 42 * K, 1);
-      fr(wc(3), ym - 8 * K, ym + 8 * K, 24 * K, 42 * K, 1);
-    }
-    else if (p.kind === 'apt') {
-      const n = Math.floor((h - 10 * K) / (30 * K));
-      const cols = Math.max(2, Math.floor(w / (24 * K)));
-      const rc = Math.max(2, Math.floor(dd / (24 * K)));
-      for (let i = 0; i < n; i++) {
-        const z0 = 14 * K + i * 30 * K;
-        for (let j = 0; j < cols; j++) {
-          const a = x0 + (j + .5) * w / cols - 6 * K;
-          if (i === 0 && j === Math.floor(cols / 2))
-            fl('#4a3322', a, a + 12 * K, 0, 22 * K, 1);
-          else
-            fl(wc(i * 10 + j), a, a + 12 * K, z0, z0 + 16 * K, 1);
-        }
-        for (let j = 0; j < rc; j++) {
-          const a = y0 + (j + .5) * dd / rc - 6 * K;
-          fr(wc(100 + i * 10 + j), a, a + 12 * K, z0, z0 + 16 * K, 1);
-        }
-      }
-    }
-    else if (p.kind === 'shed') {
-      fl('#4a3322', cxm - 7 * K, cxm + 7 * K, 0, 24 * K, 1);
-    }
-    else {
-      fl('#5c6670', cxm - 20 * K, cxm + 20 * K, 0, 40 * K, 1);
-      for (let j = 0; j < 5; j++) {
-        const a = x0 + 14 * K + j * (w - 42 * K) / 4;
-        fl(wc(20 + j), a, a + 14 * K, h - 20 * K, h - 10 * K, 1);
-      }
-      fr(wc(30), ym - 22 * K, ym - 8 * K, h - 20 * K, h - 10 * K, 1);
-      fr(wc(31), ym + 8 * K, ym + 22 * K, h - 20 * K, h - 10 * K, 1);
-    }
-    if (rh > 0) {
-      if (dd / 2 > rh)
-        bdPoly(p.cRb, [P(x0, y0, h), P(x1, y0, h), P(x1, ym, h + rh), P(x0, ym, h + rh)], 1);
-      bdPoly(p.cR, [P(x1, y0, h), P(x1, y1, h), P(x1, ym, h + rh)], 1);
-      bdPoly(p.cRf, [P(x0, y1, h), P(x1, y1, h), P(x1, ym, h + rh), P(x0, ym, h + rh)], 1);
-      g.strokeStyle = 'rgba(0,0,0,.14)';
-      g.lineWidth = 1;
-      g.beginPath();
-      for (let q = 1; q < 4; q++) {
-        const yy = y1 + (ym - y1) * q / 4;
-        const zz = h + rh * q / 4;
-        const a = P(x0, yy, zz);
-        const b = P(x1, yy, zz);
-        g.moveTo(a[0], a[1]);
-        g.lineTo(b[0], b[1]);
-      }
-      if (dd / 2 > rh)
-        for (let q = 1; q < 4; q++) {
-          const yy = y0 + (ym - y0) * q / 4;
-          const zz = h + rh * q / 4;
-          const a = P(x0, yy, zz);
-          const b = P(x1, yy, zz);
-          g.moveTo(a[0], a[1]);
-          g.lineTo(b[0], b[1]);
-        }
-      g.stroke();
-      g.strokeStyle = p.cRd;
-      g.lineWidth = 3;
-      g.beginPath();
-      let a = P(x0, y1, h);
-      let b = P(x1, y1, h);
-      g.moveTo(a[0], a[1]);
-      g.lineTo(b[0], b[1]);
-      g.stroke();
-      g.strokeStyle = 'rgba(255,255,255,.25)';
-      g.lineWidth = 2;
-      g.beginPath();
-      a = P(x0, ym, h + rh);
-      b = P(x1, ym, h + rh);
-      g.moveTo(a[0], a[1]);
-      g.lineTo(b[0], b[1]);
-      g.stroke();
-      if (p.kind === 'house')
-        bx(x0 + w * .22, ym - 4 * K, x0 + w * .22 + 9 * K, ym + 5 * K, h + rh - 3 * K, h + rh + 12 * K);
-    }
-    else {
-      bdPoly(p.cT, [P(x0, y0, h), P(x1, y0, h), P(x1, y1, h), P(x0, y1, h)], 1);
-      g.strokeStyle = 'rgba(255,255,255,.28)';
-      g.lineWidth = 3;
-      g.beginPath();
-      let a = P(x0, y1, h);
-      let b = P(x1, y1, h);
-      let c = P(x1, y0, h);
-      g.moveTo(a[0], a[1]);
-      g.lineTo(b[0], b[1]);
-      g.lineTo(c[0], c[1]);
-      g.stroke();
-      bx(x0 + w * .3, y0 + dd * .25, x0 + w * .3 + 16 * K, y0 + dd * .25 + 16 * K, h, h + 10 * K);
-    }
-    g.globalAlpha = 1;
-  };
-  const ball = [];
-  for (let a = Math.floor((S.x - B - 320) / bdCell), a1 = Math.floor((S.x + B + 320) / bdCell); a <= a1; a++)
-    for (let b = Math.floor((S.y - B - 320) / bdCell), b1 = Math.floor((S.y + B + 320) / bdCell); b <= b1; b++) {
-      const p = bdGet(a, b);
-      if (p)
-        ball.push(p);
-    }
-  {
-    const xa = S.x - B;
-    const xb = S.x + B;
-    const ya = S.y - B;
-    const yb = S.y + B;
-    const c = bdCell;
-    const RW = bdRW;
-    const SW = bdSW;
-    const k0 = Math.floor(ya / c);
-    const k1 = Math.ceil(yb / c);
-    const m0 = Math.floor(xa / c);
-    const m1 = Math.ceil(xb / c);
-    const Q = (col, x0, y0, x1, y1) => bdPoly(col, [[SX(x0, y0), SY(x0, y0)], [SX(x1, y0), SY(x1, y0)], [SX(x1, y1), SY(x1, y1)], [SX(x0, y1), SY(x0, y1)]]);
-    const sp = ball.filter(p => p.rx + SW > xa && p.rx - SW < xb && p.ry1 > ya && p.y1 < yb);
-    for (let k = k0; k <= k1; k++)
-      Q('#a9abbe', xa, k * c - RW / 2 - 12, xb, k * c + RW / 2 + 12);
-    for (let m = m0; m <= m1; m++)
-      Q('#a9abbe', m * c - RW / 2 - 12, ya, m * c + RW / 2 + 12, yb);
-    for (const p of sp)
-      Q('#a9abbe', p.rx - SW / 2 - 10, p.y1, p.rx + SW / 2 + 10, p.ry1);
-    for (let k = k0; k <= k1; k++)
-      Q('#575a6e', xa, k * c - RW / 2, xb, k * c + RW / 2);
-    for (let m = m0; m <= m1; m++)
-      Q('#575a6e', m * c - RW / 2, ya, m * c + RW / 2, yb);
-    for (const p of sp)
-      Q('#575a6e', p.rx - SW / 2, p.y1, p.rx + SW / 2, p.ry1);
-    g.strokeStyle = '#e6c84f';
-    g.lineWidth = 3;
-    g.beginPath();
-    for (let k = k0; k <= k1; k++)
-      for (let x = Math.floor(xa / 70) * 70; x < xb; x += 70) {
-        if (Math.abs(x + 16 - Math.round((x + 16) / c) * c) < RW / 2 + 24)
-          continue;
-        g.moveTo(SX(x, k * c), SY(x, k * c));
-        g.lineTo(SX(x + 32, k * c), SY(x + 32, k * c));
-      }
-    for (let m = m0; m <= m1; m++)
-      for (let y = Math.floor(ya / 70) * 70; y < yb; y += 70) {
-        if (Math.abs(y + 16 - Math.round((y + 16) / c) * c) < RW / 2 + 24)
-          continue;
-        g.moveTo(SX(m * c, y), SY(m * c, y));
-        g.lineTo(SX(m * c, y + 32), SY(m * c, y + 32));
-      }
-    g.stroke();
   }
-  const bvp = ball.filter(p => {
-    const l = SX(p.x0, p.y1);
-    const r = SX(p.x1, p.y0);
-    const t = SY(p.x0, p.y0) - p.h - p.rh - 14;
-    const bt = SY(p.x1, p.y1);
-    return !(r < -20 || l > W + 20 || bt < -20 || t > H + 20);
-  });
-  bvp.sort((a, b) => a.d - b.d);
-  const bh = bvp.map(p => {
-    const H = p.h + (p.rh > 0 ? p.rh * .6 : 0);
-    const d0 = [SX(p.x0, p.y1), SY(p.x0, p.y1)];
-    const c0 = [SX(p.x1, p.y1), SY(p.x1, p.y1)];
-    const b0 = [SX(p.x1, p.y0), SY(p.x1, p.y0)];
-    const a0 = [SX(p.x0, p.y0), SY(p.x0, p.y0)];
-    const hx = [d0, c0, b0, [b0[0], b0[1] - H], [a0[0], a0[1] - H], [d0[0], d0[1] - H]];
-    return { p, hx, l: d0[0], r: b0[0], t: a0[1] - H, b: c0[1] };
-  });
-  const hexHit = (q, sx, sy) => {
-    if (sx < q.l || sx > q.r || sy < q.t || sy > q.b)
-      return false;
-    let sg = 0;
-    for (let i = 0; i < 6; i++) {
-      const a = q.hx[i];
-      const b = q.hx[(i + 1) % 6];
-      const c = (b[0] - a[0]) * (sy - a[1]) - (b[1] - a[1]) * (sx - a[0]);
-      if (c !== 0) {
-        const v = c > 0 ? 1 : -1;
-        if (sg === 0)
-          sg = v;
-        else if (v !== sg)
-          return false;
-      }
-    }
-    return true;
-  };
-  // the building the player is standing behind fades out so the player (and anything behind it) can be seen
-  const fdt = Math.min(.1, Math.max(0, S.t - bdLastT));
-  bdLastT = S.t;
-  for (const q of bh) {
-    const p = q.p;
-    const occ = (S.x < p.x0 || S.y < p.y0) && (hexHit(q, W / 2, H / 2 - 2) || hexHit(q, W / 2, H / 2 - 28) || hexHit(q, W / 2, H / 2 - 54));
-    p.fa += ((occ ? .3 : 1) - p.fa) * Math.min(1, fdt * 10);
-  }
-  // true when a point (with height z) is hidden behind a (non-faded) building
-  const hid = (x, y, z) => {
-    if (!bh.length)
-      return false;
-    const sx = SX(x, y);
-    const sy = SY(x, y) - z;
-    for (const q of bh) {
-      const p = q.p;
-      if (p.fa < .6 || !(x < p.x0 || y < p.y0))
-        continue;
-      if (hexHit(q, sx, sy))
-        return true;
-    }
-    return false;
-  };
+  craterDraw(g, W, H, SX, SY);      // scorch marks left by fireball explosions (craters.js)
+  const hid = () => false;      // nothing can hide an effect any more (the buildings are gone)
   for (const m of S.gm) {
     const x = SX(m.x, m.y);
     const y = SY(m.x, m.y);
@@ -580,7 +338,7 @@ function draw() {
       dT('i');
     {
       const sweep = (a0, a1, al) => {
-        const R2 = C.swordR * (1 + .5 * S.sr) + 10;
+        const R2 = C.swordR * (1 + C.swordRangePerLvl * S.sr) + 10;
         const N = 24;
         const pt = (t, r) => [SX(S.x + Math.cos(t) * r, S.y + Math.sin(t) * r), SY(S.x + Math.cos(t) * r, S.y + Math.sin(t) * r) - (py - by)];
         for (let i = 0; i < N; i++) {
@@ -653,7 +411,7 @@ function draw() {
         const sdx = Math.cos(a) - Math.sin(a);
         const sdy = (Math.cos(a) + Math.sin(a)) * .5;
         const f = Math.hypot(sdx, sdy);
-        const Rr = C.swordR * (1 + .5 * S.sr);
+        const Rr = C.swordR * (1 + C.swordRangePerLvl * S.sr);
         const bl = Math.max(8, (Rr - 24) * f);
         const sw0 = S.sw > 0;
         g.save();
@@ -871,8 +629,11 @@ function draw() {
       if (!FXI.naturalWidth)
         return;
       const fi = Math.min(14, Math.floor(ag * 15));
-      const sc = z.r * C.gmFx / 128;
-      g.drawImage(FXI, (fi % 5) * 200, Math.floor(fi / 5) * 240, 200, 240, x - 100 * sc, y - 232 * sc, 200 * sc, 240 * sc);
+      const fr = FX_FRAMES[fi];                                    // [x, y, w, h, anchorX, anchorY] - see grimoire.js
+      const sc = z.r * 2.83 / FX_FOOT * (C.gmFx / 1.5);
+      g.imageSmoothingEnabled = false;                             // pixel-art sheet: keep the pixels sharp
+      g.drawImage(FXI, fr[0], fr[1], fr[2], fr[3], Math.round(x - fr[4] * sc), Math.round(y - fr[5] * sc), Math.round(fr[2] * sc), Math.round(fr[3] * sc));
+      g.imageSmoothingEnabled = true;
     }
     else if (e.fxk === 1) {
       if (!DEI.naturalWidth)
@@ -890,17 +651,31 @@ function draw() {
       const k = z.r * 2.83 / 230;
       g.drawImage(BSI, (f % 6) * 257, Math.floor(f / 6) * 173, 257, 173, x - 113.8 * k, y - 132.2 * k, 257 * k, 173 * k);
     }
+    else if (e.fxk === 4) {
+      // main projectiles (Staff bullet / Grimoire orb): depth-sorted so trees and enemies in front of them cover them
+      const by = y - 18;
+      if (x < -30 || x > W + 30 || by < -30 || by > H + 30)
+        return;
+      g.save();
+      g.translate(x, by);
+      if (z.orb)
+        g.drawImage(SPR.orb, -20, -20, 40, 40);     // Grimoire: purple orb (round, so no rotation)
+      else {
+        g.rotate(Math.atan2((z.vx + z.vy) * .5, z.vx - z.vy));
+        g.drawImage(SPR.br[PD.eq.r], -20, -20, 40, 40);     // Staff: bullet tinted by the weapon's rarity
+      }
+      g.restore();
+    }
     else {
       if (!ICI.naturalWidth)
         return;
-      const f = Math.min(7, Math.floor(z.a / .6 * 8));
-      const k = z.r * 2.83 / 120;
-      const sx = (f % 4) * 132;
-      const sy = Math.floor(f / 4) * 138;
+      const f = Math.min(7, Math.floor(z.a / .6 * 8));           // 8 frames in the ice sheet
+      const fr = ICE_FRAMES[f];                                    // [x, y, w, h, anchorX, anchorY] - see grimoire.js
+      const k = z.r * 2.83 / ICE_FOOT;
       const p = z.a > .6 ? Math.min(1, (z.a - .6) / .3) : 0;
       g.globalAlpha = (1 - p) * C.gmIceA;
-      g.imageSmoothingEnabled = false;
-      g.drawImage(ICI, sx, sy, 132, 138, Math.round(x - 65 * k), Math.round(y - 134 * k), Math.round(132 * k), Math.round(138 * k));
+      g.imageSmoothingEnabled = false;                             // pixel-art sheet: keep the pixels sharp
+      g.drawImage(ICI, fr[0], fr[1], fr[2], fr[3], Math.round(x - fr[4] * k), Math.round(y - fr[5] * k), Math.round(fr[2] * k), Math.round(fr[3] * k));
       g.imageSmoothingEnabled = true;
       g.globalAlpha = 1;
     }
@@ -914,37 +689,22 @@ function draw() {
     fxs.push({ x: z.x, y: z.y, fxk: 2, z });
   for (const z of S.ic)
     fxs.push({ x: z.x, y: z.y, fxk: 3, z });
+  for (const z of S.bl)
+    fxs.push({ x: z.x, y: z.y, fxk: 4, z });
+  // procedural trees join the depth-sorted list, so they hide whatever stands behind them
+  trCollect(SX, SY, W, H, S.x, S.y, fxs);
+  chCollect(SX, SY, W, H, fxs);       // hidden chests (chests.js)
+  const rw = ROBO.cw * ROBO.sc;
+  const rh = ROBO.ch * ROBO.sc;
+  // player's on-screen box (slightly shrunk) - a tree turns see-through only when it overlaps this
+  const PL = { ps: S.x + S.y, l: px - rw * .35, r: px + rw * .35, t: py - 4 - rh * .9, b: py - 4 - rh * .05 };
   const EL = S.en.concat(fxs);
-  const dX = e => e.fxk >= 0 ? dFx(e) : dE(e);
+  const dX = e => e.trk ? trDraw(g, e, SX, SY, PL) : e.chk ? chDraw(g, e, SX, SY) : e.fxk >= 0 ? dFx(e) : dE(e);
   // depth order: enemies behind the player first, then the player, then enemies in front
   const ps = S.x + S.y;
   EL.sort((a, b) => (a.x + a.y) - (b.x + b.y));
-  // buildings are drawn in depth order; anything standing behind one (the player included) is drawn first so the building covers it
-  const dn = new Uint8Array(EL.length);
   let pd = 0;
-  for (const b of bvp) {
-    let pp = !pd && (S.x < b.x0 || S.y < b.y0);
-    for (let i = 0; i < EL.length; i++) {
-      const e = EL[i];
-      if (dn[i] || !(e.x < b.x0 || e.y < b.y0))
-        continue;
-      if (pp && e.x + e.y >= ps) {
-        dP();
-        pd = 1;
-        pp = 0;
-      }
-      dn[i] = 1;
-      dX(e);
-    }
-    if (pp) {
-      dP();
-      pd = 1;
-    }
-    bdDraw(b, b.fa, 1);
-  }
   for (let i = 0; i < EL.length; i++) {
-    if (dn[i])
-      continue;
     const e = EL[i];
     if (!pd && e.x + e.y >= ps) {
       dP();
@@ -954,6 +714,8 @@ function draw() {
   }
   if (!pd)
     dP();
+  chOverlay(g, SX, SY);             // chest progress ring / twinkle hint (chests.js)
+  atmDraw(g, W, H, SX, SY);        // wind streaks and flying leaves (atmosphere.js)
   for (const p of S.tr) {
     if (hid(p.x, p.y, 18))
       continue;
@@ -983,7 +745,7 @@ function draw() {
   for (const w of S.sws) {
     const x = SX(w.x, w.y);
     const y = SY(w.x, w.y) - 18;
-    const rad = C.swordR * (1 + .5 * S.sr) * C.swirlRad;
+    const rad = C.swordR * (1 + C.swordRangePerLvl * S.sr) * C.swirlRad;
     const rc = RAR[PD.eq.r].rgb;
     g.strokeStyle = 'rgba(' + rc + ',.6)';
     g.lineWidth = 2;
@@ -1019,23 +781,6 @@ function draw() {
     g.arc(SX(b.x, b.y), SY(b.x, b.y) - 18, 7, 0, 6.3);
     g.fill();
     g.stroke();
-  }
-  for (const b of S.bl) {
-    if (hid(b.x, b.y, 18))
-      continue;
-    const x = SX(b.x, b.y);
-    const y = SY(b.x, b.y) - 18;
-    if (x < -30 || x > W + 30 || y < -30 || y > H + 30)
-      continue;
-    g.save();
-    g.translate(x, y);
-    if (b.orb)
-      g.drawImage(SPR.orb, -20, -20, 40, 40);     // Grimoire: purple orb (round, so no rotation)
-    else {
-      g.rotate(Math.atan2((b.vx + b.vy) * .5, b.vx - b.vy));
-      g.drawImage(SPR.br[PD.eq.r], -20, -20, 40, 40);     // Staff: bullet tinted by the weapon's rarity
-    }
-    g.restore();
   }
   for (const p of S.hs) {
     if (hid(p.x, p.y, 18))
@@ -1148,6 +893,8 @@ function draw() {
     g.lineTo(SX(p.x1, p.y1), SY(p.x1, p.y1) - 10);
     g.stroke();
   }
+  if (SHOW_HB)
+    hbDraw(g, SX, SY);
   g.lineCap = 'butt';
   g.font = '20px "Lilita One",Arial';
   g.textAlign = 'center';
@@ -1184,4 +931,28 @@ function draw() {
     g.arc(joy.x0 + Math.cos(a) * l, joy.y0 + Math.sin(a) * l, 20, 0, 6.3);
     g.fill();
   }
+}
+
+// Hitbox overlay (Editor mode > Show hitboxes): the real hit circles of the player, enemies and boss.
+// A circle on the flat ground becomes a 2:1 ellipse on the isometric screen.
+function hbDraw(g, SX, SY) {
+  const ring = (wx, wy, r, rgb) => {
+    const x = SX(wx, wy);
+    const y = SY(wx, wy);
+    if (x < -r * 2 || x > W + r * 2 || y < -r * 2 || y > H + r * 2)
+      return;
+    g.beginPath();
+    g.ellipse(x, y, r * 1.414, r * .707, 0, 0, 6.3);
+    g.fillStyle = 'rgba(' + rgb + ',.18)';
+    g.fill();
+    g.strokeStyle = 'rgb(' + rgb + ')';
+    g.lineWidth = 2;
+    g.stroke();
+    g.fillStyle = 'rgb(' + rgb + ')';
+    g.fillRect(x - 1.5, y - 1.5, 3, 3);
+  };
+  for (const e of S.en)
+    if (e.hp > 0)
+      ring(e.x, e.y, e.hr || C.eHitR, e.boss ? '255,160,40' : '255,70,70');
+  ring(S.x, S.y, C.pHitR, '60,230,255');
 }

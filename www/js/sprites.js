@@ -170,7 +170,7 @@ IMG.z.onload = () => {
   catch (e) { }
 };
 
-IMG.z.src = 'assets/images/zombie-sheet.png';
+IMG.z.src = IMAGE_FILES.zombie;
 
 // Giant Zombie boss: Mutant_Run.fbx pre-rendered to sprites (5 directions x 8 run frames; the 3 right-facing directions are mirrored)
 // BSP = giant zombie sheet layout (cell size, anchor, output size); MV = movement-direction lookup used for the boss.
@@ -186,13 +186,13 @@ IMG.m.onload = () => {
   catch (e) { }
 };
 
-IMG.m.src = 'assets/images/giant-zombie-sheet.webp';
+IMG.m.src = IMAGE_FILES.giantZombie;
 
 // ROBO = player mage sheet layout (cell size and draw scale).
 const ROBO = { cw: 88, ch: 126, sc: .5 };
 
-IMG.r.src = 'assets/images/player-mage-sheet.png';
+IMG.r.src = IMAGE_FILES.mage;
 
-IMG.b.src = 'assets/images/sword-blade.png';
+IMG.b.src = IMAGE_FILES.swordBlade;
 
-IMG.h.src = 'assets/images/sword-hilt.png';
+IMG.h.src = IMAGE_FILES.swordHilt;

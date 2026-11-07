@@ -33,21 +33,21 @@ function hit(e, d, q) {
     S.tx.push({ x: e.x, y: e.y - 20, t: .6, s: d < 1 ? +d.toFixed(1) : Math.round(d) });
   }
   if (S.ls && !S.nols)
-    healP(a * .1 * S.ls);
+    healP(a * C.lifesteal * S.ls);
   if (e.hp <= 0) {
     if (e.boss)
       bossDown(e);
     S.gm.push({ x: e.x, y: e.y });
     S.kills++;
     sfx('kill');
-    if (S.ns && ++S.kc >= 10) {
+    if (S.ns && ++S.kc >= C.shieldKills) {
       S.kc = 0;
       S.sh = Math.min(S.ns, S.sh + 1);
     }
-    if (S.nd && Math.random() < .1 * S.nd)
-      deathBoom(e.x, e.y, dmg() * (2 + .5 * (S.nd - 1)), 80, e);
+    if (S.nd && Math.random() < C.deathBoomChance * S.nd)
+      deathBoom(e.x, e.y, dmg() * (C.deathBoomDmg + C.deathBoomDmgPerLvl * (S.nd - 1)), C.deathBoomR, e);
     if (S.nbl && e.bl)
-      deathBoom(e.x, e.y, dmg() * (1 + .1 * (S.nbl - 1)), 80, e);
+      deathBoom(e.x, e.y, dmg() * (C.bleedBoomDmg + C.bleedBoomPerLvl * (S.nbl - 1)), C.bleedBoomR, e);
   }
 }
 
@@ -71,7 +71,7 @@ function cdOf(n) {
 function swingStep(dt) {
   if (!(S.sw > 0))
     return;
-  const R = C.swordR * (1 + .5 * S.sr);
+  const R = C.swordR * (1 + C.swordRangePerLvl * S.sr);
   const p0 = 1 - S.sw / S.sdur;
   S.sw -= dt;
   const p1 = 1 - Math.max(S.sw, 0) / S.sdur;
@@ -91,13 +91,14 @@ function swingStep(dt) {
     S.sfa0 = S.sa - sd * C.arc;
     S.sfa1 = an(1);
   }
+  trSlash(S.x, S.y, R, mid, half);      // the blade also cuts down trees (trees.js)
   for (const e of S.en) {
     if (e.hp <= 0 || S.sh2.has(e))
       continue;
     const dx = e.x - S.x;
     const dy = e.y - S.y;
     const d = Math.hypot(dx, dy) || 1;
-    if (d > R + (e.hr || 16))
+    if (d > R + (e.hr || C.eHitR))
       continue;
     let da = Math.atan2(dy, dx) - mid;
     da = Math.atan2(Math.sin(da), Math.cos(da));
@@ -106,18 +107,18 @@ function swingStep(dt) {
     S.sh2.add(e);
     hit(e, dmg());
     if (S.nps && !e.boss) {
-      const q = C.pushBase * .1 * S.nps;
+      const q = C.pushBase * C.pushPerLvl * S.nps;
       e.x += dx / d * q;
       e.y += dy / d * q;
     }
     if (S.nbl && e.hp > 0)
-      e.bl = { d: dmg() * .01 * S.nbl, c: e.bl ? e.bl.c : 0 };
+      e.bl = { d: dmg() * C.bleedPerLvl * S.nbl, c: e.bl ? e.bl.c : 0 };
   }
 }
 
 // Sword weapon logic each frame: aims at the nearest enemy and starts a swing (every 3rd swing also throws a Swirl if owned).
 function sword(dt) {
-  const R = C.swordR * (1 + .5 * S.sr);
+  const R = C.swordR * (1 + C.swordRangePerLvl * S.sr);
   if (!(S.sw > 0) && S.t - (S.la === undefined ? -9 : S.la) > 1.2) {
     const tn = nearest(S.x, S.y, C.atkR);
     if (tn) {
@@ -138,7 +139,7 @@ function sword(dt) {
     d.t += dt;
     S.dtr.push({ x0, y0, x1: S.x, y1: S.y, t: .4 });
     for (const e of S.en)
-      if (e.hp > 0 && !d.seen.has(e) && (e.x - S.x) ** 2 + (e.y - S.y) ** 2 < (34 + (e.hr || 16)) ** 2) {
+      if (e.hp > 0 && !d.seen.has(e) && (e.x - S.x) ** 2 + (e.y - S.y) ** 2 < (34 + (e.hr || C.eHitR)) ** 2) {
         d.seen.add(e);
         hit(e, dmg());
       }
@@ -159,7 +160,7 @@ function sword(dt) {
       S.sh2 = new Set();
       sfx('swing');
       S.sc = (S.sc || 0) + 1;
-      if (S.swl && S.sc % 3 === 0)
+      if (S.swl && S.sc % C.swirlEvery === 0)
         launchSwirl(t);
     }
     else
@@ -188,7 +189,7 @@ function launchSwirl(t) {
     ph: 0,
     t: 0,
     D: C.swordR * C.swirlDist,
-    stay: S.swl,
+    stay: S.swl * C.swirlStayPerLvl,
     h: new Map()
   });
   sfx('dash');
@@ -198,7 +199,7 @@ function launchSwirl(t) {
 function swirlStep(dt) {
   if (!S.sws.length)
     return;
-  const R = C.swordR * (1 + .5 * S.sr);
+  const R = C.swordR * (1 + C.swordRangePerLvl * S.sr);
   const rad = R * C.swirlRad;
   for (const w of S.sws) {
     w.t += dt;
@@ -230,17 +231,18 @@ function swirlStep(dt) {
         w.dead = 1;
     }
     S.tr.push({ x: w.x, y: w.y, t: .25, m: .25, r: 5, c: RAR[PD.eq.r].rgb });
+    trSlashCircle(w.x, w.y, rad);        // the Swirl also cuts down trees (trees.js)
     for (const e of S.en) {
       if (e.hp <= 0)
         continue;
-      const q = rad + (e.hr || 16);
+      const q = rad + (e.hr || C.eHitR);
       if ((e.x - w.x) ** 2 + (e.y - w.y) ** 2 < q * q) {
         const lh = w.h.get(e);
         if (lh === undefined || S.t - lh >= C.swirlTick) {
           w.h.set(e, S.t);
           hit(e, dmg());
           if (S.nbl && e.hp > 0)
-            e.bl = { d: dmg() * .01 * S.nbl, c: e.bl ? e.bl.c : 0 };
+            e.bl = { d: dmg() * C.bleedPerLvl * S.nbl, c: e.bl ? e.bl.c : 0 };
         }
       }
     }

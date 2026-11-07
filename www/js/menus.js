@@ -54,53 +54,53 @@ const WG = [
     t: 'gun',
     d: 'Auto-fires projectiles at the nearest enemy in range.',
     b: [
-      ['Fire Rate +50%', 'Shoots 50% faster.'],
-      ['+1 Multishot', '+1 projectile per shot, up to level 5. The next pick is Multishot Overload: projectiles reset to 1 and your current damage is multiplied (x5, then x10, then x15).'],
+      ['Fire Rate +' + pc(C.rateAug) + '%', 'Shoots ' + pc(C.rateAug) + '% faster.'],
+      ['+1 Multishot', '+1 projectile per shot, up to level ' + C.overloadLvl + '. The next pick is Multishot Overload: projectiles reset to 1 and your current damage is multiplied (x' + C.overloadStep + ', then x' + C.overloadStep * 2 + ', then x' + C.overloadStep * 3 + ').'],
       ['+1 Projectile Bounce', 'Projectiles bounce to +1 more enemy on hit.']
     ],
     s: [
-      ['Arcane Missile', 'Hits have a +10% chance per level (max 10 levels) to launch a homing arcane missile that explodes for 100% damage.'],
-      ['Lifesteal +10%', 'Heal 10% of damage dealt per level. Excess healing becomes a homing projectile (damage = the excess).'],
-      ['Shield +1', 'Blocks 1 hit. +1 charge regained per 10 kills. Max charges +1 per level.'],
-      ['Move Speed +50%', '+50% movement speed per level.'],
-      ['Death Explosion', '10% chance per level for enemies to explode on death for 200% damage (+50% per level).'],
-      ['Magnet', 'EXP pickup range +100% per level.']
+      ['Arcane Missile', 'Hits have a +' + pc(C.missileChance) + '% chance per level (max ' + C.missileMaxLvl + ' levels) to launch a homing arcane missile that explodes for ' + pc(C.missileDmg) + '% damage.'],
+      ['Lifesteal +' + pc(C.lifesteal) + '%', 'Heal ' + pc(C.lifesteal) + '% of damage dealt per level. Excess healing becomes a homing projectile (damage = the excess).'],
+      ['Shield +1', 'Blocks 1 hit. +1 charge regained per ' + C.shieldKills + ' kills. Max charges +1 per level.'],
+      ['Move Speed +' + pc(C.moveSpeedPerLvl) + '%', '+' + pc(C.moveSpeedPerLvl) + '% movement speed per level.'],
+      ['Death Explosion', pc(C.deathBoomChance) + '% chance per level for enemies to explode on death for ' + pc(C.deathBoomDmg) + '% damage (+' + pc(C.deathBoomDmgPerLvl) + '% per level).'],
+      ['Magnet', 'EXP pickup range +' + pc(C.magnetPerLvl) + '% per level.']
     ]
   },
   {
     t: 'sword',
     d: 'Auto-slashes an arc at the nearest enemy in range.',
     b: [
-      ['Attack Speed +50%', 'Slash 50% faster, up to level 5. The next pick is Attack Speed Overload: speed resets and your current damage is multiplied (x5, then x10, then x15).'],
-      ['+50% Health Points', 'Max HP +50% per level.'],
-      ['Sword Range +50%', 'Slash range +50% per level (also widens Swirl\'s radius).']
+      ['Attack Speed +' + pc(C.rateAug) + '%', 'Slash ' + pc(C.rateAug) + '% faster, up to level ' + C.overloadLvl + '. The next pick is Attack Speed Overload: speed resets and your current damage is multiplied (x' + C.overloadStep + ', then x' + C.overloadStep * 2 + ', then x' + C.overloadStep * 3 + ').'],
+      ['+' + pc(C.hpAug) + '% Health Points', 'Max HP +' + pc(C.hpAug) + '% per level.'],
+      ['Sword Range +' + pc(C.swordRangePerLvl) + '%', 'Slash range +' + pc(C.swordRangePerLvl) + '% per level (also widens Swirl\'s radius).']
     ],
     s: [
-      ['Dance with Death', 'Damage you take becomes damage over time, split into 2 ticks per level (one tick every 0.5s).'],
-      ['Swirl', 'Every 3rd attack throws a spinning sword that flies out a fixed distance, hovers, then returns, hitting enemies in its radius every 0.3s. Hovers 1s, +1s per level. Radius is 50% of Sword Range.'],
-      ['Bleed', 'Slashes cause bleed until death: 1% of damage dealt per level, every 0.25s. Bleeding enemies also explode on death for 100% damage (+10% per level).'],
-      ['Magnet', 'EXP pickup range +100% per level.'],
-      ['Lifesteal +10%', 'Heal 10% of damage dealt per level. Excess healing becomes a homing projectile (damage = the excess).'],
-      ['Slash Push', 'Slashes push enemies back 10% per level.'],
-      ['Shield +1', 'Blocks 1 hit. +1 charge regained per 10 kills. Max charges +1 per level.']
+      ['Dance with Death', 'Damage you take becomes damage over time, split into ' + C.ddTicksPerLvl + ' ticks per level (one tick every ' + C.dwdTick + 's).'],
+      ['Swirl', 'Every ' + C.swirlEvery + 'th attack throws a spinning sword that flies out a fixed distance, hovers, then returns, hitting enemies in its radius every ' + C.swirlTick + 's. Hovers ' + C.swirlStayPerLvl + 's, +' + C.swirlStayPerLvl + 's per level. Radius is ' + pc(C.swirlRad) + '% of Sword Range.'],
+      ['Bleed', 'Slashes cause bleed until death: ' + pc(C.bleedPerLvl) + '% of damage dealt per level, every ' + C.bleedTick + 's. Bleeding enemies also explode on death for ' + pc(C.bleedBoomDmg) + '% damage (+' + pc(C.bleedBoomPerLvl) + '% per level).'],
+      ['Magnet', 'EXP pickup range +' + pc(C.magnetPerLvl) + '% per level.'],
+      ['Lifesteal +' + pc(C.lifesteal) + '%', 'Heal ' + pc(C.lifesteal) + '% of damage dealt per level. Excess healing becomes a homing projectile (damage = the excess).'],
+      ['Slash Push', 'Slashes push enemies back ' + pc(C.pushPerLvl) + '% per level.'],
+      ['Shield +1', 'Blocks 1 hit. +1 charge regained per ' + C.shieldKills + ' kills. Max charges +1 per level.']
     ]
   },
   {
     t: 'grimoire',
     d: 'Fires purple homing arcane orbs and can summon auto-firing turrets that follow you.',
     b: [
-      ['Fire Turret', 'A turret that auto-fires Fireballs: 100% damage plus ' + Math.round(100 * C.gmFireSplash) + '% damage in an AOE. Each level: +'+ Math.round(100 * C.gmFireD) + '% damage and +1% AOE radius.'],
-      ['Lightning Turret', 'A turret that zaps enemies in range for 100% damage and stuns them for 0.5s. Each level: +1 chain and +0.5s stun.'],
-      ['Ice Turret', 'A turret that shoots Ice: 75% damage in an AOE and slows enemies by 50%. Each level: stronger slow (stacks, never reaches 100%) and +1% AOE radius.']
+      ['Fire Turret', 'A turret that auto-fires Fireballs: 100% damage plus ' + Math.round(100 * C.gmFireSplash) + '% damage in an AOE. Each level: +'+ Math.round(100 * C.gmFireD) + '% damage and +' + pc(C.gmFireRPerLvl) + '% AOE radius.'],
+      ['Lightning Turret', 'A turret that zaps enemies in range for 100% damage and stuns them for ' + C.gmStunPerLvl + 's. Each level: +' + C.gmChainPerLvl + ' chain and +' + C.gmStunPerLvl + 's stun.'],
+      ['Ice Turret', 'A turret that shoots Ice: ' + pc(C.gmIceDmg) + '% damage in an AOE and slows enemies by ' + pc(C.gmSlow) + '%. Each level: stronger slow (stacks, never reaches 100%) and +' + pc(C.gmIceRPerLvl) + '% AOE radius.']
     ],
     s: [
-      ['Spellcaster', 'Attack speed +100% for your shots and turrets.'],
-      ['Lightning Step', 'Move speed +50% per level.'],
-      ['Enlightenment', 'Multiplies your current damage by 5.'],
-      ['Ice Shield', '+1 damage-instance shield, +1 charge per 10 kills. Max charges +1 per level.'],
-      ['Thunder Strike', '+10% chance per level (max 10 levels) on hit to call lightning from above (AOE, 100% damage).'],
-      ['Health Siphon', 'Drains the nearest enemies in attack range at your attack speed, one more target per level. Red orbs carry the drained HP back to you. Drain damage +50% per level. Excess healing becomes a homing projectile.'],
-      ['Magnet', 'EXP pickup range +100% per level.']
+      ['Spellcaster', 'Attack speed +' + pc(C.spellcaster) + '% for your shots and turrets.'],
+      ['Lightning Step', 'Move speed +' + pc(C.moveSpeedPerLvl) + '% per level.'],
+      ['Enlightenment', 'Multiplies your current damage by ' + C.gmEnlight + '.'],
+      ['Ice Shield', '+1 damage-instance shield, +1 charge per ' + C.shieldKills + ' kills. Max charges +1 per level.'],
+      ['Thunder Strike', '+' + pc(C.thunderChance) + '% chance per level (max ' + C.thunderMaxLvl + ' levels) on hit to call lightning from above (AOE, ' + pc(C.thunderDmg) + '% damage).'],
+      ['Health Siphon', 'Drains the nearest enemies in attack range at your attack speed, one more target per level. Red orbs carry the drained HP back to you. Drain damage +' + pc(C.siphonPerLvl) + '% per level. Excess healing becomes a homing projectile.'],
+      ['Magnet', 'EXP pickup range +' + pc(C.magnetPerLvl) + '% per level.']
     ]
   }
 ];
@@ -129,7 +129,17 @@ function menu() {
   S.state = 'menu';
   const o = $('ov');
   o.style.display = 'flex';
-  o.innerHTML = '<h1 style="font-size:64px">Limbo</h1><p>Highest level ' + best.lvl + ' · Highest kills ' + best.kills + '</p><button class="opt" id="pl"><b>Play</b><span>Drag to move · auto-fire · survive</span></button><button class="opt" id="inv"><b>Inventory</b><span>Equipped: ' + RAR[PD.eq.r].n + ' ' + TY[PD.eq.t].n + (PD.chests ? ' · 🎁 ' + PD.chests : '') + '</span></button><button class="opt" id="wg" style="border-color:#fff8"><b style="color:#fff">Weapon Guide</b><span>Weapons, basic and special augments</span></button><button class="opt" id="fb" style="border-color:#fff8"><b style="color:#fff">Feedback</b><span>Tell us what you think of the game</span></button><button class="opt" id="st" style="border-color:#fff8"><b style="color:#fff">Settings</b></button>';
+  // Full-screen art with the title and buttons on top (styles: .menu-card, .mbtn ... in css/style.css)
+  o.innerHTML = '<div class="menu-card">' +
+    '<h1 class="mtitle">Limbo</h1>' +
+    '<p class="msub">Oblivion Survivor</p>' +
+    '<button class="mbtn play" id="pl">Play</button>' +
+    '<button class="mbtn" id="inv">Inventory</button>' +
+    '<div class="mrow"><button class="mbtn" id="wg">Weapon Guide</button><button class="mbtn" id="fb">Feedback</button></div>' +
+    '<button class="mbtn" id="st">Settings</button>' +
+    '<button class="mbtn quit" id="quitBtn">Quit</button>' +
+    '<p class="minfo">Best: Lv ' + best.lvl + ' · ' + best.kills + ' kills · ' + RAR[PD.eq.r].n + ' ' + TY[PD.eq.t].n + (PD.chests ? ' · 🎁 ' + PD.chests : '') + '</p>' +
+    '</div>';
   $('wg').onclick = () => weaponGuide('menu');
   $('fb').onclick = () => feedbackScreen('menu');
   $('pl').onclick = () => {
@@ -138,7 +148,20 @@ function menu() {
   };
   $('inv').onclick = inventory;
   $('st').onclick = () => settings('menu');
+  $('quitBtn').onclick = quitGame;
 }
+
+// Quit button. A browser only lets a page close itself when a script opened it, so if the tab is still here
+// a moment later we show a goodbye screen instead. (In a packaged app, call the app's exit function here.)
+function quitGame() {
+  stopMusic();
+  window.close();
+  setTimeout(() => {
+    $('ov').innerHTML = '<h1>Thanks for playing!</h1><p>You can close this tab now.</p><button class="opt" id="quitBack"><b>Back to menu</b></button>';
+    $('quitBack').onclick = menu;
+  }, 150);
+}
+
 
 // Inventory screen state: invMsg = message line, invSel = selected slot.
 let invMsg = '';

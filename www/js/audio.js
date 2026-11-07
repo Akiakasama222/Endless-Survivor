@@ -14,18 +14,21 @@ let SB = null;
 
 let MB = null;
 
+// AB = forest ambience volume channel (separate from the music and the sound effects).
+let AB = null;
+
 let SWL = 0;
 
 // lastS remembers when each sound last played so very frequent sounds can be rate-limited.
 const lastS = {};
 
 // vol = saved volume levels (0-1) for sound effects and music.
-let vol = { sfx: 1, mus: 1 };
+let vol = { sfx: 1, mus: 1, amb: 1 };
 
 try {
   const v = JSON.parse(localStorage.getItem('esVol'));
   if (v && isFinite(v.sfx) && isFinite(v.mus))
-    vol = { sfx: +v.sfx, mus: +v.mus };
+    vol = { sfx: +v.sfx, mus: +v.mus, amb: isFinite(v.amb) ? +v.amb : 1 };
 }
 catch (e) { }
 
@@ -41,8 +44,10 @@ function ac() {
       AC = new (window.AudioContext || window.webkitAudioContext)();
       SB = AC.createGain();
       MB = AC.createGain();
+      AB = AC.createGain();
       SB.connect(AC.destination);
       MB.connect(AC.destination);
+      AB.connect(AC.destination);
       applyVol();
       loadSwing();
       loadSounds();
@@ -120,6 +125,7 @@ function sfx(n) {
     boom: 60,
     fexp: 60,
     stomp: 200,
+    treefall: 120,
     dexp: 80,
     ice: 60,
     tstrike: 100,
@@ -146,6 +152,9 @@ function sfx(n) {
     case 'kill':
       if (!playBuf('zombieDeath', .6, .95 + Math.random() * .1))
         tone(300, .1, 'sine', .07, 650);
+      break;
+    case 'treefall':
+      playBuf('fallingTree', .8, .94 + Math.random() * .12);
       break;
     case 'stomp':
       if (!playBuf('bossStomp', .7, 1)) {
@@ -223,7 +232,9 @@ let SWB = null;
 // Sound file table: key used by playBuf() -> file in assets/audio.
 const SOUND_FILES = {
   music: 'assets/audio/music.mp3',
+  ambience: 'assets/audio/Forrest Ambiance.mp3',
   bossStomp: 'assets/audio/boss-stomp.mp3',
+  fallingTree: 'assets/audio/falling-tree.mp3',
   playerHurt: 'assets/audio/player-hurt.mp3',
   deathExplosion: 'assets/audio/death-explosion.mp3',
   fireExplosion: 'assets/audio/fireball-explosion.mp3',
@@ -245,6 +256,13 @@ let MG = null;
 
 let musicWanted = 0;
 
+// AMB / AG = the playing forest ambience source and its gain; ambWanted = the ambience should be playing.
+let AMB = null;
+
+let AG = null;
+
+let ambWanted = 0;
+
 // Download every sound file once and decode it into BUF (runs after the first tap/click, when the browser allows audio)
 function loadSounds() {
   if (!AC)
@@ -257,6 +275,8 @@ function loadSounds() {
       BUF[k] = x;
       if (k === 'music' && musicWanted)
         startMusic();
+      if (k === 'ambience' && ambWanted)
+        startAmbience();
     }, () => { })).catch(() => { });
   }
 }
@@ -279,6 +299,7 @@ function playBuf(k, vol, rate) {
 
 // Starts the looping background music (does nothing if muted, not loaded yet, or already playing).
 function startMusic() {
+  startAmbience();
   musicWanted = 1;
   if (!snd || !AC || MUS || !BUF.music)
     return;
@@ -296,6 +317,7 @@ function startMusic() {
 
 // Stops the background music.
 function stopMusic() {
+  stopAmbience();
   musicWanted = 0;
   if (MUS) {
     try {
@@ -311,6 +333,39 @@ function stopMusic() {
 function duckMusic(d) {
   if (MG)
     MG.gain.value = d ? .12 : .35;
+  if (AG)
+    AG.gain.value = d ? .15 : .5;
+}
+
+// Starts the looping forest ambience on its own channel (own source, own volume slider), independent of the music track.
+// Called together with startMusic(); does nothing if muted, not loaded yet, or already playing.
+function startAmbience() {
+  ambWanted = 1;
+  if (!snd || !AC || AMB || !BUF.ambience)
+    return;
+  const s = AC.createBufferSource();
+  const gn = AC.createGain();
+  s.buffer = BUF.ambience;
+  s.loop = true;
+  gn.gain.value = .5;
+  s.connect(gn);
+  gn.connect(AB);
+  s.start();
+  AMB = s;
+  AG = gn;
+}
+
+// Stops the forest ambience.
+function stopAmbience() {
+  ambWanted = 0;
+  if (AMB) {
+    try {
+      AMB.stop();
+    }
+    catch (e) { }
+    AMB = null;
+    AG = null;
+  }
 }
 
 // Downloads and decodes the sword swing sound once.

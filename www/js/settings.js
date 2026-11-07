@@ -29,13 +29,14 @@ let devChN = 10;
 function devSettings(from) {
   const o = $('ov');
   o.style.display = 'flex';
-  o.innerHTML = '<div class="inv"><h1>Developer</h1><p style="font-size:15px;opacity:.8">Testing tools. They take effect on your next run.</p><div class="opt" style="border-color:#fff8"><b style="color:#fff;display:flex;justify-content:space-between;align-items:center">Starting level <input id="dn" type="number" min="1" max="500" value="' + DEV.lvl + '"></b><input id="ds" type="range" min="1" max="200" value="' + Math.min(200, DEV.lvl) + '"><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' + [1, 10, 14, 29, 49, 99, 149].map(v => '<button class="chip" data-v="' + v + '">' + v + '</button>').join('') + '</div></div><button class="opt" id="drw" style="border-color:#fff8"><b style="color:#fff">Rewards in dev runs: ' + (DEV.rew ? 'ON' : 'OFF') + '</b><span>When OFF, runs that start above level 1 give no chests and do not change your records or stats</span></button><div class="opt" style="border-color:#fff8"><b style="color:#fff;display:flex;justify-content:space-between;align-items:center">Give chests <input id="dcn" type="number" min="1" max="100000" value="' + devChN + '"></b><span>You have ' + PD.chests + ' chest' + (PD.chests === 1 ? '' : 's') + '. ' + devMsg + '</span><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="chip" id="dgc">Give chests</button></div></div><button class="opt" id="dpr" style="border-color:#ff6b6b"><b style="color:#ff6b6b">Player reset</b><span>Erase inventory, chests, stats and records</span></button><button class="opt" id="dbk" style="border-color:#fff8"><b style="color:#fff">Back</b></button></div>';
+  o.innerHTML = '<div class="inv"><h1>Developer</h1><p style="font-size:15px;opacity:.8">Testing tools. They take effect on your next run.</p><button class="opt" id="edm" style="border-color:#ffc94a"><b style="color:#ffc94a">Editor mode</b><span>Edit weapon damage, enemies, bosses, multipliers and augments</span></button><div class="opt" style="border-color:#fff8"><b style="color:#fff;display:flex;justify-content:space-between;align-items:center">Starting level <input id="dn" type="number" min="1" max="500" value="' + DEV.lvl + '"></b><input id="ds" type="range" min="1" max="200" value="' + Math.min(200, DEV.lvl) + '"><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' + [1, 10, 14, 29, 49, 99, 149].map(v => '<button class="chip" data-v="' + v + '">' + v + '</button>').join('') + '</div></div><button class="opt" id="drw" style="border-color:#fff8"><b style="color:#fff">Rewards in dev runs: ' + (DEV.rew ? 'ON' : 'OFF') + '</b><span>When OFF, runs that start above level 1 give no chests and do not change your records or stats</span></button><div class="opt" style="border-color:#fff8"><b style="color:#fff;display:flex;justify-content:space-between;align-items:center">Give chests <input id="dcn" type="number" min="1" max="100000" value="' + devChN + '"></b><span>You have ' + PD.chests + ' chest' + (PD.chests === 1 ? '' : 's') + '. ' + devMsg + '</span><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="chip" id="dgc">Give chests</button></div></div><button class="opt" id="dpr" style="border-color:#ff6b6b"><b style="color:#ff6b6b">Player reset</b><span>Erase inventory, chests, stats and records</span></button><button class="opt" id="dbk" style="border-color:#fff8"><b style="color:#fff">Back</b></button></div>';
   const set = v => {
     DEV.lvl = Math.max(1, Math.min(500, Math.round(+v) || 1));
     $('dn').value = DEV.lvl;
     $('ds').value = Math.min(200, DEV.lvl);
     saveDev();
   };
+  $('edm').onclick = () => editorScreen(from);
   $('ds').oninput = e => set(e.target.value);
   $('dn').onchange = e => set(e.target.value);
   o.querySelectorAll('.chip').forEach(b => b.onclick = () => set(b.dataset.v));
@@ -97,6 +98,8 @@ function applyVol() {
     SB.gain.value = q(vol.sfx);
   if (MB)
     MB.gain.value = q(vol.mus);
+  if (AB)
+    AB.gain.value = q(vol.amb);
 }
 
 // Saves the volume levels.
@@ -112,8 +115,7 @@ function settings(from) {
   const o = $('ov');
   o.style.display = 'flex';
   const pc = v => Math.round(v * 100);
-  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button><button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
-  // <button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level and test options</span></button>
+  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Ambience <span id="av">' + pc(vol.amb) + '%</span></b><input id="sr3" type="range" min="0" max="100" value="' + pc(vol.amb) + '"></div><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button>' + (DEV_TOOLS ? '<button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level, Editor mode and test options</span></button>' : '') + '<button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
   $('sr1').oninput = e => {
     vol.sfx = e.target.value / 100;
     $('sv').textContent = e.target.value + '%';
@@ -130,9 +132,16 @@ function settings(from) {
     applyVol();
   };
   $('sr2').onchange = saveVol;
+  $('sr3').oninput = e => {
+    vol.amb = e.target.value / 100;
+    $('av').textContent = e.target.value + '%';
+    applyVol();
+  };
+  $('sr3').onchange = saveVol;
   $('snt').onclick = () => toggleSnd(() => settings(from));
   $('sdv').onclick = () => saveData(from);
-  // $('dvb').onclick = () => devSettings(from);
+  if (DEV_TOOLS)
+    $('dvb').onclick = () => devSettings(from);
   $('bk2').onclick = () => {
     if (from === 'pause') {
       S.state = 'play';

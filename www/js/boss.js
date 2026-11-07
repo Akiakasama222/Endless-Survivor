@@ -119,7 +119,7 @@ function bossAI(e, dt, sm) {
     e.x += e.ux * sp * dt;
     e.y += e.uy * sp * dt;
     e.t -= dt;
-    if (!e.hitp && (S.x - e.x) ** 2 + (S.y - e.y) ** 2 < (e.hr + 14) ** 2) {
+    if (!e.hitp && (S.x - e.x) ** 2 + (S.y - e.y) ** 2 < (e.hr + C.pHitR + 4) ** 2) {
       e.hitp = 1;
       if (S.inv <= 0) {
         hurt(e.d);
@@ -165,7 +165,7 @@ function bossAI(e, dt, sm) {
       e.t = C.bossGap;
     }
   }
-  if ((e.st === 'walk' || e.st === 'rest') && d < e.hr + 10 && e.cd <= 0 && S.inv <= 0) {
+  if ((e.st === 'walk' || e.st === 'rest') && d < e.hr + C.pHitR && e.cd <= 0 && S.inv <= 0) {
     hurt(e.d);
     e.cd = 1;
     S.inv = .15;

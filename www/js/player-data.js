@@ -13,6 +13,11 @@ const RAR = [
   { n: 'Mythical 1', c: '#ffd23f', rgb: '255,210,63', d: 90, w: .5 }
 ];
 
+// The damage / drop weight of every tier before any Editor change (the Editor shows them as "default"), then the Editor's saved changes are applied (see tuning.js).
+const RAR_DEFAULTS = RAR.map(t => ({ d: t.d, w: t.w }));
+
+applyRarityEdits();
+
 // Mythical tiers have no cap: index 5 = Mythical 1, index 6 = Mythical 2, ... damage grows by 5 more per tier than the previous step (15, 20, 30, 45, 65, 90, 120, ...). Created on demand (chests never drop above Mythical 1).
 const MYTH_STEP = 5;
 
@@ -21,6 +26,8 @@ function ensureRar(n) {
   while (RAR.length <= n) {
     const k = RAR.length - 4;
     RAR.push({ n: 'Mythical ' + k, c: '#ffd23f', rgb: '255,210,63', d: 15 + 2.5 * RAR.length * (RAR.length + 1), w: 0 });
+    RAR_DEFAULTS.push({ d: RAR[RAR.length - 1].d, w: RAR[RAR.length - 1].w });
+    applyRarityEdits();
     try {
       if (SPR.br)
         SPR.br.push(SPR.br[5]);
@@ -117,7 +124,7 @@ BUL.onload = () => {
   }));
 };
 
-BUL.src = 'assets/images/staff-bullet.png';
+BUL.src = IMAGE_FILES.staffBullet;
 
 // Saves the player profile.
 function savePD() {
@@ -176,9 +183,9 @@ const nat = () => C.baseDmg + C.dmgLvl * (S.lvl - 1);
 
 const dmg = () => nat() + (S.db || 0);
 
-const nextDm = () => 5 * ((S.dk || 0) + 1);
+const nextDm = () => C.overloadStep * ((S.dk || 0) + 1);
 
-const rate = () => C.fireRate * (1 + C.rateAug * S.nr + (S.nsc || 0));
+const rate = () => C.fireRate * (1 + C.rateAug * S.nr + C.spellcaster * (S.nsc || 0));
 
 const shots = () => 1 + S.nm;
 

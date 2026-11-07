@@ -3,6 +3,69 @@
 // Moves the player, enemies and projectiles forward by dt seconds.
 // ======================================================================
 
+// ----------------------------------------------------------------------
+// UNSTUCK: an enemy that is OFF SCREEN and has hardly moved for a while (wedged between tree trunks) is hopped a short
+// way towards the player onto a free spot that is still off screen, so nobody ever sees it pop in.
+// ----------------------------------------------------------------------
+const UNSTUCK = {
+  time: 1.5,       // seconds without real progress (while off screen) before an enemy counts as stuck
+  moved: 20,       // moving further than this (world units) from the anchor point counts as progress
+  margin: 120,     // how far past the screen edge (px) an enemy must be to count as off screen (trees / sprites are tall)
+  hopMin: 80,      // shortest hop towards the player (world units)
+  hopMax: 260,     // longest hop
+  tries: 10        // spots tried per hop
+};
+
+// Is world point (x, y) outside the visible screen (plus a margin)? Uses the same iso projection as draw().
+function offScreen(x, y, m) {
+  const dx = x - S.x;
+  const dy = y - S.y;
+  return Math.abs(dx - dy) > W / 2 + m || Math.abs((dx + dy) * .5) > H / 2 + m;
+}
+
+// Called once per enemy per step (after it has moved). Does nothing for bosses, stunned enemies or enemies on screen.
+function unstick(e, dt) {
+  if (e.boss || e.stun > 0 || !offScreen(e.x, e.y, UNSTUCK.margin)) {
+    e.sk = 0;
+    e.ax = e.x;
+    e.ay = e.y;
+    return;
+  }
+  if (e.ax === undefined || (e.x - e.ax) ** 2 + (e.y - e.ay) ** 2 > UNSTUCK.moved ** 2) {
+    e.ax = e.x;       // it is making progress: move the anchor here and start counting again
+    e.ay = e.y;
+    e.sk = 0;
+    return;
+  }
+  const dx = S.x - e.x;
+  const dy = S.y - e.y;
+  const d = Math.hypot(dx, dy) || 1;
+  if (e.rg && d < 300) {   // a ranger holding its firing distance is meant to stand still
+    e.sk = 0;
+    return;
+  }
+  e.sk = (e.sk || 0) + dt;
+  if (e.sk < UNSTUCK.time)
+    return;
+  const ux = dx / d;
+  const uy = dy / d;
+  for (let i = 0; i < UNSTUCK.tries; i++) {
+    const hop = UNSTUCK.hopMin + Math.random() * (UNSTUCK.hopMax - UNSTUCK.hopMin);
+    const side = (Math.random() - .5) * 2 * hop * .6;
+    const nx = e.x + ux * hop - uy * side;
+    const ny = e.y + uy * hop + ux * side;
+    if (trHit(nx, ny, 16) || !offScreen(nx, ny, UNSTUCK.margin * .5))
+      continue;
+    e.x = nx;
+    e.y = ny;
+    e.ax = nx;
+    e.ay = ny;
+    e.sk = 0;
+    return;
+  }
+  e.sk = UNSTUCK.time * .5;   // no good spot this time (e.g. it would land on screen): look again in a moment
+}
+
 // One simulation step: moves everything forward by dt seconds (player, weapons, enemies, spawning, gems, level-ups).
 function update(dt) {
   S.t += dt;
@@ -13,7 +76,7 @@ function update(dt) {
   }
   else
     S.mv = 0;
-  const ps = C.pSpeed * (1 + .5 * S.nsp);
+  const ps = C.pSpeed * (1 + C.moveSpeedPerLvl * S.nsp);
   S.x += ix * ps * dt;
   S.y += iy * ps * dt;
   S.inv -= dt;
@@ -81,10 +144,10 @@ function update(dt) {
     for (const e of S.en) {
       if (e.hp <= 0 || b.h.has(e) || b.life <= 0)
         continue;
-      if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (2 + (e.hr || 16)) ** 2) {
+      if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (2 + (e.hr || C.eHitR)) ** 2) {
         hit(e, dmg());
         proc(e);
-        if (S.nmi && Math.random() < .1 * S.nmi && S.ms.length < 12)
+        if (S.nmi && Math.random() < C.missileChance * S.nmi && S.ms.length < 12)
           launchMissile(e);
         if (S.ex)
           boom(b.x, b.y, dmg(), 60, e);
@@ -140,13 +203,13 @@ function update(dt) {
     m.life -= dt;
     S.tr.push({ x: m.x, y: m.y, t: .3, m: .3, r: 6, c: '255,140,40' });
     if (bdHit(m.x, m.y)) {
-      fireBoom(m.x, m.y, dmg(), 70);
+      fireBoom(m.x, m.y, dmg() * C.missileDmg, 70);
       m.life = 0;
       continue;
     }
     for (const e of S.en)
-      if (e.hp > 0 && (e.x - m.x) ** 2 + (e.y - m.y) ** 2 < (6 + (e.hr || 16)) ** 2) {
-        fireBoom(m.x, m.y, dmg(), 70);
+      if (e.hp > 0 && (e.x - m.x) ** 2 + (e.y - m.y) ** 2 < (6 + (e.hr || C.eHitR)) ** 2) {
+        fireBoom(m.x, m.y, dmg() * C.missileDmg, 70);
         m.life = 0;
         break;
       }
@@ -243,8 +306,7 @@ function update(dt) {
       let ux = dx / d;
       let uy = dy / d;
       const w = bdSteer(e, S.x, S.y, dt, 12);
-      if (w) {
-        k = sm * sl * C.eSpeed * dt * 1.7;
+      if (w) {          // detour around a trunk at normal speed (no speed-up)
         ux = w[0];
         uy = w[1];
       }
@@ -265,7 +327,7 @@ function update(dt) {
         e.y += oy / k * 30 * dt;
       }
     }
-    if (d < 26 && e.cd <= 0 && S.inv <= 0) {
+    if (d < C.eHitR + C.pHitR && e.cd <= 0 && S.inv <= 0) {
       hurt(e.d);
       e.cd = 1;
       S.inv = .15;
@@ -286,10 +348,12 @@ function update(dt) {
   for (const e of S.en) {
     if (e.boss) {
       if (!(e.z > 0))
-        bdPush(e, (e.hr || 50) * .8, C.eSpeed * dt, S.x, S.y);
+        bdPush(e, (e.hr || 50) * .8, 0);
     }
-    else
-      bdPush(e, 12, C.eSpeed * dt * .7, S.x, S.y);
+    else {
+      bdPush(e, 12, 0);
+      unstick(e, dt);
+    }
   }
   for (const b of S.eb) {
     b.x += b.vx * dt;
@@ -301,7 +365,7 @@ function update(dt) {
       continue;
     }
     S.tr.push({ x: b.x, y: b.y, t: .35, m: .35, r: 7, c: '255,77,240' });
-    if ((b.x - S.x) ** 2 + (b.y - S.y) ** 2 < 256) {
+    if ((b.x - S.x) ** 2 + (b.y - S.y) ** 2 < (C.pHitR + 6) ** 2) {
       hurt(b.d);
       b.life = 0;
     }
@@ -312,7 +376,7 @@ function update(dt) {
     const dx = S.x - m.x;
     const dy = S.y - m.y;
     const d = Math.hypot(dx, dy);
-    if (d < 100 * (1 + S.nxp)) {
+    if (d < C.magnetBase * (1 + C.magnetPerLvl * S.nxp)) {
       m.x += dx / d * 260 * dt;
       m.y += dy / d * 260 * dt;
     }
@@ -346,6 +410,7 @@ function update(dt) {
   if (S.tr.length > 260)
     S.tr.splice(0, S.tr.length - 260);
   swingStep(dt);
+  chestStep(dt);       // hidden chests (chests.js)
   for (const f of S.sl) {
     f.t += dt;
     const fr = f.r * Math.min(1, f.t / .3);
@@ -364,12 +429,12 @@ function update(dt) {
         f.h.add(e);
         hit(e, f.dd);
         if (S.nps) {
-          const p = C.pushBase * .1 * S.nps;
+          const p = C.pushBase * C.pushPerLvl * S.nps;
           e.x += dx / d * p;
           e.y += dy / d * p;
         }
         if (S.nbl && e.hp > 0)
-          e.bl = { d: f.dd * .01 * S.nbl, c: e.bl ? e.bl.c : 0 };
+          e.bl = { d: f.dd * C.bleedPerLvl * S.nbl, c: e.bl ? e.bl.c : 0 };
       }
     }
   }

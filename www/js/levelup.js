@@ -7,23 +7,23 @@
 const SP = [
   [
     'nmi', 'Arcane Missile',
-    () => 'Staff hits have a chance to launch 1 arcane missile (explodes for 100% damage) · chance ' + Math.min(100, 10 * S.nmi) + '% → ' + Math.min(100, 10 * (S.nmi + 1)) + '%'
+    () => 'Staff hits have a chance to launch 1 arcane missile (explodes for ' + pc(C.missileDmg) + '% damage) · chance ' + pcl(C.missileChance, S.nmi) + '% → ' + pcl(C.missileChance, S.nmi + 1) + '%'
   ],
   [
-    'ls', 'Lifesteal +10%',
-    () => 'Heal ' + 10 * S.ls + '% → ' + 10 * (S.ls + 1) + '% of damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
+    'ls', 'Lifesteal +' + pc(C.lifesteal) + '%',
+    () => 'Heal ' + pcn(C.lifesteal, S.ls) + '% → ' + pcn(C.lifesteal, S.ls + 1) + '% of damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
   ],
-  ['ns', 'Shield +1', () => 'Blocks 1 hit, +1 charge per 10 kills · max ' + S.ns + ' → ' + (S.ns + 1)],
-  ['nsp', 'Move Speed +50%', () => '+' + 50 * S.nsp + '% → +' + 50 * (S.nsp + 1) + '%'],
-  ['nd', 'Death Explosion', () => 10 * (S.nd + 1) + '% chance enemies explode for ' + (200 + 50 * S.nd) + '% damage'],
-  ['nxp', 'Magnet', () => 'EXP pickup range +' + 100 * S.nxp + '% → +' + 100 * (S.nxp + 1) + '%']
+  ['ns', 'Shield +1', () => 'Blocks 1 hit, +1 charge per ' + C.shieldKills + ' kills · max ' + S.ns + ' → ' + (S.ns + 1)],
+  ['nsp', 'Move Speed +' + pc(C.moveSpeedPerLvl) + '%', () => '+' + pcn(C.moveSpeedPerLvl, S.nsp) + '% → +' + pcn(C.moveSpeedPerLvl, S.nsp + 1) + '%'],
+  ['nd', 'Death Explosion', () => pcl(C.deathBoomChance, S.nd + 1) + '% chance enemies explode for ' + pc(C.deathBoomDmg + C.deathBoomDmgPerLvl * S.nd) + '% damage'],
+  ['nxp', 'Magnet', () => 'EXP pickup range +' + pcn(C.magnetPerLvl, S.nxp) + '% → +' + pcn(C.magnetPerLvl, S.nxp + 1) + '%']
 ];
 
 // SW = Sword special augments.
 const SW = [
   [
     'ndd', 'Dance with Death',
-    () => 'Damage you take becomes damage over time, split into ' + (S.ndd ? 2 * S.ndd + ' → ' : '') + 2 * (S.ndd + 1) + ' ticks (every ' + C.dwdTick + 's)'
+    () => 'Damage you take becomes damage over time, split into ' + (S.ndd ? C.ddTicksPerLvl * S.ndd + ' → ' : '') + C.ddTicksPerLvl * (S.ndd + 1) + ' ticks (every ' + C.dwdTick + 's)'
   ],
   [
     'nds', 'Slash Dash',
@@ -31,27 +31,27 @@ const SW = [
   ],
   [
     'swl', 'Swirl',
-    () => S.swl ? 'Hover duration +1s (' + S.swl + 's → ' + (S.swl + 1) + 's) · every 3rd attack throws a spinning sword that flies out a fixed distance, hovers, then returns · radius: 50% of Sword Range (' + Math.round(.5 * C.swordR * (1 + .5 * S.sr)) + ')' : 'Every 3rd attack throws a spinning sword that flies out a fixed distance, hovers for 1s, then returns · radius: 50% of Sword Range (' + Math.round(.5 * C.swordR * (1 + .5 * S.sr)) + ')'
+    () => S.swl ? 'Hover duration +' + C.swirlStayPerLvl + 's (' + S.swl * C.swirlStayPerLvl + 's → ' + (S.swl + 1) * C.swirlStayPerLvl + 's) · every ' + C.swirlEvery + 'th attack throws a spinning sword that flies out a fixed distance, hovers, then returns · radius: ' + pc(C.swirlRad) + '% of Sword Range (' + Math.round(C.swirlRad * C.swordR * (1 + C.swordRangePerLvl * S.sr)) + ')' : 'Every ' + C.swirlEvery + 'th attack throws a spinning sword that flies out a fixed distance, hovers for ' + C.swirlStayPerLvl + 's, then returns · radius: ' + pc(C.swirlRad) + '% of Sword Range (' + Math.round(C.swirlRad * C.swordR * (1 + C.swordRangePerLvl * S.sr)) + ')'
   ],
   [
     'nbl', 'Bleed',
-    () => 'Slashes cause bleed until death: ' + (S.nbl + 1) + '% of damage dealt every ' + C.bleedTick + 's · bleeding enemies also explode on death for ' + (S.nbl ? (100 + 10 * (S.nbl - 1)) + '% → ' + (100 + 10 * S.nbl) : '100') + '% damage (+10% per level)'
+    () => 'Slashes cause bleed until death: ' + pcn(C.bleedPerLvl, S.nbl + 1) + '% of damage dealt every ' + C.bleedTick + 's · bleeding enemies also explode on death for ' + (S.nbl ? pc(C.bleedBoomDmg + C.bleedBoomPerLvl * (S.nbl - 1)) + '% → ' + pc(C.bleedBoomDmg + C.bleedBoomPerLvl * S.nbl) : pc(C.bleedBoomDmg)) + '% damage (+' + pc(C.bleedBoomPerLvl) + '% per level)'
   ],
-  ['nxp', 'Magnet', () => 'EXP pickup range +' + 100 * S.nxp + '% → +' + 100 * (S.nxp + 1) + '%'],
+  ['nxp', 'Magnet', () => 'EXP pickup range +' + pcn(C.magnetPerLvl, S.nxp) + '% → +' + pcn(C.magnetPerLvl, S.nxp + 1) + '%'],
   [
-    'ls', 'Lifesteal +10%',
-    () => 'Heal ' + 10 * S.ls + '% → ' + 10 * (S.ls + 1) + '% of damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
+    'ls', 'Lifesteal +' + pc(C.lifesteal) + '%',
+    () => 'Heal ' + pcn(C.lifesteal, S.ls) + '% → ' + pcn(C.lifesteal, S.ls + 1) + '% of damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
   ],
-  ['nps', 'Slash Push', () => 'Push ' + 10 * S.nps + '% → ' + 10 * (S.nps + 1) + '%'],
-  ['ns', 'Shield +1', () => 'Blocks 1 hit, +1 charge per 10 kills · max ' + S.ns + ' → ' + (S.ns + 1)]
+  ['nps', 'Slash Push', () => 'Push ' + pcn(C.pushPerLvl, S.nps) + '% → ' + pcn(C.pushPerLvl, S.nps + 1) + '%'],
+  ['ns', 'Shield +1', () => 'Blocks 1 hit, +1 charge per ' + C.shieldKills + ' kills · max ' + S.ns + ' → ' + (S.ns + 1)]
 ];
 
 // Builds the three basic augment buttons offered to a Sword player.
 function swordOpts() {
   return [
-    S.nr >= 5 ? ['nr', 'Attack Speed Overload', 'Resets to 1.0 slashes per second · current damage ×' + nextDm() + ' (' + dmg() + ' → ' + nat() * nextDm() + ')'] : ['nr', 'Attack Speed +50%', 'Level ' + (S.nr + 1) + '/5 · ' + rate().toFixed(1) + ' → ' + (rate() + C.fireRate * .5).toFixed(1) + ' slashes per second'],
+    S.nr >= C.overloadLvl ? ['nr', 'Attack Speed Overload', 'Resets to 1.0 slashes per second · current damage ×' + nextDm() + ' (' + dmg() + ' → ' + nat() * nextDm() + ')'] : ['nr', 'Attack Speed +' + pc(C.rateAug) + '%', 'Level ' + (S.nr + 1) + '/' + C.overloadLvl + ' · ' + rate().toFixed(1) + ' → ' + (rate() + C.fireRate * C.rateAug).toFixed(1) + ' slashes per second'],
     ['hpb', '+' + 100 * C.hpAug + '% Health Points', 'Max HP +' + 100 * C.hpAug * S.hpb + '% → +' + 100 * C.hpAug * (S.hpb + 1) + '% (' + maxHp() + ' → ' + Math.round((C.baseHp + C.hpLvl * (S.lvl - 1)) * (1 + C.hpAug * (S.hpb + 1))) + ')'],
-    ['sr', 'Sword Range +50%', 'Range +' + 50 * S.sr + '% → +' + 50 * (S.sr + 1) + '%']
+    ['sr', 'Sword Range +' + pc(C.swordRangePerLvl) + '%', 'Range +' + pcn(C.swordRangePerLvl, S.sr) + '% → +' + pcn(C.swordRangePerLvl, S.sr + 1) + '%']
   ].map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('');
 }
 
@@ -67,28 +67,28 @@ function shuf(a) {
 
 // Picks 3 random special augments for this weapon (skipping capped / one-time ones already owned) and returns their buttons.
 function specialHtml() {
-  return shuf((S.wp === 'sword' ? SW : S.wp === 'grimoire' ? SG : SP).filter(a => !(a[3] && S[a[0]]) && !(a[0] === 'nmi' && S.nmi >= 10) && !(a[0] === 'nts' && S.nts >= 10) && !(a[0] === 'nds' && !C.dashOn))).slice(0, 3).map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2]() + '</span></button>').join('');
+  return shuf((S.wp === 'sword' ? SW : S.wp === 'grimoire' ? SG : SP).filter(a => !(a[3] && S[a[0]]) && !(a[0] === 'nmi' && S.nmi >= C.missileMaxLvl) && !(a[0] === 'nts' && S.nts >= C.thunderMaxLvl) && !(a[0] === 'nds' && !C.dashOn))).slice(0, 3).map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2]() + '</span></button>').join('');
 }
 
 // Level 5 is the cap for Multishot (gun) and Attack Speed (sword): the next pick resets it and makes your CURRENT damage x5, then x10, then x15 (additive steps, not compounding). It is a one-time bonus. Player damage no longer scales with level (dmgLvl = 0).
 function overload() {
   S.dk = (S.dk || 0) + 1;
-  S.db = nat() * (5 * S.dk - 1);
+  S.db = nat() * (C.overloadStep * S.dk - 1);
 }
 
 // Applies the chosen augment key k to the run state S.
 function pickAug(k) {
-  if (k === 'nm' && S.nm >= 5) {
+  if (k === 'nm' && S.nm >= C.overloadLvl) {
     S.nm = 0;
     overload();
   }
-  else if (k === 'nr' && S.wp === 'sword' && S.nr >= 5) {
+  else if (k === 'nr' && S.wp === 'sword' && S.nr >= C.overloadLvl) {
     S.nr = 0;
     overload();
   }
   else if (k === 'ne') {
     S.ne++;
-    S.db = dmg() * 5 - nat();
+    S.db = dmg() * C.gmEnlight - nat();      // C.gmEnlight (config.js) = the damage multiplier of Enlightenment
   }
   else {
     S[k]++;
@@ -117,8 +117,8 @@ function levelUp() {
   o.style.display = 'flex';
   const opts = S.wp === 'sword' ? swordOpts() : S.wp === 'grimoire' ? grimoireOpts() :
     [
-      ['nr', 'Fire Rate +50%', r.toFixed(1) + ' → ' + (r + C.fireRate * C.rateAug).toFixed(1) + ' shots per second'],
-      S.nm >= 5 ? ['nm', 'Multishot Overload', 'Resets to 1 projectile · current damage ×' + nextDm() + ' (' + dmg() + ' → ' + nat() * nextDm() + ')'] : ['nm', '+1 Multishot', 'Level ' + (S.nm + 1) + '/5 · ' + shots() + ' → ' + (shots() + 1) + ' projectiles per shot'],
+      ['nr', 'Fire Rate +' + pc(C.rateAug) + '%', r.toFixed(1) + ' → ' + (r + C.fireRate * C.rateAug).toFixed(1) + ' shots per second'],
+      S.nm >= C.overloadLvl ? ['nm', 'Multishot Overload', 'Resets to 1 projectile · current damage ×' + nextDm() + ' (' + dmg() + ' → ' + nat() * nextDm() + ')'] : ['nm', '+1 Multishot', 'Level ' + (S.nm + 1) + '/' + C.overloadLvl + ' · ' + shots() + ' → ' + (shots() + 1) + ' projectiles per shot'],
       ['nb', '+1 Projectile Bounce', S.nb + ' → ' + (S.nb + 1) + ' bounces on hit']
     ].map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('');
   o.innerHTML = '<h1>Level ' + S.lvl + (sp ? ' · Special' : '') + '</h1><p>Choose ' + (sp ? 'a special ' : 'an ') + 'augment</p>' + (S.lvl % C.chestLvl === 0 && !S.dev ? '<p style="color:#ffc94a">🎁 You earned a chest! Open it from the Inventory.</p>' : '') + (sp ? specialHtml() : opts);

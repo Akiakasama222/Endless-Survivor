@@ -8,7 +8,7 @@ function boom(x, y, d, r, s) {
   sfx('boom');
   S.fx.push({ x, y, r, t: .3 });
   for (const o of S.en)
-    if (o !== s && o.hp > 0 && (o.x - x) ** 2 + (o.y - y) ** 2 < (r + (o.hr || 16) - 16) ** 2)
+    if (o !== s && o.hp > 0 && (o.x - x) ** 2 + (o.y - y) ** 2 < (r + (o.hr || C.eHitR) - 16) ** 2)
       hit(o, d);
 }
 
@@ -25,7 +25,7 @@ function hurt(d) {
     S.tx.push({ x: S.x, y: S.y - 54, t: .9, s: 'Survived!', c: '#ffd24a' });
   }
   if (S.ndd) {
-    const n = 2 * S.ndd;
+    const n = C.ddTicksPerLvl * S.ndd;
     S.dots.push({ per: d / n, n, t: C.dwdTick });
     S.hf = .3;
     sfx('hurt');
