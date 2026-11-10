@@ -1,17 +1,17 @@
 // ======================================================================
 // AUGMENTS, LEVEL UP & GAME OVER
-// Special augment tables for Staff / Sword, picking augments, level-up screen and game over.
+// Special augment tables for Rogue / Sword, picking augments, level-up screen and game over.
 // ======================================================================
 
-// SP = Staff special augments (every 10th level): [key, name, text-function, oneTimeOnly].
+// SP = Rogue special augments (every 10th level): [key, name, text-function, oneTimeOnly].
 const SP = [
   [
-    'nmi', 'Arcane Missile',
-    () => 'Staff hits have a chance to launch 1 arcane missile (explodes for ' + pc(C.missileDmg) + '% damage) · chance ' + pcl(C.missileChance, S.nmi) + '% → ' + pcl(C.missileChance, S.nmi + 1) + '%'
+    'nmi', 'Homing Explosive Knives',
+    () => 'Rogue hits have a chance to launch 1 homing explosive knife (explodes for ' + pc(C.missileDmg) + '% damage) · chance ' + pcl(C.missileChance, S.nmi) + '% → ' + pcl(C.missileChance, S.nmi + 1) + '%'
   ],
   [
-    'ls', 'Lifesteal +' + pc(C.lifesteal) + '%',
-    () => 'Heal ' + pcn(C.lifesteal, S.ls) + '% → ' + pcn(C.lifesteal, S.ls + 1) + '% of damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
+    'ls', 'Lifesteal +' + pc(C.killHeal) + '% on kill',
+    () => 'Killing an enemy heals ' + pcn(C.killHeal, S.ls) + '% → ' + pcn(C.killHeal, S.ls + 1) + '% of its max health · every instance of excess healing becomes a homing knife (damage = the excess)'
   ],
   ['ns', 'Shield +1', () => 'Blocks 1 hit, +1 charge per ' + C.shieldKills + ' kills · max ' + S.ns + ' → ' + (S.ns + 1)],
   ['nsp', 'Move Speed +' + pc(C.moveSpeedPerLvl) + '%', () => '+' + pcn(C.moveSpeedPerLvl, S.nsp) + '% → +' + pcn(C.moveSpeedPerLvl, S.nsp + 1) + '%'],
@@ -39,8 +39,8 @@ const SW = [
   ],
   ['nxp', 'Magnet', () => 'EXP pickup range +' + pcn(C.magnetPerLvl, S.nxp) + '% → +' + pcn(C.magnetPerLvl, S.nxp + 1) + '%'],
   [
-    'ls', 'Lifesteal +' + pc(C.lifesteal) + '%',
-    () => 'Heal ' + pcn(C.lifesteal, S.ls) + '% → ' + pcn(C.lifesteal, S.ls + 1) + '% of damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
+    'ls', 'Regeneration +' + pc(C.regenPct) + '%',
+    () => 'Regenerate ' + pcn(C.regenPct, S.ls) + '% → ' + pcn(C.regenPct, S.ls + 1) + '% of your max health per second'
   ],
   ['nps', 'Slash Push', () => 'Push ' + pcn(C.pushPerLvl, S.nps) + '% → ' + pcn(C.pushPerLvl, S.nps + 1) + '%'],
   ['ns', 'Shield +1', () => 'Blocks 1 hit, +1 charge per ' + C.shieldKills + ' kills · max ' + S.ns + ' → ' + (S.ns + 1)]
@@ -49,10 +49,10 @@ const SW = [
 // Builds the three basic augment buttons offered to a Sword player.
 function swordOpts() {
   return [
-    S.nr >= C.overloadLvl ? ['nr', 'Attack Speed Overload', 'Resets to 1.0 slashes per second · current damage ×' + nextDm() + ' (' + dmg() + ' → ' + nat() * nextDm() + ')'] : ['nr', 'Attack Speed +' + pc(C.rateAug) + '%', 'Level ' + (S.nr + 1) + '/' + C.overloadLvl + ' · ' + rate().toFixed(1) + ' → ' + (rate() + C.fireRate * C.rateAug).toFixed(1) + ' slashes per second'],
-    ['hpb', '+' + 100 * C.hpAug + '% Health Points', 'Max HP +' + 100 * C.hpAug * S.hpb + '% → +' + 100 * C.hpAug * (S.hpb + 1) + '% (' + maxHp() + ' → ' + Math.round((C.baseHp + C.hpLvl * (S.lvl - 1)) * (1 + C.hpAug * (S.hpb + 1))) + ')'],
-    ['sr', 'Sword Range +' + pc(C.swordRangePerLvl) + '%', 'Range +' + pcn(C.swordRangePerLvl, S.sr) + '% → +' + pcn(C.swordRangePerLvl, S.sr + 1) + '%']
-  ].map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('');
+    S.nr >= C.overloadLvl ? ['nr', 'Attack Speed Overload', 'Resets to 1.0 slashes per second · current damage ×' + nextDm() + ' (' + dmg() + ' → ' + nat() * nextDm() + ')', IMAGE_FILES.augSwordSpeed] : ['nr', 'Attack Speed +' + pc(C.rateAug) + '%', 'Level ' + (S.nr + 1) + '/' + C.overloadLvl + ' · ' + rate().toFixed(1) + ' → ' + (rate() + C.fireRate * C.rateAug).toFixed(1) + ' slashes per second', IMAGE_FILES.augSwordSpeed],
+    ['hpb', '+' + 100 * C.hpAug + '% Health Points', 'Max HP +' + 100 * C.hpAug * S.hpb + '% → +' + 100 * C.hpAug * (S.hpb + 1) + '% (' + maxHp() + ' → ' + Math.round((C.baseHp + C.hpLvl * (S.lvl - 1)) * (1 + C.hpAug * (S.hpb + 1))) + ')', IMAGE_FILES.augSwordHealth],
+    ['sr', 'Sword Range +' + pc(C.swordRangePerLvl) + '%', 'Range +' + pcn(C.swordRangePerLvl, S.sr) + '% → +' + pcn(C.swordRangePerLvl, S.sr + 1) + '%', IMAGE_FILES.augSwordRange]
+  ].map(a => '<button class="opt aug" data-k="' + a[0] + '"><img class="aicon" src="' + a[3] + '" alt=""><div><b>' + a[1] + '</b><span>' + a[2] + '</span></div></button>').join('');
 }
 
 // Fisher-Yates: every augment has an equal chance (the old sort(()=>Math.random()-.5) shuffle is biased against later entries)
@@ -70,7 +70,7 @@ function specialHtml() {
   return shuf((S.wp === 'sword' ? SW : S.wp === 'grimoire' ? SG : SP).filter(a => !(a[3] && S[a[0]]) && !(a[0] === 'nmi' && S.nmi >= C.missileMaxLvl) && !(a[0] === 'nts' && S.nts >= C.thunderMaxLvl) && !(a[0] === 'nds' && !C.dashOn))).slice(0, 3).map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2]() + '</span></button>').join('');
 }
 
-// Level 5 is the cap for Multishot (gun) and Attack Speed (sword): the next pick resets it and makes your CURRENT damage x5, then x10, then x15 (additive steps, not compounding). It is a one-time bonus. Player damage no longer scales with level (dmgLvl = 0).
+// Level 5 is the cap for Multi Knives (Rogue) and Attack Speed (sword): the next pick resets it and makes your CURRENT damage x5, then x10, then x15 (additive steps, not compounding). It is a one-time bonus. Player damage no longer scales with level (dmgLvl = 0).
 function overload() {
   S.dk = (S.dk || 0) + 1;
   S.db = nat() * (C.overloadStep * S.dk - 1);
@@ -117,10 +117,10 @@ function levelUp() {
   o.style.display = 'flex';
   const opts = S.wp === 'sword' ? swordOpts() : S.wp === 'grimoire' ? grimoireOpts() :
     [
-      ['nr', 'Fire Rate +' + pc(C.rateAug) + '%', r.toFixed(1) + ' → ' + (r + C.fireRate * C.rateAug).toFixed(1) + ' shots per second'],
-      S.nm >= C.overloadLvl ? ['nm', 'Multishot Overload', 'Resets to 1 projectile · current damage ×' + nextDm() + ' (' + dmg() + ' → ' + nat() * nextDm() + ')'] : ['nm', '+1 Multishot', 'Level ' + (S.nm + 1) + '/' + C.overloadLvl + ' · ' + shots() + ' → ' + (shots() + 1) + ' projectiles per shot'],
-      ['nb', '+1 Projectile Bounce', S.nb + ' → ' + (S.nb + 1) + ' bounces on hit']
-    ].map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('');
+      ['nr', 'Fire Rate +' + pc(C.rateAug) + '%', r.toFixed(1) + ' → ' + (r + C.fireRate * C.rateAug).toFixed(1) + ' shots per second', IMAGE_FILES.augRogueRate],
+      S.nm >= C.overloadLvl ? ['nm', 'Multi Knives Overload', 'Resets to 1 knife · current damage ×' + nextDm() + ' (' + dmg() + ' → ' + nat() * nextDm() + ')', IMAGE_FILES.augRogueMulti] : ['nm', '+1 Multi Knives', 'Level ' + (S.nm + 1) + '/' + C.overloadLvl + ' · ' + shots() + ' → ' + (shots() + 1) + ' knives per throw', IMAGE_FILES.augRogueMulti],
+      ['nb', '+1 Knife Bounce', S.nb + ' → ' + (S.nb + 1) + ' bounces on hit', IMAGE_FILES.augRogueBounce]
+    ].map(a => '<button class="opt aug" data-k="' + a[0] + '"><img class="aicon" src="' + a[3] + '" alt=""><div><b>' + a[1] + '</b><span>' + a[2] + '</span></div></button>').join('');
   o.innerHTML = '<h1>Level ' + S.lvl + (sp ? ' · Special' : '') + '</h1><p>Choose ' + (sp ? 'a special ' : 'an ') + 'augment</p>' + (S.lvl % C.chestLvl === 0 && !S.dev ? '<p style="color:#ffc94a">🎁 You earned a chest! Open it from the Inventory.</p>' : '') + (sp ? specialHtml() : opts);
   o.querySelectorAll('.opt').forEach(b => b.onclick = () => {
     sfx('click');

@@ -66,6 +66,19 @@ function unstick(e, dt) {
   e.sk = UNSTUCK.time * .5;   // no good spot this time (e.g. it would land on screen): look again in a moment
 }
 
+// Retro 8-way movement for enemies: turns a ground direction (ux, uy) into the nearest of the 8 SCREEN directions
+// (horizontal, vertical, diagonal) with the same screen speed in every direction, same as the player.
+function snapDir8(ux, uy) {
+  const sx = ux - uy;
+  const sy = (ux + uy) * .5;
+  if (!sx && !sy)
+    return [0, 0];
+  const a = Math.round(Math.atan2(sy, sx) / (Math.PI / 4)) * (Math.PI / 4);
+  const cx = Math.cos(a);
+  const cy = Math.sin(a);
+  return [.5 * cx + cy, cy - .5 * cx];
+}
+
 // One simulation step: moves everything forward by dt seconds (player, weapons, enemies, spawning, gems, level-ups).
 function update(dt) {
   S.t += dt;
@@ -87,16 +100,18 @@ function update(dt) {
   else if (S.cd <= 0) {
     const t = nearest(S.x, S.y, C.atkR);
     if (t) {
+      S.aimTg = t;      // the model keeps facing the enemy it just shot at
+      S.aimT = S.t;
       const a = Math.atan2(t.y - S.y, t.x - S.x);
       const n = shots();
-      // The Staff and the Grimoire fire different bullets: own speed, lifetime and look (the Grimoire's is a purple orb).
+      // The Bow and the Grimoire fire different shots: own speed, lifetime and look (the Grimoire's is a purple orb).
       const orb = S.wp === 'grimoire';
       const speed = orb ? C.gmShotSpeed : C.bulletSpeed;
       for (let i = 0; i < n; i++) {
         const o = a + (i - (n - 1) / 2) * 0.2;
         S.bl.push({
-          x: S.x,
-          y: S.y,
+          x: S.x + (orb ? 0 : Math.cos(o) * C.arrowStart),      // arrows start at the bow, a little in front of the archer
+          y: S.y + (orb ? 0 : Math.sin(o) * C.arrowStart),
           vx: Math.cos(o) * speed,
           vy: Math.sin(o) * speed,
           life: orb ? C.gmShotLife : C.bulletLife,
@@ -104,17 +119,19 @@ function update(dt) {
           h: new Set(),
           spd: speed,
           orb,
-          turn: orb ? C.gmShotTurn : 0,     // homing strength (Grimoire orbs home in on enemies, Staff bullets fly straight)
+          intro: orb ? Math.max(.05, Math.min(AB_INTRO, (Math.hypot(t.x - S.x, t.y - S.y) - (t.hr || C.eHitR)) / speed * .9)) : 0,     // the bolt's stretch-out time, shortened for close targets so it always finishes before the bolt arrives
+          turn: orb ? C.gmShotTurn : 0,     // homing strength (Grimoire orbs home in on enemies, Bow arrows fly straight)
           seek: orb ? C.gmShotSeek : 450
         });
       }
       S.cd = 1 / rate();
-      sfx('shoot');
+      S.st0 = S.t;      // the Bow archer plays its shoot animation from this moment
+      sfx(S.wp === 'gun' ? 'bow' : 'shoot');
     }
     else
       S.cd = 0;
   }
-  // bullets
+  // player arrows / orbs
   for (const b of S.bl) {
     const turn = b.turn || (S.hm ? 8 : 0);
     if (turn) {
@@ -135,17 +152,42 @@ function update(dt) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
+    b.age = (b.age || 0) + dt;      // the Grimoire bolt's stretch-out animation is timed from this
+    if (b.orb && C.gmShotWaveAmp) {
+      // Snake path: the real position (hit detection too) swings left and right of the straight / homing line, matching the wiggling animation.
+      // The sway fades in over the first moments so the bolt leaves the player cleanly, and it is applied as a change of offset so homing still works.
+      const sp = Math.hypot(b.vx, b.vy) || 1;
+      const px = -b.vy / sp;      // sideways direction (perpendicular to the flight direction)
+      const py = b.vx / sp;
+      const ramp = Math.min(1, b.age / .15);
+      const wo = -Math.sin(b.age * C.gmShotWaveFreq) * C.gmShotWaveAmp * ramp;      // minus sign = the swing starts on the same side as the animation (flip it if it ever looks reversed)
+      const dw = wo - (b.wo || 0);
+      b.wo = wo;
+      b.x += px * dw;
+      b.y += py * dw;
+    }
+    if (b.orb) {
+      // remember where the bolt has just been: the tail is drawn along this real (snaking) path
+      const tl = b.tail || (b.tail = []);
+      tl.push({ x: b.x, y: b.y, a: b.age });
+      while (tl.length > 2 && b.age - tl[0].a > C.gmShotTailT)
+        tl.shift();
+    }
     if (bdHit(b.x, b.y)) {
       b.life = 0;
+      if (b.orb)
+        arcaneHit(b.x, b.y);
       S.tr.push({ x: b.x, y: b.y, t: .3, m: .3, r: 10, c: '255,255,255' });
     }
-    else
-      S.tr.push({ x: b.x, y: b.y, t: .25, m: .25, r: 5, c: b.orb ? '176,106,255' : RAR[PD.eq.r].rgb });
+    else if (b.orb ? !ABI.naturalWidth : !TRL.br)      // Bow arrows use the trail image and the Grimoire bolt has its own tail in the sprite, so these round puffs are only the fallback
+      S.tr.push({ x: b.x, y: b.y, t: .25, m: .25, r: 5, c: b.orb ? '176,106,255' : RAR[PD.eq.r].rgb, z: b.orb ? 0 : C.arrowHeight - 18 });      // z lifts the Bow's glow trail to the arrow's height
     for (const e of S.en) {
       if (e.hp <= 0 || b.h.has(e) || b.life <= 0)
         continue;
       if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (2 + (e.hr || C.eHitR)) ** 2) {
         hit(e, dmg());
+        if (b.orb)
+          arcaneHit(b.x, b.y);
         proc(e);
         if (S.nmi && Math.random() < C.missileChance * S.nmi && S.ms.length < 12)
           launchMissile(e);
@@ -170,15 +212,30 @@ function update(dt) {
       }
     }
   }
+  if (C.gmShotTailFade > 0)
+    for (const b of S.bl)      // a Grimoire bolt that just hit or ran out leaves its tail behind to fade away
+      if (b.orb && b.life <= 0 && b.tail && b.tail.length > 1) {
+        if (S.at.length > 60)
+          S.at.shift();
+        S.at.push({ x: b.x, y: b.y, pts: b.tail.slice().reverse(), t: C.gmShotTailFade, m: C.gmShotTailFade });      // pts: newest (the head) first
+      }
   cull(S.bl, b => b.life > 0);
   if (S.wp === 'grimoire')
     grimoireStep(dt);
   dotStep(dt);
+  if (S.wp === 'sword' && S.ls && S.hp > 0)      // Sword 'Lifesteal' = Regeneration: heals a share of max health every second
+    S.hp = Math.min(maxHp(), S.hp + maxHp() * C.regenPct * S.ls * dt);
   xhStep(dt);
   sfStep(dt);
   for (const z of S.fe)
     z.t -= dt;
   cull(S.fe, z => z.t > 0);
+  for (const z of S.ah)
+    z.t -= dt;
+  cull(S.ah, z => z.t > 0);
+  for (const z of S.at)
+    z.t -= dt;
+  cull(S.at, z => z.t > 0);
   for (const z of S.de)
     z.t -= dt;
   cull(S.de, z => z.t > 0);
@@ -283,6 +340,10 @@ function update(dt) {
       e.stun -= dt;
       e.fl -= dt;
       e.cd -= dt;
+      if (e.stun <= 0 && e.frz) {      // thawed: the slow starts again with its full duration
+        e.frz = 0;
+        e.slow = C.gmSlowT;
+      }
       continue;
     }
     const sl = e.slow > 0 ? (e.slow -= dt, e.slowM || C.gmSlow) : 1;
@@ -310,6 +371,8 @@ function update(dt) {
         ux = w[0];
         uy = w[1];
       }
+      else if (C.enemySnap8 && d > C.eHitR + C.pHitR + 6)
+        [ux, uy] = snapDir8(ux, uy);      // enemies walk in straight horizontal / vertical / diagonal lines
       e.x += ux * k;
       e.y += uy * k;
     }

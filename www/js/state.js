@@ -59,9 +59,12 @@ const SPR = {
   })
 };
 
-// Resizes the canvas to the window (limits pixel ratio for performance).
+// Resizes the canvas to the window. Retro mode: with C.pixelScale above 1 the canvas has fewer pixels than the window (pixelScale 2 = half size, 3 = a third...)
+// and the browser stretches it with sharp pixels (see canvas in style.css). W / H stay the window size, so the game logic and every coordinate are unchanged.
+// With pixelScale 1 it renders at full sharpness (pixel ratio limited to 1.75 for performance).
 function rs() {
-  const d = Math.min(devicePixelRatio || 1, 1.75);
+  const ps = Math.max(1, C.pixelScale || 1);
+  const d = ps > 1 ? 1 / ps : Math.min(devicePixelRatio || 1, 1.75);
   W = innerWidth;
   H = innerHeight;
   cv.width = W * d;
@@ -74,8 +77,8 @@ addEventListener('resize', rs);
 rs();
 
 // S = the state of the current run. Main fields: x/y position, lvl, xp, hp, t (seconds), kills, state (play/paused/pick/over/menu), wp (weapon),
-// en (enemies), eb (enemy bullets), bl (player bullets), gm (xp gems), tx (floating damage numbers).
-// Augment level counters: nr fire rate, nm multishot, nb bounce, ls lifesteal, ns shield, nsp move speed, nd death explosion, nmi arcane missile, nxp magnet,
+// en (enemies), eb (enemy bullets), bl (player arrows / orbs), gm (xp gems), tx (floating damage numbers).
+// Augment level counters: nr fire rate, nm multishot, nb bounce, ls lifesteal, ns shield, nsp move speed, nd death explosion, nmi magic arrows, nxp magnet,
 // ndd dance with death, nds slash dash, swl swirl, nbl bleed, nps slash push, nsc spellcaster, ne enlightenment, nts thunder strike, nhs health siphon,
 // nf / nl / ni fire / lightning / ice turrets. See init() for the full list.
 let S;

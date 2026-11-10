@@ -6,8 +6,11 @@
 // Draws one frame of the game.
 function draw() {
   // Isometric view: the game logic stays on a flat ground plane; only the drawing is projected (2:1 diamond tiles, upright sprites)
-  const SX = (x, y) => W / 2 + ((x - S.x) - (y - S.y));
-  const SY = (x, y) => H / 2 + ((x - S.x) + (y - S.y)) * .5;
+  // World -> screen position. In retro mode (C.pixelScale above 1) positions snap to the low-resolution pixel grid so nothing shimmers between pixels.
+  const PS = Math.max(1, C.pixelScale || 1);
+  const snapPx = v => PS > 1 ? Math.round(v / PS) * PS : v;
+  const SX = (x, y) => snapPx(W / 2 + ((x - S.x) - (y - S.y)));
+  const SY = (x, y) => snapPx(H / 2 + ((x - S.x) + (y - S.y)) * .5);
   g.fillStyle = 'rgb(125, 172, 119)';
   g.fillRect(0, 0, W, H);
   const T = BIO.tile;   // ground tile size (biome.js)
@@ -48,7 +51,6 @@ function draw() {
     }
   g.stroke();
   }
-  craterDraw(g, W, H, SX, SY);      // scorch marks left by fireball explosions (craters.js)
   const hid = () => false;      // nothing can hide an effect any more (the buildings are gone)
   for (const m of S.gm) {
     const x = SX(m.x, m.y);
@@ -248,7 +250,30 @@ function draw() {
         }
       }
     }
-    if (e.stun > 0) {
+    if (e.frz && FZI.naturalWidth) {      // frozen: the ice block sprite grows around the enemy, holds, then cracks and shatters before the thaw
+      const age = S.t - (e.frz0 === undefined ? S.t - 1 : e.frz0);
+      let f = FZ_HOLD;
+      if (e.stun < FZ_SHATTER)
+        f = FZ_SHAT_FROM + Math.min(FZ_SHAT_N - 1, Math.floor((1 - Math.max(0, e.stun) / FZ_SHATTER) * FZ_SHAT_N));
+      else if (age < FZ_FORM)
+        f = Math.min(FZ_FORM_N - 1, Math.floor(age / FZ_FORM * FZ_FORM_N));
+      const k = FZ_SCALE;
+      g.imageSmoothingEnabled = false;      // pixel-art sheet: keep the pixels sharp
+      g.drawImage(FZI, (f % 8) * FZ_W, Math.floor(f / 8) * FZ_H, FZ_W, FZ_H, Math.round(x - FZ_AX * k), Math.round(yb - 2 - FZ_AY * k), Math.round(FZ_W * k), Math.round(FZ_H * k));
+      g.imageSmoothingEnabled = true;
+    }
+    else if (e.frz) {      // (fallback while the sprite loads) frozen: icy block over the enemy
+      g.fillStyle = 'rgba(160,225,255,.45)';
+      g.fillRect(x - 13, top, 26, Math.max(10, yb - top));
+      g.strokeStyle = '#e6f8ff';
+      g.lineWidth = 2;
+      g.strokeRect(x - 13, top, 26, Math.max(10, yb - top));
+      g.font = '14px ' + EF;
+      g.textAlign = 'center';
+      g.fillStyle = '#fff';
+      g.fillText('❄️', x, top - 12 + Math.sin(S.t * 6) * 2);
+    }
+    else if (e.stun > 0) {
       g.fillStyle = 'rgba(255,233,74,.28)';
       g.strokeStyle = '#fff3a0';
       g.lineWidth = 2;
@@ -269,6 +294,15 @@ function draw() {
       g.ellipse(x, yb - 2, 17, 8, 0, 0, 6.3);
       g.fill();
       g.stroke();
+    }
+    if (e.burn || e.tesla) {      // Burn / Tesla markers above the enemy
+      g.font = '12px ' + EF;
+      g.textAlign = 'center';
+      g.fillStyle = '#fff';
+      if (e.burn)
+        g.fillText('🔥', x - (e.tesla ? 8 : 0), top - 22 + Math.sin(S.t * 10) * 2);
+      if (e.tesla)
+        g.fillText('⚡', x + (e.burn ? 8 : 0), top - 22 + Math.cos(S.t * 12) * 2);
     }
     const mh = e.mx;
     if (e.hp < mh) {
@@ -326,17 +360,30 @@ function draw() {
       const R = C.atkR;
       const fl = S.sip > 1 / rate() - .12 ? .25 : 0;
       const pu = .5 + .5 * Math.sin(S.t * 3);
-      g.strokeStyle = 'rgba(255,90,90,' + (.18 + .08 * pu + fl) + ')';
-      g.lineWidth = 2;
-      g.setLineDash([10, 8]);
-      g.beginPath();
-      g.ellipse(px, py, R * 1.414, R * .707, 0, 0, 6.3);
-      g.stroke();
-      g.setLineDash([]);
+      // The dashed range ring is drawn once into its own small image and only its see-through level changes, because stroking a big dashed ellipse every frame is slow
+      const ring = siphonRing(R);
+      g.globalAlpha = .18 + .08 * pu + fl;
+      g.drawImage(ring, px - ring.width / 2, py - ring.height / 2);
+      g.globalAlpha = 1;
     }
     if (S.wp === 'grimoire')
       dT('i');
     {
+      // Sword slash sprite lying flat on the ground in the isometric view. fi = frame, a = swing direction (ground angle), sd = swing side (+1 / -1, mirrors the sprite).
+      // The sprite's "up" points along the swing direction and its "right" along the swing's start side; both are turned into ground directions and projected with
+      // the game's isometric formula (screen x = x - y, screen y = (x + y) / 2), so the slash is squashed exactly like the ground around it.
+      const slashFx = (fi, a, sd) => {
+        const k = (C.swordR * (1 + C.swordRangePerLvl * S.sr) + 10) / SLASH.r * SLASH.size;      // sprite pixels -> ground units (size 1 = outer edge of the slash at the sword range)
+        const nx = sd * Math.sin(a);
+        const ny = -sd * Math.cos(a);
+        const fx = Math.cos(a);
+        const fy = Math.sin(a);
+        g.save();
+        g.transform(k * (nx - ny), k * (nx + ny) * .5, -k * (fx - fy), -k * (fx + fy) * .5, px + SLASH.dist * (fx - fy), by + SLASH.dist * (fx + fy) * .5);      // dist moves the slash forward along the swing direction
+        g.rotate(-SLASH.rot);
+        g.drawImage(SLI, (fi % SLASH.cols) * SLASH.cw, Math.floor(fi / SLASH.cols) * SLASH.cw, SLASH.cw, SLASH.cw, -SLASH.cx, -SLASH.cy, SLASH.cw, SLASH.cw);
+        g.restore();
+      };
       const sweep = (a0, a1, al) => {
         const R2 = C.swordR * (1 + C.swordRangePerLvl * S.sr) + 10;
         const N = 24;
@@ -382,22 +429,40 @@ function draw() {
         if (S.sw > 0) {
           const sd = S.sd || 1;
           const p = 1 - S.sw / (S.sdur || .22);
-          sweep(S.sa - sd * C.arc, S.sa + sd * C.arc * (2 * p * p * (3 - 2 * p) - 1), 1);
+          const e = p * p * (3 - 2 * p);      // how far the blade has swept (same easing as the blade itself)
+          if (SLI.naturalWidth)
+            slashFx(e < .083 ? 0 : e < .31 ? 1 : e < .61 ? 2 : e < .89 ? 3 : 4, S.sa, sd);
+          else
+            sweep(S.sa - sd * C.arc, S.sa + sd * C.arc * (2 * p * p * (3 - 2 * p) - 1), 1);
         }
-        else if (S.sfade > 0)
-          sweep(S.sfa0, S.sfa1, S.sfade / .14);
+        else if (S.sfade > 0) {
+          if (SLI.naturalWidth)
+            slashFx(5 + Math.min(3, Math.floor((1 - S.sfade / .14) * 4)), S.sa, S.sd || 1);      // fade-out frames
+          else
+            sweep(S.sfa0, S.sfa1, S.sfade / .14);
+        }
       }
     }
     const dSpr = () => {
-      let th = S.fd === undefined ? Math.PI / 2 : S.fd;
-      {
-        const t = nearest(S.x, S.y, C.atkR);
-        if (t) {
-          const a = Math.atan2(t.y - S.y, t.x - S.x);
-          th = Math.atan2((Math.cos(a) + Math.sin(a)) * .5, Math.cos(a) - Math.sin(a));
-        }
+      // soft ground shadow under the character's feet (same style as the enemies' shadows, a little bigger)
+      g.fillStyle = 'rgba(0,0,0,.32)';
+      g.beginPath();
+      g.ellipse(px, py - 3, 15, 7, 0, 0, 6.3);
+      g.fill();
+      const th = facingAngle();
+      if (mage16Ready()) {
+        // 16-direction mage (Rogue and Grimoire): upper body turns to the enemy being aimed at (or the walking direction when nothing is in range), the legs follow the movement
+        drawMage16(g, px, py, th, S.mv && S.fd !== undefined ? S.fd : null);
+        return;
+      }
+      if (S.wp === 'gun' && ARC.aim && ARC.f) {
+        // Bow archer: upper body turns to the enemy being aimed at (or the walking direction when nothing is in range), the legs follow the movement
+        drawArcher(g, px, py - 4, th, S.mv && S.fd !== undefined ? S.fd : null);
+        return;
       }
       const fi = ((Math.round((th - Math.PI / 2) / (Math.PI / 4)) % 8) + 8) % 8;
+      if (drawMage3D(g, px, py, fi))      // 3D mage (run / cast / idle sheets); the old single-pose sprite below is only the fallback while they load
+        return;
       const dw = ROBO.cw * ROBO.sc;
       const dh = ROBO.ch * ROBO.sc;
       const bob = Math.sin(S.t * 4) * 2;
@@ -443,7 +508,7 @@ function draw() {
       }
     };
     const dGl = () => {
-      if (S.wp !== 'sword') {
+      if (S.wp === 'grimoire') {      // the rarity glow is only kept for the Grimoire (removed for the Bow)
         const t = nearest(S.x, S.y, C.atkR);
         let th = S.fd === undefined ? Math.PI / 2 : S.fd;
         if (t) {
@@ -540,6 +605,17 @@ function draw() {
     const R = z.r;
     const x = SX(z.x, z.y);
     const y = SY(z.x, z.y);
+    if (FRI.naturalWidth) {      // fire ring sprite sheet, played over the life of the blast and sized to its radius
+      const fi = Math.min(17, Math.floor((1 - z.t / FX_LIFE) * 18));
+      // the ring on the ground in the sprite is about FR_W x FR_H pixels at its biggest and centred on (FR_AX, FR_AY); it is stretched so that ring
+      // matches the blast's real ground circle (an ellipse 2.83 R wide and 1.414 R tall in this isometric view)
+      const sx = R * 2.83 / FR_W;
+      const sy = R * 1.414 / FR_H;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(FRI, (fi % 8) * 96, Math.floor(fi / 8) * 64, 96, 64, Math.round(x - FR_AX * sx), Math.round(y - FR_AY * sy), Math.round(96 * sx), Math.round(64 * sy));
+      g.imageSmoothingEnabled = true;
+      continue;
+    }
     const al = Math.min(1, z.t / .35);
     g.fillStyle = 'rgba(255,122,47,' + .22 * al + ')';
     g.strokeStyle = 'rgba(255,190,90,' + .95 * al + ')';
@@ -611,6 +687,24 @@ function draw() {
     g.setLineDash([]);
   }
   // sprite effects are depth-sorted together with the enemies and the player, so whatever stands in front of them is drawn over them
+  // Grimoire bolt tail: draws a tapered purple streak through P (screen points relative to the head, newest first) at opacity al.
+  const tailStroke = (P, al) => {
+    const n = P.length;
+    if (n < 2)
+      return;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (let pass = 0; pass < 2; pass++)
+      for (let i = 1; i < n; i++) {
+        const t = i / (n - 1);
+        g.strokeStyle = pass ? 'rgba(240,215,255,' + (.9 * (1 - t) * al) + ')' : 'rgba(150,70,255,' + (.5 * (1 - t) * al) + ')';
+        g.lineWidth = Math.max(.8, C.gmShotTailW * (1 - t) * (pass ? .45 : 1.4));
+        g.beginPath();
+        g.moveTo(P[i - 1][0], P[i - 1][1]);
+        g.lineTo(P[i][0], P[i][1]);
+        g.stroke();
+      }
+  };
   const dFx = e => {
     const z = e.z;
     if (hid(z.x, z.y, 10))
@@ -618,6 +712,16 @@ function draw() {
     const x = SX(z.x, z.y);
     const y = SY(z.x, z.y);
     if (e.fxk === 0) {
+      if (XSI.naturalWidth) {      // explosion sprite for Fire turret fireballs and Magic Arrows: plays once over the life of the blast, sized to its radius
+        const xf = Math.min(XS_N - 1, Math.floor((1 - z.t / FX_LIFE) * XS_N));
+        const xs = z.r * 2.83 / XS_FOOT * (C.gmFx / 1.5);
+        g.imageSmoothingEnabled = false;                           // pixel-art sheet: keep the pixels sharp
+        g.drawImage(XSI, (xf % XS_COLS) * XS_W, Math.floor(xf / XS_COLS) * XS_H, XS_W, XS_H, Math.round(x - XS_AX * xs), Math.round(y - XS_AY * xs), Math.round(XS_W * xs), Math.round(XS_H * xs));
+        g.imageSmoothingEnabled = true;
+        return;
+      }
+      if (FRI.naturalWidth)      // the new fire ring sprite (ground layer above) is the whole explosion: skip the old smoke and fireball cloud
+        return;
       const ag = 1 - z.t / .7;
       if (SMI.naturalWidth) {
         const sf = Math.min(17, Math.floor(ag * 18));
@@ -644,6 +748,27 @@ function draw() {
       const sc = z.r * 2.83 / 180;
       g.drawImage(DEI, (f % 4) * 190, Math.floor(f / 4) * 165, 190, 165, x - 90 * sc, y - 141 * sc, 190 * sc, 165 * sc);
     }
+    else if (e.fxk === 5) {
+      // arcane hit burst: plays once where a Grimoire bolt struck
+      if (!ABI.naturalWidth)
+        return;
+      const f = AB_HIT_FROM + Math.min(AB_HIT_N - 1, Math.floor((1 - z.t / AB_HIT_T) * AB_HIT_N));
+      const k = AB_SCALE;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(ABI, (f % 8) * AB_W, Math.floor(f / 8) * AB_H, AB_W, AB_H, Math.round(x - AB_HIT_X * k), Math.round(y - AB_LIFT - AB_HIT_Y * k), Math.round(AB_W * k), Math.round(AB_H * k));
+      g.imageSmoothingEnabled = true;
+    }
+    else if (e.fxk === 6) {
+      // fading tail of a Grimoire bolt that already hit / ended: the streak stays where it was and slowly fades out
+      const hx = SX(z.pts[0].x, z.pts[0].y);
+      const hy = SY(z.pts[0].x, z.pts[0].y);
+      if (hx < -80 || hx > W + 80 || hy < -80 || hy > H + 80)
+        return;
+      g.save();
+      g.translate(hx, hy - 18);
+      tailStroke(z.pts.map(q => [SX(q.x, q.y) - hx, SY(q.x, q.y) - hy]), Math.max(0, z.t / z.m));
+      g.restore();
+    }
     else if (e.fxk === 2) {
       if (!BSI.naturalWidth)
         return;
@@ -652,30 +777,62 @@ function draw() {
       g.drawImage(BSI, (f % 6) * 257, Math.floor(f / 6) * 173, 257, 173, x - 113.8 * k, y - 132.2 * k, 257 * k, 173 * k);
     }
     else if (e.fxk === 4) {
-      // main projectiles (Staff bullet / Grimoire orb): depth-sorted so trees and enemies in front of them cover them
-      const by = y - 18;
+      // main shots (Bow arrow / Grimoire orb): depth-sorted so trees and enemies in front of them cover them
+      const by = y - (z.orb ? 18 : C.arrowHeight);      // arrows leave the archer's chest / bow, not his feet
       if (x < -30 || x > W + 30 || by < -30 || by > H + 30)
         return;
       g.save();
       g.translate(x, by);
-      if (z.orb)
-        g.drawImage(SPR.orb, -20, -20, 40, 40);     // Grimoire: purple orb (round, so no rotation)
+      if (z.orb && ABF.naturalWidth) {
+        // Grimoire: the tail is drawn along the bolt's real recent path (so it snakes exactly like the bolt moves); only the glowing head comes from the sprite sheet.
+        const hx = SX(z.x, z.y);
+        const hy = SY(z.x, z.y);
+        const tl = z.tail || [];
+        const P = [[0, 0]];
+        for (let i = tl.length - 2; i >= 0; i--)      // newest to oldest (the last entry is the head itself)
+          P.push([SX(tl[i].x, tl[i].y) - hx, SY(tl[i].x, tl[i].y) - hy]);
+        tailStroke(P, 1);
+        g.imageSmoothingEnabled = false;      // pixel-art sheet: keep the pixels sharp
+        g.drawImage(ABF, 0, 0, AB_W, AB_H, -AB_FLY_HEAD_X[0] * AB_SCALE, -AB_FLY_HEAD_Y[0] * AB_SCALE, AB_W * AB_SCALE, AB_H * AB_SCALE);      // frame 0 = just the glowing head and a few sparks
+        g.imageSmoothingEnabled = true;
+      }
+      else if (z.orb && ABI.naturalWidth) {
+        // Grimoire: the arcane bolt sprite. The head sits on the bullet's spot and the tail streams behind it, turned the way the bolt flies.
+        const th = Math.atan2((z.vx + z.vy) * .5, z.vx - z.vy);
+        const age = z.age || 0;
+        const it = z.intro || AB_INTRO;      // this bolt's own stretch-out time (shorter when the target is close)
+        const f = age < it ? Math.min(8, Math.floor(age / it * 9)) : 8;
+        g.rotate(th);
+        g.imageSmoothingEnabled = false;      // pixel-art sheet: keep the pixels sharp
+        g.drawImage(ABI, f * AB_W, 0, AB_W, AB_H, -AB_HEAD_X[f] * AB_SCALE, -AB_HEAD_Y * AB_SCALE, AB_W * AB_SCALE, AB_H * AB_SCALE);
+        g.imageSmoothingEnabled = true;
+      }
+      else if (z.orb)
+        g.drawImage(SPR.orb, -20, -20, 40, 40);     // (fallback while the sprite loads) purple orb
       else {
-        g.rotate(Math.atan2((z.vx + z.vy) * .5, z.vx - z.vy));
-        g.drawImage(SPR.br[PD.eq.r], -20, -20, 40, 40);     // Staff: bullet tinted by the weapon's rarity
+        const th = Math.atan2((z.vx + z.vy) * .5, z.vx - z.vy);
+        if (TRL.br) {
+          // trail image (head up, fading downwards): turned so the head points the way the arrow flies and the tail streams behind it
+          g.save();
+          g.rotate(th + Math.PI / 2);
+          g.drawImage(TRL.br[PD.eq.r], -C.trailW / 2, C.trailStart, C.trailW, C.trailLen);
+          g.restore();
+        }
+        g.rotate(th);
+        g.drawImage(SPR.br[PD.eq.r], -20, -20, 40, 40);     // Bow: arrow tinted by the weapon's rarity
       }
       g.restore();
     }
     else {
       if (!ICI.naturalWidth)
         return;
-      const f = Math.min(7, Math.floor(z.a / .6 * 8));           // 8 frames in the ice sheet
+      const f = Math.min(ICE_FRAMES.length - 1, Math.floor(z.a / .85 * ICE_FRAMES.length));   // all frames of the ice sheet over its lifetime
       const fr = ICE_FRAMES[f];                                    // [x, y, w, h, anchorX, anchorY] - see grimoire.js
       const k = z.r * 2.83 / ICE_FOOT;
-      const p = z.a > .6 ? Math.min(1, (z.a - .6) / .3) : 0;
+      const p = z.a > .8 ? Math.min(1, (z.a - .8) / .1) : 0;
       g.globalAlpha = (1 - p) * C.gmIceA;
       g.imageSmoothingEnabled = false;                             // pixel-art sheet: keep the pixels sharp
-      g.drawImage(ICI, fr[0], fr[1], fr[2], fr[3], Math.round(x - fr[4] * k), Math.round(y - fr[5] * k), Math.round(fr[2] * k), Math.round(fr[3] * k));
+      g.drawImage(ICI, fr[0], fr[1], fr[2], fr[3], Math.round(x - fr[4] * k), Math.round(y - fr[5] * k * ICE_Y), Math.round(fr[2] * k), Math.round(fr[3] * k * ICE_Y));
       g.imageSmoothingEnabled = true;
       g.globalAlpha = 1;
     }
@@ -691,6 +848,10 @@ function draw() {
     fxs.push({ x: z.x, y: z.y, fxk: 3, z });
   for (const z of S.bl)
     fxs.push({ x: z.x, y: z.y, fxk: 4, z });
+  for (const z of S.ah)
+    fxs.push({ x: z.x, y: z.y, fxk: 5, z });
+  for (const z of S.at)
+    fxs.push({ x: z.x, y: z.y, fxk: 6, z });
   // procedural trees join the depth-sorted list, so they hide whatever stands behind them
   trCollect(SX, SY, W, H, S.x, S.y, fxs);
   chCollect(SX, SY, W, H, fxs);       // hidden chests (chests.js)
@@ -737,7 +898,7 @@ function draw() {
     if (hid(m.x, m.y, 18))
       continue;
     g.save();
-    g.translate(SX(m.x, m.y), SY(m.x, m.y) - 18);
+    g.translate(SX(m.x, m.y), SY(m.x, m.y) - C.arrowHeight);      // same height as the Bow arrows
     g.rotate(Math.atan2((m.vx + m.vy) * .5, m.vx - m.vy) + C.rocketRot);
     g.drawImage(SPR.r, -24, -24, 48, 48);
     g.restore();
@@ -955,4 +1116,51 @@ function hbDraw(g, SX, SY) {
     if (e.hp > 0)
       ring(e.x, e.y, e.hr || C.eHitR, e.boss ? '255,160,40' : '255,70,70');
   ring(S.x, S.y, C.pHitR, '60,230,255');
+}
+
+// Direction the player model faces (screen angle, always a multiple of 45 degrees).
+// To stop the model from flickering between directions, the aimed enemy is kept for a moment instead of re-picking the nearest every frame,
+// and the facing only switches once the target is clearly past the edge of the current direction (hysteresis).
+function facingAngle() {
+  const R = C.atkR;
+  let tg = S.aimTg;
+  if (!tg || tg.hp <= 0 || (tg.x - S.x) ** 2 + (tg.y - S.y) ** 2 > R * R * 1.3 || S.t - S.aimT > C.aimHold) {
+    tg = nearest(S.x, S.y, R) || null;
+    S.aimTg = tg;
+    S.aimT = S.t;
+  }
+  let th = S.fd === undefined ? Math.PI / 2 : S.fd;
+  if (tg) {
+    const a = Math.atan2(tg.y - S.y, tg.x - S.x);
+    th = Math.atan2((Math.cos(a) + Math.sin(a)) * .5, Math.cos(a) - Math.sin(a));
+  }
+  const step = Math.PI / (mage16Ready() ? 8 : 4);      // the 16-direction mage turns in 22.5 degree steps, the other characters in 45 degree steps
+  if (S.hk === undefined)
+    S.hk = Math.round(th / step);
+  else {
+    const df = Math.atan2(Math.sin(th - S.hk * step), Math.cos(th - S.hk * step));
+    if (Math.abs(df) > step * C.aimMargin)
+      S.hk = Math.round(th / step);
+  }
+  return S.hk * step;
+}
+
+// Health Siphon range ring: a dashed ellipse for attack range R, drawn once and reused every frame (rebuilt only if the range changes).
+let SIP_RING = null;
+
+function siphonRing(R) {
+  if (SIP_RING && SIP_RING.R === R)
+    return SIP_RING.c;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(R * 2.828) + 8;
+  c.height = Math.ceil(R * 1.414) + 8;
+  const x = c.getContext('2d');
+  x.strokeStyle = 'rgb(255,90,90)';
+  x.lineWidth = 2;
+  x.setLineDash([10, 8]);
+  x.beginPath();
+  x.ellipse(c.width / 2, c.height / 2, R * 1.414, R * .707, 0, 0, 6.3);
+  x.stroke();
+  SIP_RING = { R, c };
+  return c;
 }

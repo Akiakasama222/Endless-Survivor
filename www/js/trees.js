@@ -27,7 +27,8 @@ const TR = {
   boomFade: .25,       // seconds a tree caught in an explosion takes to vanish
   stumpW: 56,          // on-screen width (px) of a size-1.0 stump (the stump sprite is auto-cropped to its visible part)
   stumpSink: .1,       // how far the stump sinks into the ground (fraction of its height)
-  seed: 1337,
+  random: true,        // true = every new run grows a different forest (and hides its chests somewhere else); false = always the same forest from `seed`
+  seed: 1337,          // forest seed (used as is when `random` is false)
   // sprite geometry (in sprite pixels): foot anchor, canopy ellipse, trunk box
   W: 298, H: 320, ax: 150, ay: 305,
   cx: 148, cy: 95, rx: 130, ry: 92,
@@ -43,6 +44,7 @@ trTrunk.normal.src = 'assets/images/Tree Trunk.png';
 trTrunk.dead.src = 'assets/images/DeadTree Trunk.png';
 const trCrop = {};
 let trRunS = null;      // the run (S) the cached chunks belong to
+let trSeed = 1337;      // the forest seed of the current run (a new random one for every run while TR.random is true)
 let trTime = 0;
 let trWindPush = 0;
 let trGust = 0;
@@ -64,12 +66,13 @@ const trChunk = (ci, cj) => {
   if (trRunS !== S) {          // new run: forget cached trees (and so which ones were cut / blown up)
     trCache.clear();
     trRunS = S;
+    trSeed = TR.random ? 1 + Math.floor(Math.random() * 1e9) : TR.seed;
   }
   const key = ci + ',' + cj;
   let c = trCache.get(key);
   if (c)
     return c;
-  const rnd = trRng(Math.imul(ci, 374761393) ^ Math.imul(cj, 668265263) ^ TR.seed);
+  const rnd = trRng(Math.imul(ci, 374761393) ^ Math.imul(cj, 668265263) ^ trSeed);
   c = [];
   const groveList = [];
   const roll = rnd();

@@ -11,14 +11,33 @@ const IMAGE_FILES = {
   zombie: 'assets/images/zombie-sheet.png',
   giantZombie: 'assets/images/giant-zombie-sheet.webp',
   mage: 'assets/images/player-mage-sheet.png',
+  mageRun: 'assets/images/mage3d-run.png',      // 3D mage run cycle (8 facings x 15 frames, 20 fps)
+  mageCast: 'assets/images/mage3d-cast.png',    // 3D mage cast (8 facings x 24 frames, 20 fps); column 0 doubles as the idle pose
+  mage16Cast: 'assets/images/mage16-cast.png',               // 16-direction mage, UPPER body: Standing_1H_Magic_Attack_01 (24 frames, 16 rows); column 0 is the aiming / idle pose
+  mage16RunForward: 'assets/images/mage16-run-forward.png',  // 16-direction mage, LOWER body: Standing_Run_Forward (11 frames @ 15 fps, 16 rows)
+  mage16RunRight: 'assets/images/mage16-run-right.png',      // Standing_Run_Right (12 frames)
+  mage16RunBack: 'assets/images/mage16-run-back.png',        // Standing_Run_Back (10 frames)
+  mage16RunLeft: 'assets/images/mage16-run-left.png',        // Standing_Run_left (12 frames)
   swordBlade: 'assets/images/sword-blade.png',
   swordHilt: 'assets/images/sword-hilt.png',
-  staffBullet: 'assets/images/staff-bullet.png',
+  arrow: 'assets/images/rogue-knife.png',      // the Rogue's thrown knife (was bow-arrow.png); drawn pointing right
+  trail: 'assets/images/Main Projectile Trail.png',
+  archerAim: 'assets/images/aim_aim_sheet_upper_body.png',
+  archerShoot: 'assets/images/aim_shoot_sheet_upper_body.png',
+  archerWalkForward: 'assets/images/aim_walk_forward_sheet_lower_body.png',
+  archerWalkBack: 'assets/images/aim_walk_back_sheet_lower_body.png',
+  archerWalkLeft: 'assets/images/aim_walk_left_sheet_lower_body.png',
+  archerWalkRight: 'assets/images/aim_walk_right_sheet_lower_body.png',
+  explosionSmoke: 'assets/images/fx-explosion-smoke.png',
   fireballSmoke: 'assets/images/fx-fireball-smoke.png',
+  fireRing: 'assets/images/fx-fire-ring.png',
   fireballExplosion: 'assets/images/fx-fireball-explosion.png',
   deathExplosion: 'assets/images/fx-death-explosion.png',
   bossStomp: 'assets/images/fx-boss-stomp.webp',
   iceBurst: 'assets/images/fx-ice-burst.png',
+  arcaneBolt: 'assets/images/fx-arcane-bolt.png',
+  arcaneFly: 'assets/images/fx-arcane-fly.png',
+  frozenBlock: 'assets/images/fx-frozen.png',
   menuBackground: 'assets/images/menu-background.webp',
   grassGreen: 'assets/images/GreenGrass.png',
   grassLess: 'assets/images/lessGreenGrass.png',
@@ -36,7 +55,17 @@ const IMAGE_FILES = {
   explosionCrater: 'assets/images/Explosion crater.png',
   chest: 'assets/images/Chest.png',
   treeTrunk: 'assets/images/Tree Trunk.png',
-  deadTreeTrunk: 'assets/images/DeadTree Trunk.png'
+  deadTreeTrunk: 'assets/images/DeadTree Trunk.png',
+  augSwordSpeed: 'assets/images/aug-sword-attack-speed.png',
+  augSwordHealth: 'assets/images/aug-sword-health.png',
+  augSwordRange: 'assets/images/aug-sword-range.png',
+  swordSlash: 'assets/images/fx-sword-slash.png',
+  augRogueRate: 'assets/images/aug-rogue-fire-rate.png',
+  augRogueMulti: 'assets/images/aug-rogue-multi-knives.png',
+  augRogueBounce: 'assets/images/aug-rogue-bounce.png',
+  augGrimoireFire: 'assets/images/aug-grimoire-fire.png',
+  augGrimoireLightning: 'assets/images/aug-grimoire-lightning.png',
+  augGrimoireIce: 'assets/images/aug-grimoire-ice.png'
 };
 
 (function runLoadingScreen() {

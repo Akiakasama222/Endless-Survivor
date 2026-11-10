@@ -1,6 +1,6 @@
 // ======================================================================
 // HIDDEN CHESTS
-// Some tree groves hide a chest (decided together with the trees, so the same seed always has the same chests).
+// Some tree groves hide a chest (decided together with the trees, so within one run the chests stay put; every run grows a new forest, see TR.random in trees.js).
 // A chest is placed where trees in front of it cover it on screen. Stand close to it for CH.time seconds to take it:
 // it adds one chest to your inventory (open it there, like the level chests). Leaving the ring slowly undoes the progress.
 // Cutting or blowing up the trees in front of it reveals it. Taken chests are remembered for the run (S.chGot).

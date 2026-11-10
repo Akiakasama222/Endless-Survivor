@@ -10,7 +10,8 @@
 const BIO = {
   cell: 2500,        // size of one noise cell in world units (bigger = larger regions of one colour)
   clear: 2500,       // everything this close to the world origin (the start) stays green
-  seed: 4242,
+  random: true,      // true = every new run gets a different grass map (a new seed is picked in init()); false = always the same map from `seed`
+  seed: 4242,        // grass map seed (replaced at the start of each run while `random` is true)
   warp: 700,         // how far borders are bent sideways (world units); bigger = more winding
   jag: .12,          // roughness of the borders: 0 = smooth, higher = more jagged and speckled
   tile: 100,          // size of one ground tile in world units (was 80; smaller = smaller grass tiles on screen)
@@ -150,7 +151,21 @@ const bioDrawGround = (g, W, H, SX, SY, T, i0, i1, j0, j1) => {
       const ay = SY(i * T, j * T);
       if (ax < -T || ax > W + T || ay < -T || ay > H)
         continue;
-      const d = bioTile(i, j, T, fw);
+      let d = bioTile(i, j, T, fw);
+      let burnImg = null;
+      let burnA = 1;
+      const bn = S.bt && S.bt.get(i * 4194304 + j);
+      if (bn) {
+        burnA = Math.min(1, (S.t - bn.t0) / BURN.fadeIn);
+        if (burnA >= 1)
+          d = { st: bn.st, other: -1, al: 0 };               // fully burnt: just that grass stage
+        else {
+          d = { st: bn.from, other: -1, al: 0 };             // still burning: the previous stage, with the next one fading in over it
+          burnImg = bioGrassImg[bn.st];
+          if (!burnImg.naturalWidth)
+            burnImg = null;
+        }
+      }
       let img = bioGrassImg[d.st];
       if (!img.naturalWidth)
         img = bioGrassImg[0];
@@ -183,6 +198,11 @@ const bioDrawGround = (g, W, H, SX, SY, T, i0, i1, j0, j1) => {
             g.drawImage(img2, a * w, b * h);
             g.globalAlpha = 1;
           }
+          if (burnImg) {
+            g.globalAlpha = burnA;
+            g.drawImage(burnImg, a * w, b * h);
+            g.globalAlpha = 1;
+          }
           if (n > 1)
             g.restore();
         }
@@ -191,3 +211,41 @@ const bioDrawGround = (g, W, H, SX, SY, T, i0, i1, j0, j1) => {
   g.restore();
   return true;
 };
+
+// ---- Burnt ground: every fireball explosion burns the ground tiles inside it one grass step further ----
+// Nothing is drawn over the ground. A blast moves every ground tile inside it one stage down the grass scale (S.bt: tile key -> { st, from, t0 }):
+// 1st hit: green -> less green, 2nd hit: -> yellow-green, then yellow, more yellow and finally dead grass. A tile that is already dead stays dead.
+// The edge of the area is ragged (tile by tile), not a clean circle. The change fades in over BURN.fadeIn seconds. Burnt tiles stay for the whole run
+// (S.bt is reset with every new run).
+const BURN = {
+  fadeIn: .8,        // seconds a tile takes to fade to its next stage
+  step: 1,           // grass stages a tile moves on per explosion that hits it
+  rag: .25,          // raggedness of the edge: each tile's distance is changed by up to +/- this share of the radius
+  max: 6000          // most burnt tiles kept (the oldest are dropped first)
+};
+
+const bioScorchAdd = (x, y, r) => {
+  const bt = S.bt || (S.bt = new Map());
+  const T = BIO.tile;
+  const fw = Math.max(0, Math.min(.5, BIO.fade));
+  const last = BIO.grass.length - 1;
+  const R = r * (1 + BURN.rag);
+  for (let i = Math.floor((x - R) / T); i <= Math.floor((x + R) / T); i++)
+    for (let j = Math.floor((y - R) / T); j <= Math.floor((y + R) / T); j++) {
+      const d = Math.hypot((i + .5) * T - x, (j + .5) * T - y) / r + (bioHash(i + 31, j + 57) - .5) * 2 * BURN.rag;
+      if (d > 1)
+        continue;
+      const key = i * 4194304 + j;
+      const old = bt.get(key);
+      const base = old ? old.st : bioTile(i, j, T, fw).st;
+      if (base >= last)
+        continue;
+      bt.delete(key);                                   // re-insert so the newest are last
+      bt.set(key, { st: Math.min(last, base + BURN.step), from: base, t0: S.t });
+    }
+  while (bt.size > BURN.max)
+    bt.delete(bt.keys().next().value);
+};
+
+// Kept so old calls still work: burnt ground is part of the ground drawing now (bioDrawGround), so there is nothing extra to draw.
+const bioScorchDraw = () => {};

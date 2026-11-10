@@ -3,10 +3,10 @@
 // The boss that appears every 50 levels: warning, spawning, behaviour and defeat.
 // ======================================================================
 
-// Fires one homing arcane missile at enemy t.
+// Fires one homing magic arrow at enemy t.
 function launchMissile(t) {
   const a = Math.atan2(t.y - S.y, t.x - S.x);
-  S.ms.push({ x: S.x, y: S.y, vx: Math.cos(a) * 240, vy: Math.sin(a) * 240, life: 5, tg: t });
+  S.ms.push({ x: S.x + Math.cos(a) * C.arrowStart, y: S.y + Math.sin(a) * C.arrowStart, vx: Math.cos(a) * 240, vy: Math.sin(a) * 240, life: 5, tg: t });
   sfx('missile');
 }
 
@@ -85,6 +85,8 @@ function bossAI(e, dt, sm) {
         ux = w[0];
         uy = w[1];
       }
+      else if (C.enemySnap8 && d > (e.hr || 50) + C.pHitR + 6)
+        [ux, uy] = snapDir8(ux, uy);      // 8-way walking like the other enemies
       e.x += ux * C.eSpeed * sm * .6 * dt;
       e.y += uy * C.eSpeed * sm * .6 * dt;
     }
@@ -95,6 +97,12 @@ function bossAI(e, dt, sm) {
         e.t = C.bossWind;
         e.ux = dx / d;
         e.uy = dy / d;
+        if (C.enemySnap8) {       // the charge also goes along one of the 8 screen directions (same dash length)
+          const q = snapDir8(e.ux, e.uy);
+          const ql = Math.hypot(q[0], q[1]) || 1;
+          e.ux = q[0] / ql;
+          e.uy = q[1] / ql;
+        }
       }
       else {
         e.st = 'jw';

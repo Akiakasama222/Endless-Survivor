@@ -21,6 +21,57 @@ const ICI = new Image();
 
 ICI.src = IMAGE_FILES.iceBurst;
 
+// FZI = the ice block that appears around a frozen enemy.
+const FZI = new Image();
+
+FZI.src = IMAGE_FILES.frozenBlock;
+
+// Frozen-block sheet (fx-frozen.png): 448 x 192, 8 columns x 3 rows, every frame 56 x 64 (play left to right, top row first; 19 frames in use).
+// Frames 0-5 = the block growing around the enemy, frame 6 = the solid block (held while frozen), frames 9-18 = it cracking and shattering just before the enemy thaws.
+const FZ_W = 56, FZ_H = 64;
+const FZ_AX = 28, FZ_AY = 57;   // point of the frame that sits on the enemy's feet (middle of the block's base)
+const FZ_FORM = .3;             // seconds the block takes to grow
+const FZ_FORM_N = 6;            // frames used for growing (0 .. 5)
+const FZ_HOLD = 6;              // frame shown while the enemy is frozen solid
+const FZ_SHATTER = .5;          // seconds before the thaw when the block starts to crack and shatter
+const FZ_SHAT_FROM = 9, FZ_SHAT_N = 10;   // first shatter frame and how many there are
+const FZ_SCALE = 1;             // size of the block (1 = pixel size in the picture)
+
+// ABI = the Grimoire's arcane bolt (flying + hit) sheet.
+const ABI = new Image();
+
+ABI.src = IMAGE_FILES.arcaneBolt;
+
+// Arcane bolt sheet (fx-arcane-bolt.png): 1024 x 156, 8 columns x 3 rows, every frame 128 x 52 (play left to right, top row first; 22 frames).
+// Frames 0-8 = the bolt appearing and stretching out (the head flies to the right, the tail streams behind it), frame 8 = the full flying bolt (held while it flies),
+// frames 9-21 = the burst when it hits something.
+// AB_HEAD_X = the x of the glowing head in each flying frame (frames 0-8); the head is drawn exactly on the bullet's spot, so the tail trails behind it.
+// ABF = the Grimoire bolt's flying loop (fx-arcane-fly.png, 768 x 52, 6 frames of 128 x 52). It repeats for as long as the bolt is in the air, until it hits.
+// AB_FLY_HEAD_X / _Y = the glowing head of each frame; the head is drawn exactly on the bullet's spot, so the tail trails behind it.
+// If this picture fails to load, the older stretch-out frames of the sheet above are used instead.
+const ABF = new Image();
+ABF.src = IMAGE_FILES.arcaneFly;
+const AB_FLY_N = 6;
+const AB_FLY_FPS = 40;                // loop speed (frames per second)
+const AB_FLY_HEAD_X = [23, 38, 53, 70, 84, 96];
+const AB_FLY_HEAD_Y = [24, 22, 22, 24, 26, 26];
+const AB_W = 128, AB_H = 52;
+const AB_HEAD_X = [18, 16, 14, 23, 39, 56, 73, 88, 98];
+const AB_HEAD_Y = 25;
+const AB_INTRO = .3;                  // seconds the bolt takes to stretch out (frames 0-8), then it holds frame 8
+const AB_HIT_FROM = 9, AB_HIT_N = 13; // first hit-burst frame and how many there are
+const AB_HIT_X = 103, AB_HIT_Y = 25;  // centre of the hit burst in its frames
+const AB_HIT_T = .4;                  // seconds the hit burst lasts
+const AB_SCALE = 1.5;                   // size of the bolt and the burst (1 = pixel size in the picture)
+const AB_LIFT = 18;                   // how high above the ground the bolt flies (pixels on screen)
+
+// Starts the arcane hit burst at (x, y).
+function arcaneHit(x, y) {
+  if (S.ah.length > 40)
+    S.ah.shift();
+  S.ah.push({ x, y, t: AB_HIT_T });
+}
+
 const BSI = new Image();
 
 BSI.src = IMAGE_FILES.bossStomp;
@@ -29,13 +80,29 @@ const DEI = new Image();
 
 DEI.src = IMAGE_FILES.deathExplosion;
 
+// FRI = the fire ring that spreads over the ground (8 columns x 3 rows of 96 x 64 frames, 18 frames in use). It replaces the flat orange ring of the fireball blast.
+const FRI = new Image();
+FRI.src = IMAGE_FILES.fireRing;
+// Size of the ground ring inside a fire ring frame at its biggest (pixels) and the point of the frame where the blast's centre is. Used to fit the ring to the blast radius.
+const FR_W = 90, FR_H = 30, FR_AX = 48, FR_AY = 45;
+
+// XSI = the explosion sheet used by the Fire turret fireballs and the Magic Arrows (fx-explosion-smoke.png, 512 x 128, 64 x 64 frames, 8 columns).
+// 13 frames play left to right, top row first: flash, fireball, burning smoke, then the grey smoke thinning out. The last 3 slots of the second row are empty.
+// If this picture fails to load, the older fire ring / fireball sheets below are used instead.
+const XSI = new Image();
+XSI.src = IMAGE_FILES.explosionSmoke;
+const XS_W = 64, XS_H = 64, XS_COLS = 8, XS_N = 13;
+const XS_AX = 32, XS_AY = 56;   // point of a frame that sits on the blast's centre on the ground (middle of the base)
+const XS_FOOT = 56;             // width of the blast on the ground in the picture: the game scales it so this covers the damage area (bigger number = smaller explosion; C.gmFx still scales it)
+const FX_LIFE = .8;             // seconds the whole explosion animation lasts
+
 const FXI = new Image();
 
 FXI.src = IMAGE_FILES.fireballExplosion;
 
 // ---- Frames of the fireball-explosion sheet (FXI) and the ice-burst sheet (ICI) ----
 // Fireball sheet (fx-fireball-explosion.png): 1000 x 720, 15 frames on an exact grid, 5 columns x 3 rows, every frame 200 x 240.
-// Ice sheet (fx-ice-burst.png): 528 x 276, 8 frames on an exact grid, 4 columns x 2 rows, every frame 132 x 138 (play left to right, top row first; the bottom row is the falling-ice part).
+// Ice sheet (fx-ice-burst.png): 960 x 228, 8 columns x 3 rows, every frame 120 x 76 (play left to right, top row first). Slot 5 of the top row is empty and skipped, so there are 16 frames: charge sparks, ice spikes erupting, spikes shattering, ground ring fading out.
 // Every frame has its own entry:
 //   [x, y, width, height, anchorX, anchorY]
 // = the part of the picture to cut out, and the point inside that part which is drawn exactly on the spot where the effect happens.
@@ -60,21 +127,31 @@ const FX_FRAMES = [
 ];
 
 const ICE_FRAMES = [
-  [   0,    0, 132, 138,  66, 115],
-  [ 132,    0, 132, 138,  66, 115],
-  [ 264,    0, 132, 138,  66, 115],
-  [ 396,    0, 132, 138,  66, 115],
-  [   0,  138, 132, 138,  66, 115],
-  [ 132,  138, 132, 138,  66, 115],
-  [ 264,  138, 132, 138,  66, 115],
-  [ 396,  138, 132, 138,  66, 115]
+  [   0,    0, 120,  76,  60,  47],
+  [ 120,    0, 120,  76,  60,  47],
+  [ 240,    0, 120,  76,  60,  47],
+  [ 360,    0, 120,  76,  60,  47],
+  [ 600,    0, 120,  76,  60,  47],
+  [ 720,    0, 120,  76,  60,  47],
+  [ 840,    0, 120,  76,  60,  47],
+  [   0,   76, 120,  76,  60,  47],
+  [ 120,   76, 120,  76,  60,  47],
+  [ 240,   76, 120,  76,  60,  47],
+  [ 360,   76, 120,  76,  60,  47],
+  [ 480,   76, 120,  76,  60,  47],
+  [ 600,   76, 120,  76,  60,  47],
+  [ 720,   76, 120,  76,  60,  47],
+  [ 840,   76, 120,  76,  60,  47],
+  [   0,  152, 120,  76,  60,  47]
 ];
 
 // How wide the explosion is in the picture (in picture pixels). The game scales the picture so this width covers the real damage area
 // (radius r). For the fireball, C.gmFx = 1.5 means "exactly the damage area"; a bigger / smaller gmFx draws it bigger / smaller.
 const FX_FOOT = 190;     // bigger number = smaller explosion
 
-const ICE_FOOT = 130;
+const ICE_FOOT = 88;      // width of the ice ring on the ground in the picture: the game scales it so the ring is exactly the damage area (bigger number = smaller burst)
+
+const ICE_Y = 2;        // extra stretch of the picture's height so the flat ring matches the game's 2:1 ground circle (1 = no stretch)
 
 // The Grimoire's main bullet: a glowing purple orb (drawn once here, stamped every frame in draw.js).
 SPR.orb = spr(40, 40, (x, u, v) => {
@@ -275,8 +352,8 @@ function fireBoom(x, y, d, r) {
   aoe(x, y, d, r);
   if (S.fe.length > 24)
     S.fe.shift();
-  S.fe.push({ x, y, r, t: .7 });
-  craterAdd(x, y, r);
+  S.fe.push({ x, y, r, t: FX_LIFE });
+  bioScorchAdd(x, y, r);      // the ground inside the blast turns to dead grass
   trBlast(x, y, r);
   sfx('fexp');
 }
@@ -294,10 +371,91 @@ function proc(e) {
     thunder(e.x, e.y);
 }
 
+// ---- Elemental status effects (STATUS-BEGIN) ----
+// Burn (Fire turret): each enemy hit by a fireball has a C.burnChance chance to burn. Burn deals C.burnDmg (50%) of the fireball's total damage,
+// spread over C.burnT seconds in ticks of C.burnTick seconds. Burning again refreshes the time and keeps the stronger burn.
+function ignite(e, total) {
+  if (e.hp <= 0 || Math.random() >= C.burnChance)
+    return;
+  const per = total / Math.max(1, Math.round(C.burnT / C.burnTick));
+  e.burn = { t: C.burnT, d: Math.max(per, e.burn ? e.burn.d : 0), k: C.burnTick };
+}
+
+// Freeze (Ice turret): an enemy that is ALREADY slowed when the ice burst hits it is frozen (stunned) for C.freezeT seconds.
+// When it thaws (see update.js) its slow is reset to full duration. Bosses cannot be frozen, same as slow and stun.
+function freeze(o) {
+  o.frz = 1;
+  o.frz0 = S.t;      // when the freeze began (the block's grow animation is timed from this)
+  o.stun = Math.max(o.stun || 0, C.freezeT);
+  for (let i = 0; i < 6; i++) {
+    const a = Math.random() * 6.283;
+    S.tr.push({ x: o.x + Math.cos(a) * 10, y: o.y + Math.sin(a) * 10, t: .5, m: .5, r: 4, c: '210,240,255' });
+  }
+}
+
+// Tesla (Lightning turret): each enemy hit by the zap has a C.teslaChance chance to get the Tesla status. For C.teslaT seconds it electrocutes the
+// C.teslaTargets nearest other enemies every C.teslaTick seconds, separately from the turret's own chain.
+// Tesla arcs can spread Tesla too (spread = true): same chance, but only to enemies that do not have it yet, so a crowd cannot keep it going forever.
+function teslaApply(e, spread) {
+  if (e.hp <= 0 || Math.random() >= C.teslaChance || (spread && e.tesla))
+    return;
+  e.tesla = { t: C.teslaT, k: .15 };
+}
+
+// Ticks Burn and Tesla on every enemy (called every frame from grimoireStep).
+function statusStep(dt) {
+  for (const e of S.en) {
+    if (e.hp <= 0)
+      continue;
+    const b = e.burn;
+    if (b) {
+      b.t -= dt;
+      b.k -= dt;
+      if (b.k <= 0) {
+        b.k += C.burnTick;
+        S.tx.push({ x: e.x, y: e.y - 20, t: .6, s: b.d < 1 ? +b.d.toFixed(1) : Math.round(b.d) });
+        hit(e, b.d, 1);
+      }
+      if (b.t <= 0 || e.hp <= 0)
+        e.burn = null;
+    }
+    const z = e.tesla;
+    if (z && e.hp > 0) {
+      z.t -= dt;
+      z.k -= dt;
+      z.th = (z.th || 0) - dt;      // cooldown until this Tesla enemy may call another Thunder Strike
+      if (z.k <= 0) {
+        z.k += C.teslaTick;
+        const hs = new Set([e]);
+        for (let i = 0; i < C.teslaTargets; i++) {
+          const n = nearest(e.x, e.y, C.teslaR, hs);
+          if (!n)
+            break;
+          hs.add(n);
+          hit(n, dmg() * C.teslaDmg);
+          teslaApply(n, true);
+          // Thunder Strike can trigger from Tesla arcs too: a reduced chance, and each Tesla enemy can call at most one strike per cooldown
+          if (S.nts && z.th <= 0 && Math.random() < Math.min(1, C.thunderChance * S.nts * C.teslaThunderMult)) {
+            thunder(n.x, n.y);
+            z.th = C.teslaThunderCd;
+          }
+          S.zp.push({ p: [[e.x, e.y], [n.x, n.y]], t: .14 });
+        }
+        if (hs.size > 1)
+          sfx('zap');
+      }
+      if (z.t <= 0)
+        e.tesla = null;
+    }
+  }
+}
+// ---- (STATUS-END) ----
+
 // Grimoire logic each frame: the Fire / Lightning / Ice turrets, Health Siphon and Thunder Strike.
-// (The Grimoire's main bullet is not fired here: update() fires it with the same code as the Staff's bullet.)
+// (The Grimoire's main bullet is not fired here: update() fires it with the same code as the Bow's arrow.)
 function grimoireStep(dt) {
   const r = rate();
+  statusStep(dt);
   for (const k of ['f', 'l', 'i']) {
     const lv = S[GL[k]];
     if (!lv)
@@ -329,6 +487,7 @@ function grimoireStep(dt) {
       };
       hit(t, dmg());
       stn(t);
+      teslaApply(t);
       proc(t);
       let cur = t;
       for (let c = gChain(); c > 0; c--) {
@@ -338,6 +497,7 @@ function grimoireStep(dt) {
         hs.add(n);
         hit(n, dmg());
         stn(n);
+        teslaApply(n);
         proc(n);
         pts.push([n.x, n.y]);
         cur = n;
@@ -393,10 +553,13 @@ function grimoireStep(dt) {
         proc(n);
       }
       aoe(lx, ly, fd * C.gmFireSplash, gFire(), n, 1);     // splash damage to the others in the radius
+      for (const e of S.en)       // Burn: every enemy the fireball hit (direct hit or splash) may catch fire
+        if (e.hp > 0 && (e === n || (e.x - lx) ** 2 + (e.y - ly) ** 2 < (gFire() + (e.hr || C.eHitR) - 16) ** 2))
+          ignite(e, fd * C.burnDmg);
       if (S.fe.length > 24)
         S.fe.shift();
-      S.fe.push({ x: lx, y: ly, r: gFire(), t: .7 });
-      craterAdd(lx, ly, gFire());
+      S.fe.push({ x: lx, y: ly, r: gFire(), t: FX_LIFE });
+      bioScorchAdd(lx, ly, gFire());      // the ground inside the blast turns to dead grass
       trBlast(lx, ly, gFire());
       sfx('fexp');
     }
@@ -407,9 +570,13 @@ function grimoireStep(dt) {
         if (o.hp <= 0)
           continue;
         if ((o.x - lx) ** 2 + (o.y - ly) ** 2 < (r + (o.hr || C.eHitR) - 16) ** 2) {
+          const wasSlowed = o.slow > 0 && !o.boss && !o.frz;      // already slowed before this burst = gets frozen
           hit(o, d);
-          if (o.hp > 0 && !o.boss)
+          if (o.hp > 0 && !o.boss) {
+            if (wasSlowed)
+              freeze(o);
             o.slow = Math.max(o.slow || 0, C.gmSlowT);
+          }
           o.slowM = 1 - gSlowP();
           proc(o);
         }
@@ -429,25 +596,36 @@ function grimoireStep(dt) {
     }
   }
   cull(S.tb, b => b.u < 1);
-  // Health Siphon: ticks at your attack speed; drains the nearest N enemies within attack range (N = augment level); each drained enemy sends a red projectile that carries the drained HP to you
+  // Health Siphon: ticks at your attack speed; drains every enemy within attack range; the drained HP is carried to you by red projectiles
   if (S.nhs) {
     S.sip -= dt;
     if (S.sip <= 0) {
-      const hs = new Set();
-      let any = false;
-      for (let k = 0; k < S.nhs; k++) {
-        const e = nearest(S.x, S.y, C.atkR, hs);
-        if (!e)
-          break;
-        hs.add(e);
-        any = true;
-        const d = dmg() * gSip();
+      // drains EVERY enemy inside the attack range for C.siphonDmg (50%) of your damage (scaled by the augment level)
+      const d = dmg() * C.siphonDmg * gSip();
+      const R2 = C.atkR * C.atkR;
+      const orbs = [];
+      let n = 0;
+      for (const e of S.en) {
+        if (e.hp <= 0)
+          continue;
+        let d2 = (e.x - S.x) ** 2 + (e.y - S.y) ** 2;
+        if (e.hr)
+          d2 = Math.max(0, Math.sqrt(d2) - (e.hr - 16)) ** 2;
+        if (d2 >= R2)
+          continue;
         const dd = Math.min(d, e.hp);
         e.fl = .1;
         hit(e, d, 1);
-        drain(e.x, e.y, dd);
+        // at most C.siphonOrbs red orbs per tick (keeps the game fast in crowds): the HP drained from the rest is added to those orbs
+        if (orbs.length < C.siphonOrbs)
+          orbs.push({ x: e.x, y: e.y, h: dd });
+        else
+          orbs[n % orbs.length].h += dd;
+        n++;
       }
-      S.sip = any ? 1 / rate() : 0;
+      for (const o of orbs)
+        drain(o.x, o.y, o.h);
+      S.sip = n ? 1 / rate() : .1;      // with nothing in range, look again 10 times a second instead of every frame
     }
   }
   for (const z of S.zp)
@@ -479,7 +657,7 @@ const SG = [
   ],
   [
     'nhs', 'Health Siphon',
-    () => S.nhs ? 'Drain damage +' + pc(C.siphonPerLvl) + '% (' + Math.round(100 * gSip()) + '% → ' + Math.round(100 * gSip(S.nhs + 1)) + '%) · drains ' + S.nhs + ' → ' + (S.nhs + 1) + ' targets ' + rate().toFixed(1) + 'x per second (attack speed) · every instance of excess healing becomes a homing projectile' : 'Drains your nearest target (within attack range) for 100% damage at your attack speed · a red projectile flies from it to you and heals you for the damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
+    () => S.nhs ? 'Drain damage +' + pc(C.siphonPerLvl) + '% per level (' + Math.round(100 * C.siphonDmg * gSip()) + '% → ' + Math.round(100 * C.siphonDmg * gSip(S.nhs + 1)) + '% of your damage) · drains EVERY enemy in attack range ' + rate().toFixed(1) + 'x per second (attack speed) · every instance of excess healing becomes a homing projectile' : 'Drains EVERY enemy in your attack range for ' + pc(C.siphonDmg) + '% of your damage at your attack speed · red projectiles fly from them to you and heal you for the damage dealt · every instance of excess healing becomes a homing projectile (damage = the excess)'
   ],
   ['nxp', 'Magnet', () => 'EXP pickup range +' + pcn(C.magnetPerLvl, S.nxp) + '% → +' + pcn(C.magnetPerLvl, S.nxp + 1) + '%']
 ];
@@ -487,8 +665,8 @@ const SG = [
 // Builds the three basic augment buttons offered to a Grimoire player.
 function grimoireOpts() {
   return [
-    ['nf', S.nf ? '🔥 Fire Turret Lv ' + (S.nf + 1) : '🔥 Fire Turret', S.nf ? 'Fireball damage +'+ Math.round(100 * C.gmFireD) +'% · ' + Math.round(100 * gFireD()) + '% → ' + Math.round(100 * gFireD(S.nf + 1)) + '% · AOE radius +' + pc(C.gmFireRPerLvl) + '% (' + gFire().toFixed(1) + ' → ' + gFire(S.nf + 1).toFixed(1) + ')' : 'Adds a turret that auto-fires Fireballs: 100% damage + ' + Math.round(100 * C.gmFireSplash) + '% damage AOE on hit'],
-    ['nl', S.nl ? '⚡ Lightning Turret Lv ' + (S.nl + 1) : '⚡ Lightning Turret', S.nl ? '+' + C.gmChainPerLvl + ' chain · +' + C.gmStunPerLvl + 's stun (' + gChain() + ' → ' + gChain(S.nl + 1) + ' chains, stun ' + gStun().toFixed(1) + 's → ' + gStun(S.nl + 1).toFixed(1) + 's)' : 'Adds a turret that auto-zaps enemies in range for 100% damage and stuns them for ' + C.gmStunPerLvl + 's'],
-    ['ni', S.ni ? '❄️ Ice Turret Lv ' + (S.ni + 1) : '❄️ Ice Turret', S.ni ? 'Slow +' + pc(C.gmSlow) + '% per level, stacks hyperbolically (never reaches 100%) · ' + Math.round(100 * gSlowP()) + '% → ' + Math.round(100 * gSlowP(S.ni + 1)) + '% slow · AOE radius +' + pc(C.gmIceRPerLvl) + '% (' + gIce().toFixed(1) + ' → ' + gIce(S.ni + 1).toFixed(1) + ')' : 'Adds a turret that shoots Ice: ' + pc(C.gmIceDmg) + '% damage in an AOE and slows enemies by ' + pc(C.gmSlow) + '%']
-  ].map(a => '<button class="opt" data-k="' + a[0] + '"><b>' + a[1] + '</b><span>' + a[2] + '</span></button>').join('');
+    ['nf', S.nf ? 'Fire Turret Lv ' + (S.nf + 1) : 'Fire Turret', S.nf ? 'Fireball damage +'+ Math.round(100 * C.gmFireD) +'% · ' + Math.round(100 * gFireD()) + '% → ' + Math.round(100 * gFireD(S.nf + 1)) + '% · AOE radius +' + pc(C.gmFireRPerLvl) + '% (' + gFire().toFixed(1) + ' → ' + gFire(S.nf + 1).toFixed(1) + ')' : 'Adds a turret that auto-fires Fireballs: 100% damage + ' + Math.round(100 * C.gmFireSplash) + '% damage AOE on hit · ' + pc(C.burnChance) + '% chance to Burn (' + pc(C.burnDmg) + '% of its damage over ' + C.burnT + 's)', IMAGE_FILES.augGrimoireFire],
+    ['nl', S.nl ? 'Lightning Turret Lv ' + (S.nl + 1) : 'Lightning Turret', S.nl ? '+' + C.gmChainPerLvl + ' chain · +' + C.gmStunPerLvl + 's stun (' + gChain() + ' → ' + gChain(S.nl + 1) + ' chains, stun ' + gStun().toFixed(1) + 's → ' + gStun(S.nl + 1).toFixed(1) + 's)' : 'Adds a turret that auto-zaps enemies in range for 100% damage and stuns them for ' + C.gmStunPerLvl + 's · ' + pc(C.teslaChance) + '% chance to inflict Tesla (electrocutes the ' + C.teslaTargets + ' nearest enemies, and its arcs can spread Tesla)', IMAGE_FILES.augGrimoireLightning],
+    ['ni', S.ni ? 'Ice Turret Lv ' + (S.ni + 1) : 'Ice Turret', S.ni ? 'Slow +' + pc(C.gmSlow) + '% per level, stacks hyperbolically (never reaches 100%) · ' + Math.round(100 * gSlowP()) + '% → ' + Math.round(100 * gSlowP(S.ni + 1)) + '% slow · AOE radius +' + pc(C.gmIceRPerLvl) + '% (' + gIce().toFixed(1) + ' → ' + gIce(S.ni + 1).toFixed(1) + ')' : 'Adds a turret that shoots Ice: ' + pc(C.gmIceDmg) + '% damage in an AOE and slows enemies by ' + pc(C.gmSlow) + '% · hitting an already slowed enemy freezes it for ' + C.freezeT + 's', IMAGE_FILES.augGrimoireIce]
+  ].map(a => '<button class="opt aug" data-k="' + a[0] + '"><img class="aicon" src="' + a[3] + '" alt=""><div><b>' + a[1] + '</b><span>' + a[2] + '</span></div></button>').join('');
 }

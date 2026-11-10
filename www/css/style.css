@@ -29,6 +29,8 @@ canvas {
   display: block;
   width: 100%;
   height: 100%;
+  image-rendering: crisp-edges;      /* low-resolution canvas (C.pixelScale) is stretched with sharp pixels */
+  image-rendering: pixelated;
 }
 
 /* In-game HUD: level / time / kills, XP bar, health bar, cooldown badges */
@@ -245,6 +247,24 @@ canvas {
   cursor: pointer;
   box-shadow: 0 5px 0 #0006,0 0 18px #9be15d22;
   transition: transform .1s;
+}
+
+/* Augment button with an icon on the left (the 32px pixel icons are shown at exactly 2x so the pixels stay sharp) */
+.opt.aug {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Icon frame: a thin white line against the icon (2px = one icon pixel at 2x), then a thicker dark frame outside it, square corners. */
+.aicon {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  image-rendering: pixelated;
+  border: 2px solid #f4efff;
+  box-shadow: 0 0 0 4px #1b1218, 0 4px 0 4px #0007;
+  margin: 4px;
 }
 
 .opt b {

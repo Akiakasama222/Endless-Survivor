@@ -46,12 +46,12 @@ function padInv() {
   }
 }
 
-// TY = weapon types: display name and icon for the staff (gun), sword and grimoire.
+// TY = weapon types: display name and icon for the Rogue (internal key 'gun', it used to be the Bow), sword and grimoire.
 const TY = {
   grimoire: { n: 'Grimoire', i: '📖' },
   gun: {
-    n: 'Staff',
-    i: '<svg viewBox="0 0 32 32" width="1em" height="1em" style="vertical-align:-.12em;overflow:visible" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="stO" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#7fb4ff"/><stop offset="1" stop-color="#3b3bd8"/></radialGradient></defs><circle cx="23" cy="9" r="8" fill="#6aa0ff" opacity=".28"/><path d="M4.5 28.5 L19 14" stroke="#4a2c14" stroke-width="3.4" stroke-linecap="round"/><path d="M4.5 28.5 L19 14" stroke="#9a6430" stroke-width="1.6" stroke-linecap="round"/><path d="M15.2 17.8 L17.6 20.2" stroke="#ffc94a" stroke-width="1.8" stroke-linecap="round"/><path d="M17 10.5 Q16.5 16 21.5 15.5 M20 7.5 Q14.5 8 15 13" stroke="#ffc94a" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="21.5" cy="10.5" r="4.6" fill="url(#stO)" stroke="#1d1d7a" stroke-width=".8"/><circle cx="20" cy="9" r="1.3" fill="#fff" opacity=".9"/></svg>'
+    n: 'Rogue',
+    i: '🔪'
   },
   sword: { n: 'Sword', i: '🗡️' }
 };
@@ -113,18 +113,32 @@ SPR.br = RAR.map(r => spr(40, 40, (x, u, v) => {
   x.fillText('\u25b8', u, v);
 }));
 
-// BUL = staff bullet image; once loaded, bullet sprites are built for every rarity colour.
+// BUL = bow arrow image; once loaded, arrow sprites are built for every rarity colour.
 const BUL = new Image();
 
 BUL.onload = () => {
-  SPR.br = RAR.map(r => spr(40, 40, (x, u, v) => {
-    x.shadowColor = r.c;
-    x.shadowBlur = 6;
-    x.drawImage(BUL, u - 11, v - 5.5, 22, 11);
-  }));
+  SPR.br = RAR.map(r => {
+    // Recolour the knife to the rarity colour: the 'color' blend keeps the knife's light/dark shading but takes the rarity's hue,
+    // then the original transparency is put back. (Without this the knife kept its own orange/blue colours and only the glow was tinted.)
+    const t = document.createElement('canvas');
+    t.width = 44;
+    t.height = 22;
+    const tx = t.getContext('2d');
+    tx.drawImage(BUL, 0, 0, 44, 22);
+    tx.globalCompositeOperation = 'color';
+    tx.fillStyle = r.c;
+    tx.fillRect(0, 0, 44, 22);
+    tx.globalCompositeOperation = 'destination-in';
+    tx.drawImage(BUL, 0, 0, 44, 22);
+    return spr(40, 40, (x, u, v) => {
+      x.shadowColor = r.c;
+      x.shadowBlur = 6;
+      x.drawImage(t, u - 11, v - 5.5, 22, 11);
+    });
+  });
 };
 
-BUL.src = IMAGE_FILES.staffBullet;
+BUL.src = IMAGE_FILES.arrow;
 
 // Saves the player profile.
 function savePD() {
@@ -176,7 +190,7 @@ document.addEventListener('visibilitychange', () => {
     saveBest();
 });
 
-// Stat formulas: maxHp = max health, nat = base damage, dmg = current damage, nextDm = next overload multiplier, rate = attack rate, shots = projectiles per shot, need = XP needed for the next level.
+// Stat formulas: maxHp = max health, nat = base damage, dmg = current damage, nextDm = next overload multiplier, rate = attack rate, shots = arrows per shot, need = XP needed for the next level.
 const maxHp = () => Math.round((C.baseHp + C.hpLvl * (S.lvl - 1)) * (1 + C.hpAug * S.hpb));
 
 const nat = () => C.baseDmg + C.dmgLvl * (S.lvl - 1);
@@ -197,6 +211,10 @@ function init() {
   $('bb').style.display = 'none';
   weapon = PD.eq.t;
   C.baseDmg = RAR[PD.eq.r].d;
+  if (BIO.random) {      // a different world every run: new grass map seed (the roads already pick their own seed)
+    BIO.seed = 1 + Math.floor(Math.random() * 1e9);
+    bioTileCache.clear();
+  }
   startMusic();
   $('pb').style.display = 'block';
   S = {
@@ -242,6 +260,8 @@ function init() {
     dc: 0,
     wp: weapon,
     fe: [],
+    ah: [],
+    at: [],
     ie: [],
     ic: [],
     de: [],
@@ -281,4 +301,27 @@ function init() {
   S.dev = DEV.lvl > 1 && !DEV.rew;
   $('ov').style.display = 'none';
   hud(1);
+}
+
+// TRL = the Bow arrow's trail (your grey 'Main Projectile Trail.png'). TRL.br[rarity] holds one copy per rarity, tinted with that rarity's colour
+// (multiplied over the grey, so the original shading stays). Until the image has loaded (or if it is missing) TRL.br stays null and the old round trail is used.
+const TRL = { br: null };
+{
+  const im = new Image();
+  im.onload = () => {
+    TRL.br = RAR.map(r => {
+      const c = document.createElement('canvas');
+      c.width = im.naturalWidth;
+      c.height = im.naturalHeight;
+      const x = c.getContext('2d');
+      x.drawImage(im, 0, 0);
+      x.globalCompositeOperation = 'multiply';
+      x.fillStyle = 'rgb(' + r.rgb + ')';
+      x.fillRect(0, 0, c.width, c.height);
+      x.globalCompositeOperation = 'destination-in';      // put the original transparency / fade back
+      x.drawImage(im, 0, 0);
+      return c;
+    });
+  };
+  im.src = IMAGE_FILES.trail;
 }

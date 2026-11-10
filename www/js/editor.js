@@ -61,28 +61,34 @@ const EDITOR_GROUPS = [
     ['bossGap', 'Minimum seconds between attacks', 'n']
   ]],
   ['Multipliers', 'Overload (the big damage multiplier at max level) and Enlightenment.', [
-    ['overloadLvl', 'Multishot / Attack Speed level where the Overload is offered', 'i'],
+    ['overloadLvl', 'Multi Knives / Attack Speed level where the Overload is offered', 'i'],
     ['overloadStep', 'Overload multiplier steps (5 = x5, then x10, then x15...)', 'n'],
     ['gmEnlight', 'Enlightenment: damage multiplier', 'n']
   ]],
-  ['Projectiles', 'Speed and reach of the Staff bullet and the Grimoire orb (reach = speed x lifetime).', [
-    ['bulletSpeed', 'Staff bullet speed', 'n'],
-    ['bulletLife', 'Staff bullet lifetime (seconds)', 'n'],
-    ['bounceRange', 'Projectile Bounce: search range for the next enemy', 'n'],
+  ['Projectiles', 'Speed and reach of the Rogue knife and the Grimoire orb (reach = speed x lifetime).', [
+    ['bulletSpeed', 'Rogue knife speed', 'n'],
+    ['bulletLife', 'Rogue knife lifetime (seconds)', 'n'],
+    ['bounceRange', 'Knife Bounce: search range for the next enemy', 'n'],
     ['gmShotSpeed', 'Grimoire orb speed', 'n'],
     ['gmShotLife', 'Grimoire orb lifetime (seconds)', 'n'],
     ['gmShotTurn', 'Grimoire orb homing strength (0 = straight)', 'n'],
-    ['gmShotSeek', 'Grimoire orb homing range', 'n']
+    ['gmShotSeek', 'Grimoire orb homing range', 'n'],
+    ['gmShotWaveAmp', 'Grimoire orb snake sway width (px, 0 = straight)', 'n'],
+    ['gmShotWaveFreq', 'Grimoire orb snake sway speed', 'n'],
+    ['gmShotTailT', 'Grimoire orb tail length (seconds)', 'n'],
+    ['gmShotTailW', 'Grimoire orb tail thickness (px)', 'n'],
+    ['gmShotTailFade', 'Grimoire orb tail fade-out time after a hit (seconds)', 'n']
   ]],
-  ['Augments: Staff and shared', 'Lifesteal, Shield, Move Speed and Magnet are shared with the other weapons. The ones marked (all) apply to every weapon.', [
-    ['missileChance', 'Arcane Missile: chance on hit, per level', '%'],
-    ['missileMaxLvl', 'Arcane Missile: highest level', 'i'],
-    ['missileDmg', 'Arcane Missile: explosion damage (share of your damage)', '%'],
+  ['Augments: Rogue and shared', 'Lifesteal, Shield, Move Speed and Magnet are shared with the other weapons. The ones marked (all) apply to every weapon.', [
+    ['missileChance', 'Homing Explosive Knives: chance on hit, per level', '%'],
+    ['missileMaxLvl', 'Homing Explosive Knives: highest level', 'i'],
+    ['missileDmg', 'Homing Explosive Knives: explosion damage (share of your damage)', '%'],
     ['deathBoomChance', 'Death Explosion: chance per level', '%'],
     ['deathBoomDmg', 'Death Explosion: damage at level 1', '%'],
     ['deathBoomDmgPerLvl', 'Death Explosion: extra damage per level', '%'],
     ['deathBoomR', 'Death Explosion: radius', 'n'],
-    ['lifesteal', 'Lifesteal (all): healing per level (share of damage dealt)', '%'],
+    ['killHeal', 'Rogue Lifesteal: heal on kill, per level (share of the enemy max health)', '%'],
+    ['regenPct', 'Sword Regeneration: max health regenerated per second, per level', '%'],
     ['shieldKills', 'Shield (all): kills to regain a charge', 'i'],
     ['moveSpeedPerLvl', 'Move Speed / Lightning Step (all): extra speed per level', '%'],
     ['magnetBase', 'Magnet (all): pickup range without the augment (px)', 'n'],
@@ -123,11 +129,26 @@ const EDITOR_GROUPS = [
     ['gmIceDmg', 'Ice turret: damage (share of your damage)', '%'],
     ['gmSlow', 'Ice turret: slow strength', '%'],
     ['gmSlowT', 'Ice turret: slow seconds', 'n'],
+    ['burnChance', 'Fire turret: Burn chance', '%'],
+    ['burnDmg', 'Burn: total damage (share of the Fire turret damage)', '%'],
+    ['burnT', 'Burn: duration (seconds)', 'n'],
+    ['burnTick', 'Burn: seconds between ticks', 'n'],
+    ['freezeT', 'Ice turret: freeze seconds (on already slowed enemies)', 'n'],
+    ['teslaChance', 'Lightning turret: Tesla chance', '%'],
+    ['teslaT', 'Tesla: duration (seconds)', 'n'],
+    ['teslaTick', 'Tesla: seconds between arcs', 'n'],
+    ['teslaTargets', 'Tesla: enemies hit per arc', 'i'],
+    ['teslaR', 'Tesla: arc reach', 'n'],
+    ['teslaDmg', 'Tesla: damage per arc (share of your damage)', '%'],
+    ['teslaThunderMult', 'Tesla: Thunder Strike chance (share of the normal chance)', '%'],
+    ['teslaThunderCd', 'Tesla: seconds between Thunder Strikes per Tesla enemy', 'n'],
     ['spellcaster', 'Spellcaster: attack speed bonus', '%'],
     ['thunderChance', 'Thunder Strike: chance on hit, per level', '%'],
     ['thunderMaxLvl', 'Thunder Strike: highest level', 'i'],
     ['thunderDmg', 'Thunder Strike: damage (share of your damage)', '%'],
     ['gmThR', 'Thunder Strike: radius', 'n'],
+    ['siphonDmg', 'Health Siphon: damage to every enemy in range (share of your damage)', '%'],
+    ['siphonOrbs', 'Health Siphon: most red orbs per tick', 'i'],
     ['siphonPerLvl', 'Health Siphon: extra drain damage per level', '%']
   ]]
 ];

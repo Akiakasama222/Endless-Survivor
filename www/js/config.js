@@ -9,7 +9,7 @@
 const FEEDBACK_URL = 'https://limbo-feedback-site.vercel.app/api/feedback';
 
 // Developer tools (Settings > Developer: start level, free chests, Editor mode). Set to false before you release the game so players cannot see them.
-const DEV_TOOLS = false;
+const DEV_TOOLS = true;
 
 // C holds every tunable number of the game (damage, speeds, ranges, boss timings...). Change values here to rebalance.
 const C = {
@@ -30,6 +30,19 @@ const C = {
   gmFx: 1, // Fireball explosion sprite scale
   gmIceR: 70, // Ice turret explosion radius (base)
   gmSlow: .5, // Ice turret slow strength (base)
+  burnChance: .5, // Fire turret: chance to inflict Burn on each enemy it hits
+  burnDmg: .5, // Burn: total damage over its duration, as a share of the Fire turret's damage (.5 = 50%)
+  burnT: 3, // Burn: duration in seconds
+  burnTick: .5, // Burn: seconds between damage ticks
+  freezeT: 2, // Ice turret: seconds an already-slowed enemy stays frozen (stunned); its slow restarts when it thaws
+  teslaChance: .5, // Lightning turret: chance to inflict Tesla on each enemy it zaps
+  teslaT: 3, // Tesla: duration in seconds
+  teslaTick: .5, // Tesla: seconds between electric arcs
+  teslaTargets: 2, // Tesla: how many nearest enemies each arc electrocutes
+  teslaR: 160, // Tesla: how far an arc can reach (px)
+  teslaThunderMult: 1, // Tesla arcs: Thunder Strike chance as a share of the normal chance (1 = same chance, .5 = half, 0 = Tesla never triggers it)
+  teslaThunderCd: 1, // Tesla arcs: seconds before the same Tesla enemy can trigger another Thunder Strike
+  teslaDmg: .5, // Tesla: damage of each arc as a share of your damage
   gmSlowT: 2, // Ice turret slow duration in seconds
   hpAug: 0.5, // Health augment: +% max HP per level
   baseHp: 125, // Starting max HP
@@ -44,7 +57,7 @@ const C = {
   eDmgLvl: 10, // Enemy damage gained per player level
   eSpeed: 48, // Enemy base speed
   pHitR: 10, // Player hitbox radius (px): enemies and enemy bullets hurt you when their hitbox touches this circle
-  eHitR: 10, // Normal enemy hitbox radius (px): your bullets, sword and spells hit when they touch this circle
+  eHitR: 10, // Normal enemy hitbox radius (px): your knives, sword and spells hit when they touch this circle
   eSpeedStep: 0.5, // Enemy speed gained every eSpeedEvery levels
   eSpeedEvery: 10, // Levels between enemy speed increases
   capBase: 20, // Base number of enemies allowed at once
@@ -88,25 +101,44 @@ const C = {
   xpLvl: 2, // Extra XP needed per level
   spawnBase: 0.7, // Enemy spawns per second at the start
   spawnGrow: 1 / 60, // Spawn rate growth per second
-  bulletSpeed: 1000, // Staff bullet speed (px per second)
-  bulletLife: 1.3, // Staff bullet lifetime in seconds (range = speed x lifetime)
+  arrowStart: 18, // How far in front of the rogue (toward the target) a Rogue knife starts, so it leaves the hand instead of the body
+  pixelScale: 2, // Retro resolution: the game is drawn with this many times fewer pixels and stretched with sharp pixels (1 = full sharpness, 1.5 = a bit sharper than half, 2 = half, 3 = a third, 4 = a quarter)
+  fps: 30, // Frame cap for the retro look (update + draw run this many times a second): 30 = retro, 60 = smooth, 0 = no cap (follows your monitor). Keep it at 24 or higher or the game runs in slow motion
+  aimHold: .4, // Seconds the player model keeps facing the same enemy before it may pick another (stops direction flickering)
+  aimMargin: .8, // How far past the edge of a direction the target must go before the model turns (1 = exactly at the edge, higher = steadier)
+  enemySnap8: true, // Enemies and bosses walk in 8 directions too (horizontal, vertical, diagonal): false = free movement
+  snap8: true, // Touch stick snaps to 8 directions (horizontal, vertical, diagonal) like the keyboard: false = free analog movement
+  stickDead: 10, // Touch stick dead zone in px (only used with snap8)
+  trailW: 10, // Rogue knife trail image: width in px
+  trailLen: 48, // Rogue knife trail image: length in px
+  trailStart: 6, // Rogue knife trail image: how far behind the knife's center the trail starts (px)
+  arrowHeight: 34, // How high above the ground the Rogue knife is drawn (px): raise it if knives look too low, lower it if too high
+  bulletSpeed: 1000, // Rogue knife speed (px per second)
+  bulletLife: 1.3, // Rogue knife lifetime in seconds (range = speed x lifetime)
   gmShotSpeed: 420, // Grimoire orb speed (px per second)
-  gmShotLife: 1.3, // Grimoire orb lifetime in seconds (range = speed x lifetime)
+  gmShotLife: 5, // Grimoire orb lifetime in seconds (range = speed x lifetime)
   gmShotTurn: 5, // Grimoire orb homing strength (0 = flies straight, higher = turns sharper towards enemies)
   gmShotSeek: 450, // How far from the orb an enemy can be for the orb to steer towards it
-  bounceRange: 320, // Projectile Bounce: how far a bullet looks for the next enemy
+  gmShotWaveAmp: 14, // Grimoire orb snake sway: how far (px) the real path swings to each side (0 = straight)
+  gmShotWaveFreq: 14, // Grimoire orb snake sway speed (radians per second; 14 = about 2.2 swings per second)
+  gmShotTailT: .22, // Grimoire orb tail length in seconds of its past path (longer = longer snake tail)
+  gmShotTailW: 10, // Grimoire orb tail thickness at the head (screen pixels)
+  gmShotTailFade: .7, // seconds the Grimoire orb tail stays and slowly fades after the bolt hits or ends (0 = vanishes at once)
+  bounceRange: 320, // Knife Bounce: how far a knife looks for the next enemy
 
   // ---- Augment numbers: the "per level" values of the augments (all of them can be edited in Editor mode) ----
-  overloadLvl: 4, // Multishot / Sword Attack Speed: the level where the next pick is the Overload (damage multiplier)
+  overloadLvl: 4, // Multi Knives / Sword Attack Speed: the level where the next pick is the Overload (damage multiplier)
   overloadStep: 5, // Overload: the damage multiplier grows by this much each time (x5, x10, x15...)
-  lifesteal: .1, // Lifesteal: share of the damage you deal that heals you, per level
+  killHeal: .5, // Rogue Lifesteal: share of a killed enemy's max health that heals you, per level
+  regenPct: .1, // Sword Regeneration: share of your max health regenerated every second, per level
+  lifesteal: .1, // (unused now) old Lifesteal: share of the damage you deal that heals you
   shieldKills: 10, // Shield: kills needed to regain one shield charge
   moveSpeedPerLvl: .5, // Move Speed / Lightning Step: extra movement speed per level (.5 = +50%)
   magnetBase: 100, // Magnet: XP pickup range in pixels without the augment
   magnetPerLvl: 1, // Magnet: extra pickup range per level (1 = +100%)
-  missileChance: .1, // Arcane Missile: chance on hit per level
-  missileMaxLvl: 10, // Arcane Missile: highest level
-  missileDmg: 1, // Arcane Missile: explosion damage as a share of your damage
+  missileChance: .1, // Homing Explosive Knives: chance on hit per level
+  missileMaxLvl: 10, // Homing Explosive Knives: highest level
+  missileDmg: 1, // Homing Explosive Knives: explosion damage as a share of your damage
   deathBoomChance: .1, // Death Explosion: chance per level that an enemy explodes when it dies
   deathBoomDmg: 2, // Death Explosion: explosion damage at level 1 (2 = 200% of your damage)
   deathBoomDmgPerLvl: .5, // Death Explosion: extra damage per level after the first
@@ -129,6 +161,8 @@ const C = {
   thunderChance: .1, // Thunder Strike: chance on hit per level
   thunderMaxLvl: 10, // Thunder Strike: highest level
   thunderDmg: 1, // Thunder Strike: damage as a share of your damage
+  siphonDmg: .5, // Health Siphon: damage to every enemy in range, as a share of your damage
+  siphonOrbs: 8, // Health Siphon: most red orbs sent per tick (the drained HP of the other enemies is added to them)
   siphonPerLvl: .5 // Health Siphon: extra drain damage per level after the first (.5 = +50%)
 };
 

@@ -52,15 +52,15 @@ document.addEventListener('visibilitychange', () => {
 const WG = [
   {
     t: 'gun',
-    d: 'Auto-fires projectiles at the nearest enemy in range.',
+    d: 'Auto-throws knives at the nearest enemy in range.',
     b: [
-      ['Fire Rate +' + pc(C.rateAug) + '%', 'Shoots ' + pc(C.rateAug) + '% faster.'],
-      ['+1 Multishot', '+1 projectile per shot, up to level ' + C.overloadLvl + '. The next pick is Multishot Overload: projectiles reset to 1 and your current damage is multiplied (x' + C.overloadStep + ', then x' + C.overloadStep * 2 + ', then x' + C.overloadStep * 3 + ').'],
-      ['+1 Projectile Bounce', 'Projectiles bounce to +1 more enemy on hit.']
+      ['Fire Rate +' + pc(C.rateAug) + '%', 'Throws ' + pc(C.rateAug) + '% faster.', IMAGE_FILES.augRogueRate],
+      ['+1 Multi Knives', '+1 knife per throw, up to level ' + C.overloadLvl + '. The next pick is Multi Knives Overload: knives reset to 1 and your current damage is multiplied (x' + C.overloadStep + ', then x' + C.overloadStep * 2 + ', then x' + C.overloadStep * 3 + ').', IMAGE_FILES.augRogueMulti],
+      ['+1 Knife Bounce', 'Knives bounce to +1 more enemy on hit.', IMAGE_FILES.augRogueBounce]
     ],
     s: [
-      ['Arcane Missile', 'Hits have a +' + pc(C.missileChance) + '% chance per level (max ' + C.missileMaxLvl + ' levels) to launch a homing arcane missile that explodes for ' + pc(C.missileDmg) + '% damage.'],
-      ['Lifesteal +' + pc(C.lifesteal) + '%', 'Heal ' + pc(C.lifesteal) + '% of damage dealt per level. Excess healing becomes a homing projectile (damage = the excess).'],
+      ['Homing Explosive Knives', 'Hits have a +' + pc(C.missileChance) + '% chance per level (max ' + C.missileMaxLvl + ' levels) to launch a homing explosive knife that explodes for ' + pc(C.missileDmg) + '% damage.'],
+      ['Lifesteal +' + pc(C.killHeal) + '% on kill', 'Killing an enemy heals ' + pc(C.killHeal) + '% of its max health per level. Excess healing becomes a homing knife (damage = the excess).'],
       ['Shield +1', 'Blocks 1 hit. +1 charge regained per ' + C.shieldKills + ' kills. Max charges +1 per level.'],
       ['Move Speed +' + pc(C.moveSpeedPerLvl) + '%', '+' + pc(C.moveSpeedPerLvl) + '% movement speed per level.'],
       ['Death Explosion', pc(C.deathBoomChance) + '% chance per level for enemies to explode on death for ' + pc(C.deathBoomDmg) + '% damage (+' + pc(C.deathBoomDmgPerLvl) + '% per level).'],
@@ -71,16 +71,16 @@ const WG = [
     t: 'sword',
     d: 'Auto-slashes an arc at the nearest enemy in range.',
     b: [
-      ['Attack Speed +' + pc(C.rateAug) + '%', 'Slash ' + pc(C.rateAug) + '% faster, up to level ' + C.overloadLvl + '. The next pick is Attack Speed Overload: speed resets and your current damage is multiplied (x' + C.overloadStep + ', then x' + C.overloadStep * 2 + ', then x' + C.overloadStep * 3 + ').'],
-      ['+' + pc(C.hpAug) + '% Health Points', 'Max HP +' + pc(C.hpAug) + '% per level.'],
-      ['Sword Range +' + pc(C.swordRangePerLvl) + '%', 'Slash range +' + pc(C.swordRangePerLvl) + '% per level (also widens Swirl\'s radius).']
+      ['Attack Speed +' + pc(C.rateAug) + '%', 'Slash ' + pc(C.rateAug) + '% faster, up to level ' + C.overloadLvl + '. The next pick is Attack Speed Overload: speed resets and your current damage is multiplied (x' + C.overloadStep + ', then x' + C.overloadStep * 2 + ', then x' + C.overloadStep * 3 + ').', IMAGE_FILES.augSwordSpeed],
+      ['+' + pc(C.hpAug) + '% Health Points', 'Max HP +' + pc(C.hpAug) + '% per level.', IMAGE_FILES.augSwordHealth],
+      ['Sword Range +' + pc(C.swordRangePerLvl) + '%', 'Slash range +' + pc(C.swordRangePerLvl) + '% per level (also widens Swirl\'s radius).', IMAGE_FILES.augSwordRange]
     ],
     s: [
       ['Dance with Death', 'Damage you take becomes damage over time, split into ' + C.ddTicksPerLvl + ' ticks per level (one tick every ' + C.dwdTick + 's).'],
       ['Swirl', 'Every ' + C.swirlEvery + 'th attack throws a spinning sword that flies out a fixed distance, hovers, then returns, hitting enemies in its radius every ' + C.swirlTick + 's. Hovers ' + C.swirlStayPerLvl + 's, +' + C.swirlStayPerLvl + 's per level. Radius is ' + pc(C.swirlRad) + '% of Sword Range.'],
       ['Bleed', 'Slashes cause bleed until death: ' + pc(C.bleedPerLvl) + '% of damage dealt per level, every ' + C.bleedTick + 's. Bleeding enemies also explode on death for ' + pc(C.bleedBoomDmg) + '% damage (+' + pc(C.bleedBoomPerLvl) + '% per level).'],
       ['Magnet', 'EXP pickup range +' + pc(C.magnetPerLvl) + '% per level.'],
-      ['Lifesteal +' + pc(C.lifesteal) + '%', 'Heal ' + pc(C.lifesteal) + '% of damage dealt per level. Excess healing becomes a homing projectile (damage = the excess).'],
+      ['Regeneration +' + pc(C.regenPct) + '%', 'Instead of stealing life, you regenerate ' + pc(C.regenPct) + '% of your max health per second, per level.'],
       ['Slash Push', 'Slashes push enemies back ' + pc(C.pushPerLvl) + '% per level.'],
       ['Shield +1', 'Blocks 1 hit. +1 charge regained per ' + C.shieldKills + ' kills. Max charges +1 per level.']
     ]
@@ -89,9 +89,9 @@ const WG = [
     t: 'grimoire',
     d: 'Fires purple homing arcane orbs and can summon auto-firing turrets that follow you.',
     b: [
-      ['Fire Turret', 'A turret that auto-fires Fireballs: 100% damage plus ' + Math.round(100 * C.gmFireSplash) + '% damage in an AOE. Each level: +'+ Math.round(100 * C.gmFireD) + '% damage and +' + pc(C.gmFireRPerLvl) + '% AOE radius.'],
-      ['Lightning Turret', 'A turret that zaps enemies in range for 100% damage and stuns them for ' + C.gmStunPerLvl + 's. Each level: +' + C.gmChainPerLvl + ' chain and +' + C.gmStunPerLvl + 's stun.'],
-      ['Ice Turret', 'A turret that shoots Ice: ' + pc(C.gmIceDmg) + '% damage in an AOE and slows enemies by ' + pc(C.gmSlow) + '%. Each level: stronger slow (stacks, never reaches 100%) and +' + pc(C.gmIceRPerLvl) + '% AOE radius.']
+      ['Fire Turret', 'A turret that auto-fires Fireballs: 100% damage plus ' + Math.round(100 * C.gmFireSplash) + '% damage in an AOE, with a ' + pc(C.burnChance) + '% chance to Burn (' + pc(C.burnDmg) + '% of its damage over ' + C.burnT + 's). Each level: +'+ Math.round(100 * C.gmFireD) + '% damage and +' + pc(C.gmFireRPerLvl) + '% AOE radius.', IMAGE_FILES.augGrimoireFire],
+      ['Lightning Turret', 'A turret that zaps enemies in range for 100% damage and stuns them for ' + C.gmStunPerLvl + 's, with a ' + pc(C.teslaChance) + '% chance to inflict Tesla (electrocutes the ' + C.teslaTargets + ' nearest enemies, separate from the chain; the arcs can spread Tesla too). Each level: +' + C.gmChainPerLvl + ' chain and +' + C.gmStunPerLvl + 's stun.', IMAGE_FILES.augGrimoireLightning],
+      ['Ice Turret', 'A turret that shoots Ice: ' + pc(C.gmIceDmg) + '% damage in an AOE and slows enemies by ' + pc(C.gmSlow) + '%. Hitting an already slowed enemy freezes it (stun) for ' + C.freezeT + 's, then its slow restarts. Each level: stronger slow (stacks, never reaches 100%) and +' + pc(C.gmIceRPerLvl) + '% AOE radius.', IMAGE_FILES.augGrimoireIce]
     ],
     s: [
       ['Spellcaster', 'Attack speed +' + pc(C.spellcaster) + '% for your shots and turrets.'],
@@ -99,7 +99,7 @@ const WG = [
       ['Enlightenment', 'Multiplies your current damage by ' + C.gmEnlight + '.'],
       ['Ice Shield', '+1 damage-instance shield, +1 charge per ' + C.shieldKills + ' kills. Max charges +1 per level.'],
       ['Thunder Strike', '+' + pc(C.thunderChance) + '% chance per level (max ' + C.thunderMaxLvl + ' levels) on hit to call lightning from above (AOE, ' + pc(C.thunderDmg) + '% damage).'],
-      ['Health Siphon', 'Drains the nearest enemies in attack range at your attack speed, one more target per level. Red orbs carry the drained HP back to you. Drain damage +' + pc(C.siphonPerLvl) + '% per level. Excess healing becomes a homing projectile.'],
+      ['Health Siphon', 'Drains EVERY enemy in attack range for ' + pc(C.siphonDmg) + '% of your damage at your attack speed. Red orbs carry the drained HP back to you. Drain damage +' + pc(C.siphonPerLvl) + '% per level. Excess healing becomes a homing projectile.'],
       ['Magnet', 'EXP pickup range +' + pc(C.magnetPerLvl) + '% per level.']
     ]
   }
@@ -109,7 +109,7 @@ const WG = [
 function weaponGuide(from) {
   const o = $('ov');
   o.style.display = 'flex';
-  const sec = (h, a) => '<div style="font-size:15px;color:#9be15d;margin:10px 0 4px;letter-spacing:.5px">' + h + '</div>' + a.map(x => '<div class="opt" style="border-color:#fff4;padding:10px 14px;cursor:default;margin-bottom:6px"><b style="color:#fff">' + x[0] + '</b><span style="display:block;font-size:14px;opacity:.85;margin-top:2px">' + x[1] + '</span></div>').join('');
+  const sec = (h, a) => '<div style="font-size:15px;color:#9be15d;margin:10px 0 4px;letter-spacing:.5px">' + h + '</div>' + a.map(x => '<div class="opt' + (x[2] ? ' aug' : '') + '" style="border-color:#fff4;padding:10px 14px;cursor:default;margin-bottom:6px">' + (x[2] ? '<img class="aicon" src="' + x[2] + '" alt=""><div>' : '') + '<b style="color:#fff">' + x[0] + '</b><span style="display:block;font-size:14px;opacity:.85;margin-top:2px">' + x[1] + '</span>' + (x[2] ? '</div>' : '') + '</div>').join('');
   o.innerHTML = '<h1>Weapon Guide</h1><div style="flex:1;min-height:0;overflow-y:auto;width:100%;max-width:520px;margin:0 auto">' + WG.map(w => '<div style="margin-bottom:18px"><div style="font-size:26px;color:var(--gold)">' + TY[w.t].i + ' ' + TY[w.t].n + '</div><div style="font-size:15px;opacity:.85;margin-bottom:2px">' + w.d + '</div>' + sec('BASIC AUGMENTS (every level)', w.b) + sec('SPECIAL AUGMENTS (every 10 levels)', w.s) + '</div>').join('') + '</div><button class="opt" id="wgb" style="border-color:#fff8;max-width:520px;width:100%;margin:0 auto;text-align:center"><b style="color:#fff">Back</b></button>';
   $('wgb').onclick = () => {
     if (from === 'pause') {

@@ -122,6 +122,7 @@ function sfx(n) {
     gem: 50,
     kill: 120,
     shoot: 70,
+    bow: 70,
     boom: 60,
     fexp: 60,
     stomp: 200,
@@ -142,6 +143,10 @@ function sfx(n) {
       if (!playBuf('staffShoot', .5, .95 + Math.random() * .1))
         tone(620, .08, 'square', .035, 300);
       break;
+    case 'bow':
+      if (!playBuf('bowShoot', .6, .95 + Math.random() * .1))
+        tone(520, .08, 'triangle', .04, 260);
+      break;
     case 'swing':
       playSwing();
       break;
@@ -154,7 +159,7 @@ function sfx(n) {
         tone(300, .1, 'sine', .07, 650);
       break;
     case 'treefall':
-      playBuf('fallingTree', .8, .94 + Math.random() * .12);
+      playBuf('fallingTree', .8, .94 + Math.random() * .12, TREE_CUT_AT);
       break;
     case 'stomp':
       if (!playBuf('bossStomp', .7, 1)) {
@@ -229,12 +234,15 @@ const SWING_FILE = 'assets/audio/sword-swing.wav';
 
 let SWB = null;
 
+// FallingTree.mp3 has about 0.9 s of quiet creaking before the tree is cut (the crack is at 0.915 s): the sound starts from this point of the file.
+const TREE_CUT_AT = .9;
+
 // Sound file table: key used by playBuf() -> file in assets/audio.
 const SOUND_FILES = {
   music: 'assets/audio/music.mp3',
   ambience: 'assets/audio/Forrest Ambiance.mp3',
   bossStomp: 'assets/audio/boss-stomp.mp3',
-  fallingTree: 'assets/audio/falling-tree.mp3',
+  fallingTree: 'assets/audio/FallingTree.mp3',
   playerHurt: 'assets/audio/player-hurt.mp3',
   deathExplosion: 'assets/audio/death-explosion.mp3',
   fireExplosion: 'assets/audio/fireball-explosion.mp3',
@@ -244,7 +252,8 @@ const SOUND_FILES = {
   zombieHit: 'assets/audio/zombie-hit.mp3',
   lightningZap: 'assets/audio/lightning-zap.mp3',
   enemyShot: 'assets/audio/enemy-shot.mp3',
-  staffShoot: 'assets/audio/staff-shoot.mp3'
+  staffShoot: 'assets/audio/staff-shoot.mp3',
+  bowShoot: 'assets/audio/bow-shoot.mp3'
 };
 
 // BUF = decoded sound buffers by key; MUS / MG = the playing music source and its gain; musicWanted = music should be playing.
@@ -282,7 +291,7 @@ function loadSounds() {
 }
 
 // Plays the loaded sound k at volume `vol` and playback speed `rate`. Returns false if it is not loaded yet so the caller can use a synthesized fallback.
-function playBuf(k, vol, rate) {
+function playBuf(k, vol, rate, from) {
   const a = ac();
   if (!a || !snd || !BUF[k])
     return false;
@@ -293,7 +302,7 @@ function playBuf(k, vol, rate) {
   gn.gain.value = vol;
   s.connect(gn);
   gn.connect(SB);
-  s.start();
+  s.start(0, from || 0);      // from = seconds of the file to skip, so the sound starts right at its first hit
   return true;
 }
 

@@ -91,6 +91,35 @@ function devSettings(from) {
   };
 }
 
+// Frame rate choices shown in Settings: [frames per second (0 = no cap), name, description]. The choice is saved on this device and sets C.fps (used by the main loop).
+const FPS_OPTS = [
+  [30, '30 FPS', 'Retro look and easier on the battery'],
+  [60, '60 FPS', 'Smoother movement'],
+  [0, 'Unlimited', 'Follows your screen refresh rate (can use more battery)']
+];
+
+try {
+  const f = localStorage.getItem('esFps');
+  if (f !== null && FPS_OPTS.some(o => o[0] === +f))
+    C.fps = +f;
+}
+catch (e) { }
+
+// Index of the frame rate option that is active right now.
+function fpsIdx() {
+  const i = FPS_OPTS.findIndex(o => o[0] === C.fps);
+  return i < 0 ? 0 : i;
+}
+
+// Switches to the next frame rate option and saves it.
+function cycleFps() {
+  C.fps = FPS_OPTS[(fpsIdx() + 1) % FPS_OPTS.length][0];
+  try {
+    localStorage.setItem('esFps', String(C.fps));
+  }
+  catch (e) { }
+}
+
 // Applies the saved volumes to the audio channels (squared so the sliders feel natural).
 function applyVol() {
   const q = v => v * v;
@@ -115,7 +144,7 @@ function settings(from) {
   const o = $('ov');
   o.style.display = 'flex';
   const pc = v => Math.round(v * 100);
-  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Ambience <span id="av">' + pc(vol.amb) + '%</span></b><input id="sr3" type="range" min="0" max="100" value="' + pc(vol.amb) + '"></div><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button>' + (DEV_TOOLS ? '<button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level, Editor mode and test options</span></button>' : '') + '<button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
+  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Ambience <span id="av">' + pc(vol.amb) + '%</span></b><input id="sr3" type="range" min="0" max="100" value="' + pc(vol.amb) + '"></div><button class="opt" id="fps" style="border-color:#fff8"><b style="color:#fff">Frame rate: ' + FPS_OPTS[fpsIdx()][1] + '</b><span>' + FPS_OPTS[fpsIdx()][2] + '. Tap to change.</span></button><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button>' + (DEV_TOOLS ? '<button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level, Editor mode and test options</span></button>' : '') + '<button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
   $('sr1').oninput = e => {
     vol.sfx = e.target.value / 100;
     $('sv').textContent = e.target.value + '%';
@@ -138,6 +167,11 @@ function settings(from) {
     applyVol();
   };
   $('sr3').onchange = saveVol;
+  $('fps').onclick = () => {
+    cycleFps();
+    sfx('click');
+    settings(from);
+  };
   $('snt').onclick = () => toggleSnd(() => settings(from));
   $('sdv').onclick = () => saveData(from);
   if (DEV_TOOLS)

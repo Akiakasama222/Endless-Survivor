@@ -21,7 +21,7 @@ function nearest(x, y, max, skip) {
   return b;
 }
 
-// Deals d damage to enemy e (q = quiet: no sound / number). Handles lifesteal, kills, drops, Bleed explosions and Death Explosions.
+// Deals d damage to enemy e (q = quiet: no sound / number). Handles the Bow's kill healing, kills, drops, Bleed explosions and Death Explosions.
 function hit(e, d, q) {
   if (e.hp <= 0)
     return;
@@ -32,14 +32,14 @@ function hit(e, d, q) {
     e.fl = .1;
     S.tx.push({ x: e.x, y: e.y - 20, t: .6, s: d < 1 ? +d.toFixed(1) : Math.round(d) });
   }
-  if (S.ls && !S.nols)
-    healP(a * C.lifesteal * S.ls);
   if (e.hp <= 0) {
     if (e.boss)
       bossDown(e);
     S.gm.push({ x: e.x, y: e.y });
     S.kills++;
     sfx('kill');
+    if (S.ls && !S.nols && S.wp === 'gun')      // Bow Lifesteal: killing an enemy heals a share of ITS max health (excess healing becomes a homing arrow in healP)
+      healP(e.mx * C.killHeal * S.ls);
     if (S.ns && ++S.kc >= C.shieldKills) {
       S.kc = 0;
       S.sh = Math.min(S.ns, S.sh + 1);
