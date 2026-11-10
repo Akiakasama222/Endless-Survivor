@@ -450,6 +450,11 @@ function draw() {
       g.ellipse(px, py - 3, 15, 7, 0, 0, 6.3);
       g.fill();
       const th = facingAngle();
+      if (mage16Ready()) {
+        // 16-direction mage (Rogue and Grimoire): upper body turns to the enemy being aimed at (or the walking direction when nothing is in range), the legs follow the movement
+        drawMage16(g, px, py, th, S.mv && S.fd !== undefined ? S.fd : null);
+        return;
+      }
       if (S.wp === 'gun' && ARC.aim && ARC.f) {
         // Bow archer: upper body turns to the enemy being aimed at (or the walking direction when nothing is in range), the legs follow the movement
         drawArcher(g, px, py - 4, th, S.mv && S.fd !== undefined ? S.fd : null);
@@ -1129,7 +1134,7 @@ function facingAngle() {
     const a = Math.atan2(tg.y - S.y, tg.x - S.x);
     th = Math.atan2((Math.cos(a) + Math.sin(a)) * .5, Math.cos(a) - Math.sin(a));
   }
-  const step = Math.PI / 4;
+  const step = Math.PI / (mage16Ready() ? 8 : 4);      // the 16-direction mage turns in 22.5 degree steps, the other characters in 45 degree steps
   if (S.hk === undefined)
     S.hk = Math.round(th / step);
   else {

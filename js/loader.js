@@ -13,6 +13,11 @@ const IMAGE_FILES = {
   mage: 'assets/images/player-mage-sheet.png',
   mageRun: 'assets/images/mage3d-run.png',      // 3D mage run cycle (8 facings x 15 frames, 20 fps)
   mageCast: 'assets/images/mage3d-cast.png',    // 3D mage cast (8 facings x 24 frames, 20 fps); column 0 doubles as the idle pose
+  mage16Cast: 'assets/images/mage16-cast.png',               // 16-direction mage, UPPER body: Standing_1H_Magic_Attack_01 (24 frames, 16 rows); column 0 is the aiming / idle pose
+  mage16RunForward: 'assets/images/mage16-run-forward.png',  // 16-direction mage, LOWER body: Standing_Run_Forward (11 frames @ 15 fps, 16 rows)
+  mage16RunRight: 'assets/images/mage16-run-right.png',      // Standing_Run_Right (12 frames)
+  mage16RunBack: 'assets/images/mage16-run-back.png',        // Standing_Run_Back (10 frames)
+  mage16RunLeft: 'assets/images/mage16-run-left.png',        // Standing_Run_left (12 frames)
   swordBlade: 'assets/images/sword-blade.png',
   swordHilt: 'assets/images/sword-hilt.png',
   arrow: 'assets/images/rogue-knife.png',      // the Rogue's thrown knife (was bow-arrow.png); drawn pointing right

@@ -102,12 +102,12 @@ const C = {
   spawnBase: 0.7, // Enemy spawns per second at the start
   spawnGrow: 1 / 60, // Spawn rate growth per second
   arrowStart: 18, // How far in front of the rogue (toward the target) a Rogue knife starts, so it leaves the hand instead of the body
-  pixelScale: 1.5, // Retro resolution: the game is drawn with this many times fewer pixels and stretched with sharp pixels (1 = full sharpness, 1.5 = a bit sharper than half, 2 = half, 3 = a third, 4 = a quarter)
+  pixelScale: 2, // Retro resolution: the game is drawn with this many times fewer pixels and stretched with sharp pixels (1 = full sharpness, 1.5 = a bit sharper than half, 2 = half, 3 = a third, 4 = a quarter)
   fps: 30, // Frame cap for the retro look (update + draw run this many times a second): 30 = retro, 60 = smooth, 0 = no cap (follows your monitor). Keep it at 24 or higher or the game runs in slow motion
   aimHold: .4, // Seconds the player model keeps facing the same enemy before it may pick another (stops direction flickering)
   aimMargin: .8, // How far past the edge of a direction the target must go before the model turns (1 = exactly at the edge, higher = steadier)
-  enemySnap8: false, // Enemies and bosses walk in 8 directions too (horizontal, vertical, diagonal): false = free movement
-  snap8: false, // Touch stick snaps to 8 directions (horizontal, vertical, diagonal) like the keyboard: false = free analog movement
+  enemySnap8: true, // Enemies and bosses walk in 8 directions too (horizontal, vertical, diagonal): false = free movement
+  snap8: true, // Touch stick snaps to 8 directions (horizontal, vertical, diagonal) like the keyboard: false = free analog movement
   stickDead: 10, // Touch stick dead zone in px (only used with snap8)
   trailW: 10, // Rogue knife trail image: width in px
   trailLen: 48, // Rogue knife trail image: length in px

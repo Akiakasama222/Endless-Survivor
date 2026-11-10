@@ -227,6 +227,60 @@ function drawMage3D(g, px, py, fi) {
   return true;
 }
 
+// M16 = the 16-direction mage used for the Rogue (knife) and the Grimoire. Like the archer it is drawn in two layers that turn independently:
+//   Upper body (mage16-cast.png): 24 animation frames x 16 rows = the way the mage AIMS. Column 0 is the aiming / idle pose, columns castFrom..23 play after each shot.
+//   Lower body (mage16-run-*.png): one sheet per running style (forward / right / back / left); the sheet is chosen by the movement direction relative to the aim.
+// All five sheets were rendered with the same camera and pelvis position, so the layers fit without any offset: every cell is 96 x 80 and the feet are on row `feet`.
+// Rows are the 16 screen directions in steps of 22.5 degrees, starting at "facing the viewer" (S) and turning towards the right (S, SSE, SE, ESE, E, ... N ... W ... SSW).
+//   sc = draw scale (raise it for a bigger mage), idle = lower-body frame (of the forward sheet) used when standing still, runFps = leg animation speed,
+//   castFrom = first cast frame played (the frames before it are the wind-up: skipping them makes the hand thrust line up with the shot leaving),
+//   castMax = longest the cast plays (seconds); it is shortened so it always ends before the next shot, strafeSwap = flip left / right if the legs look mirrored,
+//   on = false puts the old Rogue archer / Grimoire mage back.
+const M16 = { on: true, cw: 96, ch: 80, sc: .94, feet: 66, castN: 24, castFrom: 6, castMax: .9, runFps: 15, idle: 0, strafeSwap: false,
+  n: { f: 11, r: 12, b: 10, l: 12 }, up: new Image(), f: new Image(), r: new Image(), b: new Image(), l: new Image() };
+
+M16.up.src = IMAGE_FILES.mage16Cast;
+M16.f.src = IMAGE_FILES.mage16RunForward;
+M16.r.src = IMAGE_FILES.mage16RunRight;
+M16.b.src = IMAGE_FILES.mage16RunBack;
+M16.l.src = IMAGE_FILES.mage16RunLeft;
+
+// True when the 16-direction mage should be drawn for the current weapon (Rogue / Grimoire) and all of its sheets are loaded.
+function mage16Ready() {
+  return M16.on && (S.wp === 'gun' || S.wp === 'grimoire') && M16.up.naturalWidth > 0 && M16.f.naturalWidth > 0 && M16.r.naturalWidth > 0 && M16.b.naturalWidth > 0 && M16.l.naturalWidth > 0;
+}
+
+// Draws the two-layer mage standing at (px, py). aim = screen angle the upper body faces, mv = the screen angle the player is moving in (or null when standing still).
+function drawMage16(g, px, py, aim, mv) {
+  const row = ((Math.round((Math.PI / 2 - aim) / (Math.PI / 8)) % 16) + 16) % 16;
+  let leg = 'f';
+  let lf = M16.idle;
+  if (mv !== null) {
+    let rel = mv - aim;
+    rel = Math.atan2(Math.sin(rel), Math.cos(rel));
+    const side = M16.strafeSwap ? -1 : 1;
+    if (Math.abs(rel) > Math.PI * .75)
+      leg = 'b';
+    else if (Math.abs(rel) > Math.PI * .25)
+      leg = rel * side > 0 ? 'r' : 'l';
+    lf = Math.floor(S.t * M16.runFps * (1 + C.moveSpeedPerLvl * S.nsp)) % M16.n[leg];      // runs faster with Move Speed
+  }
+  let uf = 0;
+  if (S.st0 !== undefined) {
+    const since = S.t - S.st0;
+    const n = M16.castN - M16.castFrom;
+    const dur = Math.max(.2, Math.min(M16.castMax, .9 / rate()));      // never slower than normal, and over before the next shot
+    if (since >= 0 && since < dur)
+      uf = M16.castFrom + Math.min(n - 1, Math.floor(since / dur * n));
+  }
+  const dw = M16.cw * M16.sc;
+  const dh = M16.ch * M16.sc;
+  const x0 = px - dw / 2;
+  const y0 = py - 3 - M16.feet * M16.sc;
+  g.drawImage(M16[leg], lf * M16.cw, row * M16.ch, M16.cw, M16.ch, x0, y0, dw, dh);
+  g.drawImage(M16.up, uf * M16.cw, row * M16.ch, M16.cw, M16.ch, x0, y0, dw, dh);
+}
+
 // Bow archer: the body is drawn in two layers that turn independently.
 //   Upper body (aim / shoot sheets): 8 columns (animation frames) x 8 rows (direction the archer AIMS: S, SE, E, NE, N, NW, W, SW).
 //   Lower body (walk sheets): same 8 x 8 layout; the sheet is chosen by the movement direction relative to the aim (forward / back / left / right).
