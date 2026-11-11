@@ -47,13 +47,16 @@ function padInv() {
 }
 
 // TY = weapon types: display name and icon for the Rogue (internal key 'gun', it used to be the Bow), sword and grimoire.
+// n = name, i = the weapon icon as a small inline picture (HTML), used by the inventory, chest and guide screens.
+const wIcon = (f, smooth) => '<img class="wi' + (smooth ? ' sm' : '') + '" src="' + f + '" alt="">';
+
 const TY = {
-  grimoire: { n: 'Grimoire', i: '📖' },
+  grimoire: { n: 'Grimoire', i: wIcon(IMAGE_FILES.iconGrimoire, 1) },
   gun: {
     n: 'Rogue',
-    i: '🔪'
+    i: wIcon(IMAGE_FILES.iconRogue)
   },
-  sword: { n: 'Sword', i: '🗡️' }
+  sword: { n: 'Sword', i: wIcon(IMAGE_FILES.iconSword) }
 };
 
 // Creates a fresh player profile: one Common weapon of each type, equipped weapon, no chests.
@@ -67,6 +70,7 @@ function newPD(t) {
     },
     eq: { t: t || 'gun', r: 0 },
     chests: 0,
+    coins: 0,
     runs: 0,
     kills: 0
   };
@@ -155,6 +159,7 @@ function endRun() {
   S.counted = 1;
   PD.runs++;
   PD.kills += S.kills;
+  PD.coins = (PD.coins | 0) + (S.coins | 0);
   savePD();
 }
 
@@ -190,16 +195,20 @@ document.addEventListener('visibilitychange', () => {
     saveBest();
 });
 
-// Stat formulas: maxHp = max health, nat = base damage, dmg = current damage, nextDm = next overload multiplier, rate = attack rate, shots = arrows per shot, need = XP needed for the next level.
+// Stat formulas: maxHp = max health, nat = base damage, dmg = current damage, rate = attack rate, shots = arrows per shot, need = XP needed for the next level.
 const maxHp = () => Math.round((C.baseHp + C.hpLvl * (S.lvl - 1)) * (1 + C.hpAug * S.hpb));
 
 const nat = () => C.baseDmg + C.dmgLvl * (S.lvl - 1);
 
 const dmg = () => nat() + (S.db || 0);
 
-const nextDm = () => C.overloadStep * ((S.dk || 0) + 1);
-
 const rate = () => C.fireRate * (1 + C.rateAug * S.nr + C.spellcaster * (S.nsc || 0));
+
+// Armor: flat damage blocked from every hit the player takes. Armor augment = C.armorPerLvl per level. Harden adds C.hardenArmor flat armor per level, then the whole total
+// is increased by C.hardenPerLvl per level (additive: x1.5, x2, x2.5...). armorAt(na, nhd) = the armor at those levels (used by the augment texts to show the next value).
+const armorAt = (na, nhd) => Math.round((C.armorPerLvl * (na || 0) + C.hardenArmor * (nhd || 0)) * (1 + C.hardenPerLvl * (nhd || 0)));
+
+const armor = () => armorAt(S.na, S.nhd);
 
 const shots = () => 1 + S.nm;
 
@@ -230,7 +239,8 @@ function init() {
     nm: 0,
     nb: 0,
     db: 0,
-    dk: 0,
+    nmw: 0,
+    gh: [],      // MultiWield afterimages (combat.js)
     bw: 0,
     boss: null,
     hm: 0,
@@ -256,11 +266,16 @@ function init() {
     nds: 0,
     nbl: 0,
     nxp: 0,
-    nps: 0,
+    nsv: 0,
+    vt: 0,
     dc: 0,
     wp: weapon,
     fe: [],
     ah: [],
+    bh: [],
+    cf: [],
+    hfx: 0,
+    lu: [],
     at: [],
     ie: [],
     ic: [],
@@ -279,7 +294,10 @@ function init() {
     nf: 0,
     nl: 0,
     ni: 0,
-    ne: 0,
+    nrg: 0,
+    na: 0,
+    nhd: 0,
+    nsh: 0,
     nts: 0,
     nhs: 0,
     sip: 0,
@@ -293,12 +311,15 @@ function init() {
     eb: [],
     bl: [],
     gm: [],
+    cn: [],
+    coins: 0,
     tx: [],
     sp: 0,
     state: 'play'
   };
   S.hp = maxHp();
   S.dev = DEV.lvl > 1 && !DEV.rew;
+  teleportStart();      // the mage beams in (teleport.js); the run is frozen until the animation is nearly over
   $('ov').style.display = 'none';
   hud(1);
 }

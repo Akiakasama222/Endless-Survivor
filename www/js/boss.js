@@ -123,14 +123,14 @@ function bossAI(e, dt, sm) {
     }
   }
   else if (e.st === 'dash') {
-    const sp = C.bossDashLen / C.bossDashT;
+    const sp = C.bossDashLen / C.bossDashT * dnEnemySpd();
     e.x += e.ux * sp * dt;
     e.y += e.uy * sp * dt;
     e.t -= dt;
     if (!e.hitp && (S.x - e.x) ** 2 + (S.y - e.y) ** 2 < (e.hr + C.pHitR + 4) ** 2) {
       e.hitp = 1;
       if (S.inv <= 0) {
-        hurt(e.d);
+        hurt(e.d * dnEnemyDmg());
         S.inv = .3;
       }
     }
@@ -161,7 +161,7 @@ function bossAI(e, dt, sm) {
       S.bs.push({ x: e.x, y: e.y, r: C.bossJumpR, t: 1.44 });
       sfx('stomp');
       if ((S.x - e.x) ** 2 + (S.y - e.y) ** 2 < C.bossJumpR ** 2 && S.inv <= 0) {
-        hurt(e.d);
+        hurt(e.d * dnEnemyDmg());
         S.inv = .3;
       }
     }
@@ -174,7 +174,7 @@ function bossAI(e, dt, sm) {
     }
   }
   if ((e.st === 'walk' || e.st === 'rest') && d < e.hr + C.pHitR && e.cd <= 0 && S.inv <= 0) {
-    hurt(e.d);
+    hurt(e.d * dnEnemyDmg());
     e.cd = 1;
     S.inv = .15;
   }

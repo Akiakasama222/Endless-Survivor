@@ -14,6 +14,9 @@ function boom(x, y, d, r, s) {
 
 // The player takes d damage: a shield charge blocks it, otherwise health drops (and Dance with Death turns it into damage over time).
 function hurt(d) {
+  const ar = armor();      // Sword Armor: flat damage blocked from every hit, but a hit never drops below 1 damage (armor cannot block it completely)
+  if (ar > 0)
+    d = Math.max(Math.min(d, 1), d - ar);
   if (S.sh > 0) {
     S.sh--;
     sfx('block');
@@ -72,11 +75,15 @@ function hud(f) {
     return;
   hudT = n;
   $('lv').textContent = 'Lv ' + S.lvl + (S.dev ? ' · DEV' : '');
-  $('time').textContent = mmss(S.t);
-  $('kl').textContent = S.kills + ' kills';
+  $('time').textContent = (C.dayNight ? dnIcon() + ' ' : '') + mmss(S.t);
+  const kl = S.kills + ' kills · ' + ESS + ' ' + S.coins;
+  if (kl !== hudKl) {      // (only rewritten when it changes, so the icon does not flicker)
+    hudKl = kl;
+    $('kl').innerHTML = kl;
+  }
   $('xpf').style.width = Math.min(100, 100 * S.xp / need()) + '%';
   $('hpf').style.width = 100 * Math.max(0, S.hp) / maxHp() + '%';
-  $('hpt').textContent = Math.max(0, Math.ceil(S.hp)) + ' / ' + maxHp() + ' HP  ·  ' + dmg() + ' dmg' + (S.ns ? '  ·  Shield ' + S.sh + '/' + S.ns : '') + (S.dots && S.dots.length ? '  ·  DoT ' + Math.ceil(S.dots.reduce((a, o) => a + o.per * o.n, 0)) : '') + '  ·  Best: Lv ' + Math.max(best.lvl, S.lvl) + ', ' + Math.max(best.kills, S.kills) + ' kills';
+  $('hpt').textContent = Math.max(0, Math.ceil(S.hp)) + ' / ' + maxHp() + ' HP  ·  ' + dmg() + ' dmg' + (armor() ? '  ·  Armor ' + armor() : '') + (S.ns ? '  ·  Shield ' + S.sh + '/' + S.ns : '') + (S.dots && S.dots.length ? '  ·  DoT ' + Math.ceil(S.dots.reduce((a, o) => a + o.per * o.n, 0)) : '') + '  ·  Best: Lv ' + Math.max(best.lvl, S.lvl) + ', ' + Math.max(best.kills, S.kills) + ' kills';
   cdUI();
   const bs = S.boss;
   $('bb').style.display = bs ? 'block' : 'none';
@@ -96,6 +103,8 @@ function cdUI() {
     e.children[0].style.width = (r ? 100 : Math.max(0, 100 * (1 - left / max))) + '%';
     e.children[1].textContent = name + (r ? ' READY' : ' ' + Math.ceil(left) + 's');
   };
-  f('cdd', S.wp === 'sword' && S.nds, S.dc, cdOf(S.nds), '🗡 Dash');
+  f('cdd', S.nds, S.dc, cdOf(S.nds), '🗡 Dash');
   f('cdm', false, 0, 1, '');
 }
+
+let hudKl = '';

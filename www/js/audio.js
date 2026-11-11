@@ -154,6 +154,14 @@ function sfx(n) {
       if (!playBuf('zombieHit', .8, .92 + Math.random() * .16))
         tone(180, .07, 'triangle', .09, 90);
       break;
+    case 'teleport':      // rising shimmer while the portal charges, then a soft thump when the beam peaks
+      tone(180, .75, 'sine', .05, 1500);
+      noise(.8, 300, 3500, .07);
+      setTimeout(() => {
+        tone(95, .35, 'triangle', .11, 40);
+        noise(.25, 2500, 400, .05);
+      }, 520);
+      break;
     case 'kill':
       if (!playBuf('zombieDeath', .6, .95 + Math.random() * .1))
         tone(300, .1, 'sine', .07, 650);

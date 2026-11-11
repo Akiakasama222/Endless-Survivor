@@ -76,11 +76,18 @@ addEventListener('resize', rs);
 
 rs();
 
+// Essence (the currency, formerly coins): ESI = its gem picture (drawn where enemies drop it), ESS = the same picture as a small inline icon for menus and the HUD.
+const ESI = new Image();
+
+ESI.src = IMAGE_FILES.essence;
+
+const ESS = '<img class="ess" src="' + IMAGE_FILES.essence + '" alt="">';
+
 // S = the state of the current run. Main fields: x/y position, lvl, xp, hp, t (seconds), kills, state (play/paused/pick/over/menu), wp (weapon),
 // en (enemies), eb (enemy bullets), bl (player arrows / orbs), gm (xp gems), tx (floating damage numbers).
-// Augment level counters: nr fire rate, nm multishot, nb bounce, ls lifesteal, ns shield, nsp move speed, nd death explosion, nmi magic arrows, nxp magnet,
-// ndd dance with death, nds slash dash, swl swirl, nbl bleed, nps slash push, nsc spellcaster, ne enlightenment, nts thunder strike, nhs health siphon,
-// nf / nl / ni fire / lightning / ice turrets. See init() for the full list.
+// Augment level counters: nr fire rate, nm multishot, nb bounce, ls lifesteal, nrg regeneration, ns shield, nsp move speed, nd death explosion, nmi homing knives, nxp magnet,
+// ndd dance with death, nds dash, swl swirl, nbl bleed, nsv soul vortex (vt = its pull timer), nsc haste, nts thunder strike, nhs health siphon,
+// nf / nl / ni fire / lightning / ice turrets, na armor, nsh Sharpen, nhd Harden. See init() for the full list.
 let S;
 
 // best = personal records (highest level and kills), saved on the device.

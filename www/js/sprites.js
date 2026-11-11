@@ -356,3 +356,54 @@ IMG.h.src = IMAGE_FILES.swordHilt;
 const SLI = new Image();
 SLI.src = IMAGE_FILES.swordSlash;
 const SLASH = { cw: 128, cols: 5, cx: 64, cy: 58, r: 47, rot: .0, size: 1.3, dist: 0 };
+
+// The slash sheet is blue; this returns a copy recoloured to the rarity colour `rgb` ("r,g,b"), built once per colour. The shading is kept (white highlights stay white, darker parts stay darker), only the hue and saturation are swapped.
+const SLT = {};
+function slashTinted(rgb) {
+  if (!SLI.naturalWidth)
+    return SLI;
+  if (SLT[rgb])
+    return SLT[rgb];
+  const hsl = (r, g, b) => {
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    if (!d)
+      return [0, 0, l];
+    const s = d / (1 - Math.abs(2 * l - 1));
+    const h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h, s, l];
+  };
+  const rgbOf = (h, s, l) => {
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(h % 2 - 1));
+    const m = l - c / 2;
+    const p = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x];
+    return [(p[0] + m) * 255, (p[1] + m) * 255, (p[2] + m) * 255];
+  };
+  try {
+    const c = document.createElement('canvas');
+    c.width = SLI.naturalWidth;
+    c.height = SLI.naturalHeight;
+    const x = c.getContext('2d');
+    x.drawImage(SLI, 0, 0);
+    const im = x.getImageData(0, 0, c.width, c.height);
+    const d = im.data;
+    const q = rgb.split(',').map(v => v / 255);
+    const tg = hsl(q[0], q[1], q[2]);
+    const lift = tg[2] - .55;      // brighter rarity colours (Common, Mythical) lift the whole slash a little, darker ones dim it
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3])
+        continue;
+      const o = hsl(d[i] / 255, d[i + 1] / 255, d[i + 2] / 255);
+      const l = Math.max(0, Math.min(1, o[2] + lift * (1 - Math.max(0, (o[2] - .5) * 2))));      // pure white highlights are not lifted
+      const n = rgbOf(tg[0], tg[1] * Math.min(1, .3 + o[1]), l);
+      d[i] = n[0];
+      d[i + 1] = n[1];
+      d[i + 2] = n[2];
+    }
+    x.putImageData(im, 0, 0);
+    return SLT[rgb] = c;
+  }
+  catch (e) {
+    return SLT[rgb] = SLI;      // could not read the pixels: keep the original blue slash
+  }
+}

@@ -26,7 +26,12 @@ const EDITOR_GROUPS = [
     ['xpLvl', 'Extra XP needed per level', 'n'],
     ['aosGuard', 'Death guard: a hit that would kill you above this share of max HP...', '%'],
     ['aosEnd', '...leaves you at this share of max HP', '%'],
-    ['chestLvl', 'A chest is earned every N levels', 'i']
+    ['chestLvl', 'A chest is earned every N levels', 'i'],
+    ['orbCost', 'Orbs: Essence the first orb takes', 'i'],
+    ['orbCostStep', 'Orbs: extra Essence added to the price after every orb you open', 'i'],
+    ['orbChance', 'Orbs: chance a map chunk holds an orb', '%'],
+    ['orbTime', 'Orbs: seconds to stand close to use one', 'n'],
+    ['orbRadius', 'Orbs: how close you must stand (px)', 'n']
   ]],
   ['Enemies', 'Normal zombies: strength, speed and how many appear.', [
     ['eHp', 'Base HP', 'n'],
@@ -60,10 +65,10 @@ const EDITOR_GROUPS = [
     ['bossRest', 'Rest seconds after an attack', 'n'],
     ['bossGap', 'Minimum seconds between attacks', 'n']
   ]],
-  ['Multipliers', 'Overload (the big damage multiplier at max level) and Enlightenment.', [
-    ['overloadLvl', 'Multi Knives / Attack Speed level where the Overload is offered', 'i'],
-    ['overloadStep', 'Overload multiplier steps (5 = x5, then x10, then x15...)', 'n'],
-    ['gmEnlight', 'Enlightenment: damage multiplier', 'n']
+  ['Multipliers', 'Sharpen and MultiWield.', [
+    ['multiwieldDmg', 'MultiWield: damage of each delayed attack (share of your damage)', '%'],
+    ['multiwieldDelay', 'MultiWield: seconds between your attack and the delayed attack', 'n'],
+    ['sharpenMult', 'Sharpen: damage multiplier', 'n']
   ]],
   ['Projectiles', 'Speed and reach of the Rogue knife and the Grimoire orb (reach = speed x lifetime).', [
     ['bulletSpeed', 'Rogue knife speed', 'n'],
@@ -79,7 +84,7 @@ const EDITOR_GROUPS = [
     ['gmShotTailW', 'Grimoire orb tail thickness (px)', 'n'],
     ['gmShotTailFade', 'Grimoire orb tail fade-out time after a hit (seconds)', 'n']
   ]],
-  ['Augments: Rogue and shared', 'Lifesteal, Shield, Move Speed and Magnet are shared with the other weapons. The ones marked (all) apply to every weapon.', [
+  ['Augments: Rogue and shared', 'Special augments come from Orbs and every weapon shares the same pool, so all of these work for the Knife, the Sword and the Grimoire.', [
     ['missileChance', 'Homing Explosive Knives: chance on hit, per level', '%'],
     ['missileMaxLvl', 'Homing Explosive Knives: highest level', 'i'],
     ['missileDmg', 'Homing Explosive Knives: explosion damage (share of your damage)', '%'],
@@ -87,22 +92,25 @@ const EDITOR_GROUPS = [
     ['deathBoomDmg', 'Death Explosion: damage at level 1', '%'],
     ['deathBoomDmgPerLvl', 'Death Explosion: extra damage per level', '%'],
     ['deathBoomR', 'Death Explosion: radius', 'n'],
-    ['killHeal', 'Rogue Lifesteal: heal on kill, per level (share of the enemy max health)', '%'],
-    ['regenPct', 'Sword Regeneration: max health regenerated per second, per level', '%'],
+    ['killHeal', 'Lifesteal: heal on kill, per level (share of the enemy max health)', '%'],
+    ['regenPct', 'Regeneration: max health regenerated per second, per level', '%'],
     ['shieldKills', 'Shield (all): kills to regain a charge', 'i'],
     ['moveSpeedPerLvl', 'Move Speed / Lightning Step (all): extra speed per level', '%'],
     ['magnetBase', 'Magnet (all): pickup range without the augment (px)', 'n'],
     ['magnetPerLvl', 'Magnet (all): extra range per level', '%']
   ]],
-  ['Augments: Sword', 'Sword range, Dance with Death, Swirl, Bleed and Slash Push.', [
+  ['Augments: Sword', 'Armor, Harden, sword range, Dance with Death, Swirl, Bleed and Soul Vortex.', [
     ['swordR', 'Base sword range', 'n'],
-    ['swordRangePerLvl', 'Sword Range augment: extra range per level', '%'],
+    ['armorPerLvl', 'Armor augment: damage blocked per hit, per level', 'n'],
+    ['hardenPerLvl', 'Harden: extra total armor per level (added together)', '%'],
+    ['hardenArmor', 'Harden: flat armor gained per level (added before the % bonus)', 'n'],
     ['arc', 'Sword swing arc (radians)', 'n'],
     ['ddTicksPerLvl', 'Dance with Death: ticks per level', 'i'],
     ['dwdTick', 'Dance with Death: seconds between ticks', 'n'],
     ['swirlEvery', 'Swirl: a sword is thrown every Nth attack', 'i'],
     ['swirlStayPerLvl', 'Swirl: hover seconds per level', 'n'],
-    ['swirlDist', 'Swirl: flight distance (x base sword range)', 'n'],
+    ['swirlDist', 'Swirl: flight distance with the Sword (x current sword range)', 'n'],
+    ['swirlDistRanged', 'Swirl: flight distance with Bow / Grimoire (share of attack range)', '%'],
     ['swirlRad', 'Swirl: radius (share of sword range)', '%'],
     ['swirlTick', 'Swirl: seconds between damage ticks', 'n'],
     ['bleedTick', 'Bleed: seconds between ticks', 'n'],
@@ -110,20 +118,21 @@ const EDITOR_GROUPS = [
     ['bleedBoomDmg', 'Bleed: death explosion damage at level 1', '%'],
     ['bleedBoomPerLvl', 'Bleed: death explosion extra damage per level', '%'],
     ['bleedBoomR', 'Bleed: death explosion radius', 'n'],
-    ['pushBase', 'Slash Push: base push strength', 'n'],
-    ['pushPerLvl', 'Slash Push: push per level (share of base)', '%']
+    ['vortexChance', 'Soul Vortex: chance on kill, per level', '%'],
+    ['vortexT', 'Soul Vortex: pull duration (seconds)', 'n'],
+    ['vortexRate', 'Soul Vortex: pull strength', 'n']
   ]],
   ['Augments: Grimoire and turrets', 'Fire, Lightning and Ice turrets, Spellcaster, Thunder Strike and Health Siphon.', [
     ['gmTR', 'Turret range', 'n'],
     ['gmFireR', 'Fire turret: explosion radius', 'n'],
-    ['gmFireRPerLvl', 'Fire turret: extra radius per level', '%'],
+    ['gmTurAS', 'Fire / Lightning / Ice turrets: extra attack speed per level', '%'],
     ['gmFireD', 'Fire turret: extra damage per level', '%'],
     ['gmFireSplash', 'Fire turret: damage to others in the explosion (share of the direct hit)', '%'],
     ['gmFx', 'Fire turret: explosion drawing size (1.5 = the real damage area)', 'n'],
     ['gmZap', 'Lightning turret: zap range', 'n'],
     ['gmChain', 'Lightning turret: chain jump distance', 'n'],
     ['gmChainPerLvl', 'Lightning turret: extra chain jumps per level', 'n'],
-    ['gmStunPerLvl', 'Lightning turret: extra stun seconds per level', 'n'],
+    ['gmStun', 'Lightning turret: stun seconds (fixed)', 'n'],
     ['gmIceR', 'Ice turret: burst radius', 'n'],
     ['gmIceRPerLvl', 'Ice turret: extra radius per level', '%'],
     ['gmIceDmg', 'Ice turret: damage (share of your damage)', '%'],

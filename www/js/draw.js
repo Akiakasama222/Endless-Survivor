@@ -65,6 +65,30 @@ function draw() {
     g.lineTo(x - 5, y - 5);
     g.fill();
   }
+  for (const m of S.cn) {
+    const x = SX(m.x, m.y);
+    const y = SY(m.x, m.y);
+    if (x < -10 || x > W + 10 || y < -10 || y > H + 10)
+      continue;
+    const r = m.v > 1 ? 9 : 5;
+    if (ESI.naturalWidth) {      // the Essence gem (a bigger one from bosses)
+      const sz = m.v > 1 ? 30 : 20;
+      g.drawImage(ESI, x - sz / 2, y - sz + 2 + Math.sin(S.t * 4 + m.x) * 1.5, sz, sz);
+      continue;
+    }
+    g.fillStyle = '#b8860b';
+    g.beginPath();
+    g.ellipse(x, y - r, r, r, 0, 0, 7);
+    g.fill();
+    g.fillStyle = '#ffd23f';
+    g.beginPath();
+    g.ellipse(x, y - r, r - 1.5, r - 1.5, 0, 0, 7);
+    g.fill();
+    g.fillStyle = '#fff2a8';
+    g.beginPath();
+    g.ellipse(x - r * .3, y - r * 1.3, r * .3, r * .3, 0, 0, 7);
+    g.fill();
+  }
   if (S.boss) {
     const e = S.boss;
     if (e.st === 'cw') {
@@ -349,6 +373,13 @@ function draw() {
     g.drawImage(SPR['t' + k], x - 18 * sc, cy - 18 * sc, 36 * sc, 36 * sc);
   };
   const dP = () => {
+    // Teleport-in (teleport.js): the mage is hidden until the beam has formed, then fades in inside it; the beam is drawn on top.
+    const tpA = teleportMageAlpha();
+    if (tpA <= 0) {
+      teleportDraw(g, px, py);
+      return;
+    }
+    g.globalAlpha = tpA;
     g.fillStyle = '#4be06a33';
     g.strokeStyle = '#4be06a';
     g.lineWidth = 3;
@@ -357,7 +388,7 @@ function draw() {
     g.fill();
     g.stroke();
     if (S.nhs) {
-      const R = C.atkR;
+      const R = weaponRange();      // the ring matches the Siphon's range: the weapon's range (combat.js)
       const fl = S.sip > 1 / rate() - .12 ? .25 : 0;
       const pu = .5 + .5 * Math.sin(S.t * 3);
       // The dashed range ring is drawn once into its own small image and only its see-through level changes, because stroking a big dashed ellipse every frame is slow
@@ -381,7 +412,7 @@ function draw() {
         g.save();
         g.transform(k * (nx - ny), k * (nx + ny) * .5, -k * (fx - fy), -k * (fx + fy) * .5, px + SLASH.dist * (fx - fy), by + SLASH.dist * (fx + fy) * .5);      // dist moves the slash forward along the swing direction
         g.rotate(-SLASH.rot);
-        g.drawImage(SLI, (fi % SLASH.cols) * SLASH.cw, Math.floor(fi / SLASH.cols) * SLASH.cw, SLASH.cw, SLASH.cw, -SLASH.cx, -SLASH.cy, SLASH.cw, SLASH.cw);
+        g.drawImage(slashTinted(RAR[PD.eq.r].rgb), (fi % SLASH.cols) * SLASH.cw, Math.floor(fi / SLASH.cols) * SLASH.cw, SLASH.cw, SLASH.cw, -SLASH.cx, -SLASH.cy, SLASH.cw, SLASH.cw);
         g.restore();
       };
       const sweep = (a0, a1, al) => {
@@ -450,6 +481,11 @@ function draw() {
       g.ellipse(px, py - 3, 15, 7, 0, 0, 6.3);
       g.fill();
       const th = facingAngle();
+      if (live3dReady()) {
+        // live 3D mage (Rogue and Grimoire): upper body turns to the enemy being aimed at (or the walking direction when nothing is in range), the legs follow the movement
+        drawLive3D(g, px, py, th, S.mv && S.fd !== undefined ? S.fd : null);
+        return;
+      }
       if (mage16Ready()) {
         // 16-direction mage (Rogue and Grimoire): upper body turns to the enemy being aimed at (or the walking direction when nothing is in range), the legs follow the movement
         drawMage16(g, px, py, th, S.mv && S.fd !== undefined ? S.fd : null);
@@ -477,11 +513,14 @@ function draw() {
         const sdy = (Math.cos(a) + Math.sin(a)) * .5;
         const f = Math.hypot(sdx, sdy);
         const Rr = C.swordR * (1 + C.swordRangePerLvl * S.sr);
-        const bl = Math.max(8, (Rr - 24) * f);
+        const bl = Math.max(8, Rr - 24);      // blade length in ground units (the projection below does the foreshortening)
         const sw0 = S.sw > 0;
         g.save();
         g.translate(px, by);
-        g.rotate(Math.atan2(sdy, sdx) - Math.PI / 2);
+        // The sword lies on the ground plane: its length runs along the swing direction and its width along the perpendicular, both projected into the isometric view (x - y, (x + y) / 2), so it is squashed / skewed like the landscape instead of being a flat 2D sprite.
+        const ndx = Math.sin(a) + Math.cos(a);
+        const ndy = (Math.sin(a) - Math.cos(a)) * .5;
+        g.transform(ndx, ndy, sdx, sdy, 0, 0);
         g.translate(0, 8);
         g.lineCap = 'round';
         {
@@ -501,8 +540,8 @@ function draw() {
         }
         g.lineCap = 'butt';
         if (IMG.b.naturalWidth && IMG.h.naturalWidth) {
-          g.drawImage(IMG.b, -8.6, 37.5, 17.5, bl + 1);
-          g.drawImage(IMG.h, -8.6, 0, 17.5, 38.5);
+          g.drawImage(IMG.b, -10.25, 37.5, 20.5, bl + 1);
+          g.drawImage(IMG.h, -10.25, 0, 20.5, 38.5);
         }
         g.restore();
       }
@@ -557,7 +596,14 @@ function draw() {
     }
     if (S.wp === 'grimoire')
       g.drawImage(SPR.gm, px + 16, by - 14 + Math.sin(S.t * 2.5) * 3, 22, 22);
-    if (S.sh > 0) {
+    if (S.sh > 0 && SHI.naturalWidth) {
+      const f = Math.floor(S.t * SH_FPS) % SH_N;
+      const k = SH_SCALE;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(SHI, (f % SH_COLS) * SH_W, Math.floor(f / SH_COLS) * SH_H, SH_W, SH_H, Math.round(px - SH_CX * k), Math.round(by - SH_CY * k), SH_W * k, SH_H * k);
+      g.imageSmoothingEnabled = true;
+    }
+    else if (S.sh > 0) {
       const cx = px;
       const cy = by - 1;
       const R = 36;
@@ -593,10 +639,8 @@ function draw() {
       g.stroke();
       g.lineCap = 'butt';
     }
-    g.fillStyle = '#000a';
-    g.fillRect(px - 20, py + 16, 40, 6);
-    g.fillStyle = '#6be06a';
-    g.fillRect(px - 20, py + 16, 40 * S.hp / maxHp(), 6);
+    g.globalAlpha = 1;
+    teleportDraw(g, px, py);
   };
   // ground layer: flat rings and flashes sit under the characters
   for (const z of S.fe) {
@@ -660,10 +704,12 @@ function draw() {
   for (const z of S.bolt) {
     if (hid(z.x, z.y, 10))
       continue;
-    const al = Math.min(1, z.t / .28);
+    const al = tsGlow(z);      // fades with the flash of the lightning
     const x = SX(z.x, z.y);
     const y = SY(z.x, z.y);
     const R = C.gmThR;
+    if (TS_DUR - z.t < TS_IMPACT)      // the damage area only lights up once the bolt has landed
+      continue;
     g.fillStyle = 'rgba(255,240,120,' + .35 * al + ')';
     g.beginPath();
     g.ellipse(x, y, R * 1.414, R * .707, 0, 0, 6.3);
@@ -711,6 +757,10 @@ function draw() {
       return;
     const x = SX(z.x, z.y);
     const y = SY(z.x, z.y);
+    if (e.fxk === 8) {
+      ghostDraw(g, x, y, z);
+      return;
+    }
     if (e.fxk === 0) {
       if (XSI.naturalWidth) {      // explosion sprite for Fire turret fireballs and Magic Arrows: plays once over the life of the blast, sized to its radius
         const xf = Math.min(XS_N - 1, Math.floor((1 - z.t / FX_LIFE) * XS_N));
@@ -756,6 +806,21 @@ function draw() {
       const k = AB_SCALE;
       g.imageSmoothingEnabled = false;
       g.drawImage(ABI, (f % 8) * AB_W, Math.floor(f / 8) * AB_H, AB_W, AB_H, Math.round(x - AB_HIT_X * k), Math.round(y - AB_LIFT - AB_HIT_Y * k), Math.round(AB_W * k), Math.round(AB_H * k));
+      g.imageSmoothingEnabled = true;
+    }
+    else if (e.fxk === 7) {
+      // blood splash where a knife or the sword hit: plays once, mirrored so it sprays away from the player
+      if (!BHI.naturalWidth)
+        return;
+      const f = Math.min(BH_N - 1, Math.floor((1 - z.t / BH_T) * BH_N));
+      const k = BH_SCALE;
+      g.imageSmoothingEnabled = false;
+      g.save();
+      g.translate(Math.round(x), Math.round(y));
+      if (z.fl)
+        g.scale(-1, 1);
+      g.drawImage(BHI, (f % 8) * BH_W, Math.floor(f / 8) * BH_H, BH_W, BH_H, -BH_AX * k, -BH_AY * k, BH_W * k, BH_H * k);
+      g.restore();
       g.imageSmoothingEnabled = true;
     }
     else if (e.fxk === 6) {
@@ -852,31 +917,67 @@ function draw() {
     fxs.push({ x: z.x, y: z.y, fxk: 5, z });
   for (const z of S.at)
     fxs.push({ x: z.x, y: z.y, fxk: 6, z });
+  for (const z of S.bh)
+    fxs.push({ x: z.x, y: z.y, fxk: 7, z });
+  for (const z of S.gh)      // MultiWield afterimages join the depth sorting like any character
+    fxs.push({ x: z.x, y: z.y, fxk: 8, z });
   // procedural trees join the depth-sorted list, so they hide whatever stands behind them
   trCollect(SX, SY, W, H, S.x, S.y, fxs);
   chCollect(SX, SY, W, H, fxs);       // hidden chests (chests.js)
+  orbCollect(SX, SY, W, H, fxs);      // orbs (orbs.js)
   const rw = ROBO.cw * ROBO.sc;
   const rh = ROBO.ch * ROBO.sc;
   // player's on-screen box (slightly shrunk) - a tree turns see-through only when it overlaps this
   const PL = { ps: S.x + S.y, l: px - rw * .35, r: px + rw * .35, t: py - 4 - rh * .9, b: py - 4 - rh * .05 };
   const EL = S.en.concat(fxs);
-  const dX = e => e.trk ? trDraw(g, e, SX, SY, PL) : e.chk ? chDraw(g, e, SX, SY) : e.fxk >= 0 ? dFx(e) : dE(e);
+  const dX = e => e.trk ? trDraw(g, e, SX, SY, PL) : e.chk ? chDraw(g, e, SX, SY) : e.orbk ? orbDraw(g, e, SX, SY) : e.fxk >= 0 ? dFx(e) : dE(e);
   // depth order: enemies behind the player first, then the player, then enemies in front
   const ps = S.x + S.y;
   EL.sort((a, b) => (a.x + a.y) - (b.x + b.y));
   let pd = 0;
+  const late = [];      // blood splashes that sort behind the player: held back until the player and the sword are drawn, so they always show on top of the sword (but still under trees / enemies in front)
   for (let i = 0; i < EL.length; i++) {
     const e = EL[i];
     if (!pd && e.x + e.y >= ps) {
       dP();
       pd = 1;
+      for (const l of late)
+        dX(l);
     }
-    dX(e);
+    if (e.fxk === 7 && !pd)
+      late.push(e);
+    else
+      dX(e);
   }
-  if (!pd)
+  if (!pd) {
     dP();
+    for (const l of late)
+      dX(l);
+  }
+  g.imageSmoothingEnabled = false;      // pixel-art effect sheets: keep the pixels sharp
+  if (HLI.naturalWidth && S.hfx > 0 && S.hp > 0) {      // Heal aura: plays every time the player heals (healFx in grimoire.js)
+    const f = Math.min(HL_N - 1, Math.floor((1 - S.hfx / HL_T) * HL_N));
+    const k = HL_SCALE;
+    g.drawImage(HLI, (f % HL_COLS) * HL_W, Math.floor(f / HL_COLS) * HL_H, HL_W, HL_H, Math.round(px - HL_AX * k), Math.round(py - HL_AY * k), HL_W * k, HL_H * k);
+  }
+  if (CFI.naturalWidth)
+    for (const z of S.cf) {      // coin pickup sparkle
+      const f = Math.min(CF_N - 1, Math.floor((1 - z.t / CF_T) * CF_N));
+      const k = CF_SCALE * (z.b ? 1.6 : 1);
+      g.drawImage(CFI, f * CF_W, 0, CF_W, CF_H, Math.round(SX(z.x, z.y) - CF_AX * k), Math.round(SY(z.x, z.y) - 8 - CF_AY * k), CF_W * k, CF_H * k);
+    }
+  if (LUI.naturalWidth)
+    for (const z of S.lu) {      // level-up effect: follows the player
+      const f = Math.min(LU_N - 1, Math.floor((1 - z.t / LU_T) * LU_N));
+      const k = LU_SCALE;
+      g.drawImage(LUI, (f % LU_COLS) * LU_W, Math.floor(f / LU_COLS) * LU_H, LU_W, LU_H, Math.round(px - LU_AX * k), Math.round(py - LU_AY * k), LU_W * k, LU_H * k);
+    }
+  g.imageSmoothingEnabled = true;
   chOverlay(g, SX, SY);             // chest progress ring / twinkle hint (chests.js)
+  orbOverlay(g, SX, SY);            // orb progress ring, label and edge arrow (orbs.js)
+  vortexDraw(g, SX, SY);            // Soul Vortex swirl (combat.js)
   atmDraw(g, W, H, SX, SY);        // wind streaks and flying leaves (atmosphere.js)
+  dnDraw(g, W, H, SX, SY);          // day / night tint and the light around the player (daynight.js)
   for (const p of S.tr) {
     if (hid(p.x, p.y, 18))
       continue;
@@ -927,8 +1028,8 @@ function draw() {
     g.scale(sc, sc * f);
     g.translate(0, -37);
     if (IMG.b.naturalWidth && IMG.h.naturalWidth) {
-      g.drawImage(IMG.b, -8.6, 37.5, 17.5, 36);
-      g.drawImage(IMG.h, -8.6, 0, 17.5, 38.5);
+      g.drawImage(IMG.b, -10.25, 37.5, 20.5, 36);
+      g.drawImage(IMG.h, -10.25, 0, 20.5, 38.5);
     }
     g.restore();
   }
@@ -1030,11 +1131,16 @@ function draw() {
         pts = pts.concat(zig(P[i], P[i + 1], 5, 12).slice(1));
       strokeBolt(pts, al);
     }
-    for (const z of S.bolt) {
-      const al = Math.min(1, z.t / .28);
-      const x = SX(z.x, z.y);
-      const y = SY(z.x, z.y);
-      strokeBolt(zig([x, y - 460], [x, y], 9, 36), al);
+  }
+  // Thunder Strike lightning: works with every weapon, so it is drawn outside the Grimoire block above.
+  for (const z of S.bolt) {
+    const x = SX(z.x, z.y);
+    const y = SY(z.x, z.y);
+    if (THI.naturalWidth) {      // the yellow lightning sprite (grimoire.js), its ground point sits on the strike's spot
+      const fi = Math.min(TS_FRAMES - 1, Math.floor((TS_DUR - z.t) / TS_DUR * TS_FRAMES));
+      g.imageSmoothingEnabled = false;      // pixel art: keep the pixels sharp
+      g.drawImage(THI, (fi % 8) * 96, Math.floor(fi / 8) * 128, 96, 128, Math.round(x - TS_AX * TS_SCALE), Math.round(y - TS_AY * TS_SCALE), 96 * TS_SCALE, 128 * TS_SCALE);
+      g.imageSmoothingEnabled = true;
     }
   }
   g.lineCap = 'round';
@@ -1134,7 +1240,7 @@ function facingAngle() {
     const a = Math.atan2(tg.y - S.y, tg.x - S.x);
     th = Math.atan2((Math.cos(a) + Math.sin(a)) * .5, Math.cos(a) - Math.sin(a));
   }
-  const step = Math.PI / (mage16Ready() ? 8 : 4);      // the 16-direction mage turns in 22.5 degree steps, the other characters in 45 degree steps
+  const step = Math.PI / (live3dReady() ? 16 : mage16Ready() ? 8 : 4);      // the 16-direction mage turns in 22.5 degree steps, the other characters in 45 degree steps
   if (S.hk === undefined)
     S.hk = Math.round(th / step);
   else {
@@ -1163,4 +1269,103 @@ function siphonRing(R) {
   x.stroke();
   SIP_RING = { R, c };
   return c;
+}
+
+// MultiWield afterimage: a see-through blue copy of the player standing where the attack was made. (x, y) = its feet on the screen, z = the ghost (combat.js).
+// The body (and the sword) is drawn into a small canvas first so the blue tint only covers the character, then that canvas is drawn with the ghost's opacity.
+const GHC = { c: null, W: 360, H: 300, fx: 180, fy: 220 };
+
+function ghostDraw(g, x, y, z) {
+  if (!GHC.c) {
+    GHC.c = document.createElement('canvas');
+    GHC.c.width = GHC.W;
+    GHC.c.height = GHC.H;
+  }
+  const al = (z.st === 2 ? Math.max(0, z.fade / GH_FADE) : Math.min(1, z.age / .12)) * .55;
+  if (al <= 0)
+    return;
+  const c = GHC.c.getContext('2d');
+  const fx = GHC.fx;
+  const fy = GHC.fy;
+  c.clearRect(0, 0, GHC.W, GHC.H);
+  const th = Math.atan2((Math.cos(z.a) + Math.sin(z.a)) * .5, Math.cos(z.a) - Math.sin(z.a));      // screen direction the afterimage faces
+  const body = () => {
+    const st0 = S.st0;
+    const mv = S.mv;
+    S.st0 = z.st0;      // its own cast animation
+    S.mv = 0;      // it stands still
+    if (live3dReady())
+      drawLive3D(c, fx, fy, th, null, true);
+    else if (mage16Ready())
+      drawMage16(c, fx, fy, th, null);
+    else if (S.wp === 'gun' && ARC.aim && ARC.f)
+      drawArcher(c, fx, fy - 4, th, null);
+    else
+      drawMage3D(c, fx, fy, ((Math.round((th - Math.PI / 2) / (Math.PI / 4)) % 8) + 8) % 8);
+    S.st0 = st0;
+    S.mv = mv;
+  };
+  const sword = S.wp === 'sword';
+  let sa = z.a;      // the blade's angle
+  if (sword && z.st === 1) {
+    const p = 1 - z.sw / (z.sdur || .22);
+    sa = z.sa + z.sd * C.arc * (2 * p * p * (3 - 2 * p) - 1);
+  }
+  else if (sword && z.st === 2 && z.sdur)
+    sa = z.sa + z.sd * C.arc;
+  const blade = () => {
+    if (!IMG.b.naturalWidth || !IMG.h.naturalWidth)
+      return;
+    const sdx = Math.cos(sa) - Math.sin(sa);
+    const sdy = (Math.cos(sa) + Math.sin(sa)) * .5;
+    const bl = Math.max(8, C.swordR * (1 + C.swordRangePerLvl * S.sr) - 24);
+    c.save();
+    c.translate(fx, fy - 30);
+    c.transform(Math.sin(sa) + Math.cos(sa), (Math.sin(sa) - Math.cos(sa)) * .5, sdx, sdy, 0, 0);      // lies on the ground plane, same projection as the player's sword
+    c.translate(0, 8);
+    c.drawImage(IMG.b, -10.25, 37.5, 20.5, bl + 1);
+    c.drawImage(IMG.h, -10.25, 0, 20.5, 38.5);
+    c.restore();
+  };
+  if (sword && (Math.cos(sa) + Math.sin(sa)) * .5 < -.05) {
+    blade();
+    body();
+  }
+  else {
+    body();
+    if (sword)
+      blade();
+  }
+  c.globalCompositeOperation = 'source-atop';      // blue tint, only where something was drawn
+  c.fillStyle = 'rgba(110,190,255,.55)';
+  c.fillRect(0, 0, GHC.W, GHC.H);
+  c.globalCompositeOperation = 'source-over';
+  g.save();
+  g.globalAlpha = al;
+  g.drawImage(GHC.c, x - fx, y - fy);
+  g.restore();
+  // the sword's slash effect, around the afterimage (same drawing as the player's slashFx in draw())
+  if (sword && SLI.naturalWidth && (z.st === 1 || (z.st === 2 && z.sfade > 0))) {
+    let fi;
+    if (z.st === 1) {
+      const p = 1 - z.sw / (z.sdur || .22);
+      const e = p * p * (3 - 2 * p);
+      fi = e < .083 ? 0 : e < .31 ? 1 : e < .61 ? 2 : e < .89 ? 3 : 4;
+    }
+    else
+      fi = 5 + Math.min(3, Math.floor((1 - z.sfade / .14) * 4));
+    const a = z.sa;
+    const sd = z.sd;
+    const k = (C.swordR * (1 + C.swordRangePerLvl * S.sr) + 10) / SLASH.r * SLASH.size;
+    const nx = sd * Math.sin(a);
+    const ny = -sd * Math.cos(a);
+    const dx = Math.cos(a);
+    const dy = Math.sin(a);
+    g.save();
+    g.globalAlpha = .75;
+    g.transform(k * (nx - ny), k * (nx + ny) * .5, -k * (dx - dy), -k * (dx + dy) * .5, x + SLASH.dist * (dx - dy), y - 30 + SLASH.dist * (dx + dy) * .5);
+    g.rotate(-SLASH.rot);
+    g.drawImage(slashTinted(RAR[PD.eq.r].rgb), (fi % SLASH.cols) * SLASH.cw, Math.floor(fi / SLASH.cols) * SLASH.cw, SLASH.cw, SLASH.cw, -SLASH.cx, -SLASH.cy, SLASH.cw, SLASH.cw);
+    g.restore();
+  }
 }

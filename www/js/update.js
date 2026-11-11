@@ -80,7 +80,48 @@ function snapDir8(ux, uy) {
 }
 
 // One simulation step: moves everything forward by dt seconds (player, weapons, enemies, spawning, gems, level-ups).
+// One player shot (Bow arrow / Grimoire orb) aimed at angle o towards enemy t; dm = its damage multiplier (1 = normal, C.multiwieldDmg for a MultiWield repeat).
+// The Bow and the Grimoire fire different shots: own speed, lifetime and look (the Grimoire's is a purple orb).
+function newShot(t, o, dm, ox, oy) {
+  const orb = S.wp === 'grimoire';
+  const sx = ox === undefined ? S.x : ox;      // where the shot starts: the player, or a MultiWield afterimage
+  const sy = oy === undefined ? S.y : oy;
+  const speed = orb ? C.gmShotSpeed : C.bulletSpeed;
+  return {
+    x: sx + (orb ? 0 : Math.cos(o) * C.arrowStart),      // arrows start at the bow, a little in front of the archer
+    y: sy + (orb ? 0 : Math.sin(o) * C.arrowStart),
+    vx: Math.cos(o) * speed,
+    vy: Math.sin(o) * speed,
+    life: orb ? C.gmShotLife : C.bulletLife,
+    b: S.nb,
+    h: new Set(),
+    spd: speed,
+    dm,
+    orb,
+    intro: orb ? Math.max(.05, Math.min(AB_INTRO, (Math.hypot(t.x - sx, t.y - sy) - (t.hr || C.eHitR)) / speed * .9)) : 0,     // the bolt's stretch-out time, shortened for close targets so it always finishes before the bolt arrives
+    turn: orb ? C.gmShotTurn : 0,     // homing strength (Grimoire orbs home in on enemies, Bow arrows fly straight)
+    seek: orb ? C.gmShotSeek : 450
+  };
+}
+
+// Fires one whole volley at enemy t (angle a): every knife / orb you own (Multi Knives), each with damage multiplier dm, starting at (ox, oy) (default: the player). Used by the normal attack and by MultiWield afterimages.
+function fireVolley(t, a, dm, ox, oy) {
+  const n = shots();
+  for (let i = 0; i < n; i++) {
+    // Rogue: the first knife always flies straight at the target, the rest alternate to either side of it (+1, -1, +2, -2 ...). The Grimoire keeps the even fan.
+    const o = S.wp === 'grimoire' ? a + (i - (n - 1) / 2) * 0.2 : a + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 0.2;
+    S.bl.push(newShot(t, o, dm, ox, oy));
+  }
+}
+
 function update(dt) {
+  // Spawn animation (teleport.js): nothing moves or spawns until it is nearly over, then the player gets a moment of invulnerability.
+  if (S.tp > 0) {
+    S.tp -= dt;
+    if (S.tp > TP_FREE)
+      return;
+    S.inv = Math.max(S.inv, TP_SAFE);
+  }
   S.t += dt;
   const [ix, iy] = inputVec();
   if (ix || iy) {
@@ -95,6 +136,8 @@ function update(dt) {
   S.inv -= dt;
   // fire
   S.cd -= dt;
+  dashStep(dt);      // Dash special augment (every weapon, combat.js)
+  mwStep(dt);      // MultiWield delayed attacks (combat.js)
   if (S.wp === 'sword')
     sword(dt);
   else if (S.cd <= 0) {
@@ -103,28 +146,12 @@ function update(dt) {
       S.aimTg = t;      // the model keeps facing the enemy it just shot at
       S.aimT = S.t;
       const a = Math.atan2(t.y - S.y, t.x - S.x);
-      const n = shots();
-      // The Bow and the Grimoire fire different shots: own speed, lifetime and look (the Grimoire's is a purple orb).
-      const orb = S.wp === 'grimoire';
-      const speed = orb ? C.gmShotSpeed : C.bulletSpeed;
-      for (let i = 0; i < n; i++) {
-        const o = a + (i - (n - 1) / 2) * 0.2;
-        S.bl.push({
-          x: S.x + (orb ? 0 : Math.cos(o) * C.arrowStart),      // arrows start at the bow, a little in front of the archer
-          y: S.y + (orb ? 0 : Math.sin(o) * C.arrowStart),
-          vx: Math.cos(o) * speed,
-          vy: Math.sin(o) * speed,
-          life: orb ? C.gmShotLife : C.bulletLife,
-          b: S.nb,
-          h: new Set(),
-          spd: speed,
-          orb,
-          intro: orb ? Math.max(.05, Math.min(AB_INTRO, (Math.hypot(t.x - S.x, t.y - S.y) - (t.hr || C.eHitR)) / speed * .9)) : 0,     // the bolt's stretch-out time, shortened for close targets so it always finishes before the bolt arrives
-          turn: orb ? C.gmShotTurn : 0,     // homing strength (Grimoire orbs home in on enemies, Bow arrows fly straight)
-          seek: orb ? C.gmShotSeek : 450
-        });
-      }
+      fireVolley(t, a, 1);
+      mwQueue();      // MultiWield: delayed repeats of this attack (combat.js)
       S.cd = 1 / rate();
+      S.sc = (S.sc || 0) + 1;      // Swirl (every weapon): every Nth attack also throws a spinning sword
+      if (S.swl && S.sc % C.swirlEvery === 0)
+        launchSwirl(t);
       S.st0 = S.t;      // the Bow archer plays its shoot animation from this moment
       sfx(S.wp === 'gun' ? 'bow' : 'shoot');
     }
@@ -185,12 +212,12 @@ function update(dt) {
       if (e.hp <= 0 || b.h.has(e) || b.life <= 0)
         continue;
       if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (2 + (e.hr || C.eHitR)) ** 2) {
-        hit(e, dmg());
+        hit(e, dmg() * b.dm);
+        if (!b.orb)
+          bloodHit(e);
         if (b.orb)
           arcaneHit(b.x, b.y);
-        proc(e);
-        if (S.nmi && Math.random() < C.missileChance * S.nmi && S.ms.length < 12)
-          launchMissile(e);
+        onHit(e, dmg() * b.dm);      // Bleed, Thunder Strike, Homing Explosive Knives (combat.js)
         if (S.ex)
           boom(b.x, b.y, dmg(), 60, e);
         b.h.add(e);
@@ -222,9 +249,23 @@ function update(dt) {
   cull(S.bl, b => b.life > 0);
   if (S.wp === 'grimoire')
     grimoireStep(dt);
+  // Thunder Strike works with every weapon, so its bolt has to fade out here and not inside grimoireStep (which only runs for the Grimoire:
+  // with the Knife or the Sword the bolt's light stayed on the ground forever).
+  for (const z of S.bolt) {
+    z.t -= dt;
+    if (!z.hit && TS_DUR - z.t >= TS_IMPACT) {      // the bolt reaches the ground: area damage
+      z.hit = 1;
+      aoe(z.x, z.y, z.d, C.gmThR);
+    }
+  }
+  cull(S.bolt, z => z.t > 0);
   dotStep(dt);
-  if (S.wp === 'sword' && S.ls && S.hp > 0)      // Sword 'Lifesteal' = Regeneration: heals a share of max health every second
-    S.hp = Math.min(maxHp(), S.hp + maxHp() * C.regenPct * S.ls * dt);
+  siphonStep(dt);      // Health Siphon special augment (every weapon, grimoire.js)
+  if (S.nrg && S.hp > 0) {      // Regeneration: heals a share of max health every second
+    if (S.hp < maxHp())
+      healFx();
+    S.hp = Math.min(maxHp(), S.hp + maxHp() * C.regenPct * S.nrg * dt);
+  }
   xhStep(dt);
   sfStep(dt);
   for (const z of S.fe)
@@ -233,6 +274,15 @@ function update(dt) {
   for (const z of S.ah)
     z.t -= dt;
   cull(S.ah, z => z.t > 0);
+  for (const z of S.bh)
+    z.t -= dt;
+  cull(S.bh, z => z.t > 0);
+  for (const z of S.cf)
+    z.t -= dt;
+  cull(S.cf, z => z.t > 0);
+  for (const z of S.lu)
+    z.t -= dt;
+  cull(S.lu, z => z.t > 0);
   for (const z of S.at)
     z.t -= dt;
   cull(S.at, z => z.t > 0);
@@ -329,11 +379,12 @@ function update(dt) {
       sh: 1 + Math.random()
     });
   }
+  vortexStep(dt);      // Soul Vortex pull (combat.js)
   // enemies
   const sm = 1 + C.eSpeedStep * Math.floor((S.lvl - 1) / C.eSpeedEvery);
   for (const e of S.en) {
     if (e.boss) {
-      bossAI(e, dt, sm);
+      bossAI(e, dt, sm * dnEnemySpd());
       continue;
     }
     if (e.stun > 0) {
@@ -350,7 +401,7 @@ function update(dt) {
     const dx = S.x - e.x;
     const dy = S.y - e.y;
     const d = Math.hypot(dx, dy) || 1;
-    let k = sm * sl * C.eSpeed * dt;
+    let k = sm * sl * C.eSpeed * dnEnemySpd() * dt;      // +speed at night (daynight.js)
     if (e.rg) {
       if (d < 200)
         k = -k * .8;
@@ -391,7 +442,7 @@ function update(dt) {
       }
     }
     if (d < C.eHitR + C.pHitR && e.cd <= 0 && S.inv <= 0) {
-      hurt(e.d);
+      hurt(e.d * dnEnemyDmg());      // +damage at night (daynight.js)
       e.cd = 1;
       S.inv = .15;
     }
@@ -429,7 +480,7 @@ function update(dt) {
     }
     S.tr.push({ x: b.x, y: b.y, t: .35, m: .35, r: 7, c: '255,77,240' });
     if ((b.x - S.x) ** 2 + (b.y - S.y) ** 2 < (C.pHitR + 6) ** 2) {
-      hurt(b.d);
+      hurt(b.d * dnEnemyDmg());
       b.life = 0;
     }
   }
@@ -455,11 +506,36 @@ function update(dt) {
     S.xp += k;
     S.gm.splice(0, k);
   }
+  // coins (same magnet as XP gems; the total is saved to the profile when the run ends)
+  for (const m of S.cn) {
+    const dx = S.x - m.x;
+    const dy = S.y - m.y;
+    const d = Math.hypot(dx, dy);
+    if (d < C.magnetBase * (1 + C.magnetPerLvl * S.nxp)) {
+      m.x += dx / d * 260 * dt;
+      m.y += dy / d * 260 * dt;
+    }
+    if (d < 18) {
+      m.g = 1;
+      S.coins += m.v;
+      if (S.cf.length > 30)
+        S.cf.shift();
+      S.cf.push({ x: m.x, y: m.y, t: CF_T, b: m.v > 1 });
+      sfx('gem');
+    }
+  }
+  cull(S.cn, m => !m.g);
+  if (S.cn.length > 150) {
+    for (const m of S.cn.splice(0, S.cn.length - 150))
+      S.coins += m.v;
+  }
   for (const t of S.tx)
     t.t -= dt;
   for (const f of S.fx)
     f.t -= dt;
   S.fx = S.fx.filter(f => f.t > 0);
+  if (S.hfx > 0)
+    S.hfx -= dt;
   if (S.hf > 0)
     S.hf -= dt;
   if (S.sfade > 0)
@@ -474,6 +550,7 @@ function update(dt) {
     S.tr.splice(0, S.tr.length - 260);
   swingStep(dt);
   chestStep(dt);       // hidden chests (chests.js)
+  orbStep(dt);         // orbs: 10 coins for 3 special augments (orbs.js)
   for (const f of S.sl) {
     f.t += dt;
     const fr = f.r * Math.min(1, f.t / .3);
@@ -491,11 +568,6 @@ function update(dt) {
       if (da < .88 || d < 30) {
         f.h.add(e);
         hit(e, f.dd);
-        if (S.nps) {
-          const p = C.pushBase * C.pushPerLvl * S.nps;
-          e.x += dx / d * p;
-          e.y += dy / d * p;
-        }
         if (S.nbl && e.hp > 0)
           e.bl = { d: f.dd * C.bleedPerLvl * S.nbl, c: e.bl ? e.bl.c : 0 };
       }
@@ -511,7 +583,7 @@ function update(dt) {
     over();
     return;
   }
-  if (S.xp >= need()) {
+  if (S.state === 'play' && S.xp >= need()) {      // (not while an orb's augment screen is open)
     levelUp();
   }
   hud();
