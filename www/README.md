@@ -1,6 +1,6 @@
 # Limbo
 
-Isometric survivor game (Staff, Sword and Grimoire weapons). Plain HTML + CSS + JavaScript, no build step.
+Isometric survivor game (Bow, Sword and Grimoire weapons). Plain HTML + CSS + JavaScript, no build step.
 
 ## Run it
 
@@ -24,10 +24,12 @@ Any static web host works too (upload the whole folder).
 
 | File | What is in it |
 |------|---------------|
+| teleport.js | the teleport-in spawn animation at the start of a run |
 | loader.js | the list of image files (`IMAGE_FILES`) and the loading screen (progress bar, zombie chasing the mage) |
 | tuning.js | remembers the default of every number in `C`, applies the changes saved by the Editor mode, and small text helpers (`pc`, `pcn`, `pcl`) |
 | config.js | `C` = every tunable number (damage, speeds, ranges, boss timings), canvas shortcuts |
 | sprites.js | loads character / sword art, builds tinted + pixelated sprite sheets |
+| mage3d.js | the live 3D mage (Rogue / Grimoire): poses the Mixamo model every frame and draws it with a small software rasterizer at the game's pixel resolution; upper body aims, legs follow the movement. Settings are in the `LIVE3D` block at the top. If the model file is missing the 16-direction sprite mage is used |
 | audio.js | Web Audio: synthesized beeps, sound files, music, sword swing |
 | settings.js | developer menu, volume settings, save-code export / import |
 | buildings.js | procedural buildings: generation, enemy path steering, collisions |
@@ -38,7 +40,7 @@ Any static web host works too (upload the whole folder).
 | boss.js | Giant Zombie boss (every 50 levels) |
 | hud.js | taking damage, damage over time, on-screen HUD |
 | grimoire.js | Grimoire weapon, turrets, shared explosion / homing-heal effects, Grimoire augments |
-| levelup.js | Staff / Sword special augments, augment picking, level-up and game-over screens |
+| levelup.js | Bow / Sword special augments, augment picking, level-up and game-over screens |
 | editor.js | Editor mode screen (Settings > Developer > Editor mode) |
 | menus.js | pause menu, Weapon Guide, main menu, inventory, chest opening |
 | feedback.js | the Feedback form (name / anonymous, title, message) and sending it to the feedback website |
@@ -55,8 +57,8 @@ All scripts share one global scope, so keep the order in `index.html`.
 * **Weapons: base damage by tier** (and the chest drop weight of every tier),
 * **Player**, **Enemies** and **Boss** (HP, damage, speed, spawn rates, boss attack timings),
 * **Multipliers** (Overload levels / steps, Enlightenment),
-* **Projectiles** (Staff bullet, Grimoire orb),
-* **Augments** for the Staff, Sword and Grimoire: every "per level" value (% damage, range, chance, radius, seconds...),
+* **Arrows** (Bow arrow, Grimoire orb),
+* **Augments** for the Bow, Sword and Grimoire: every "per level" value (% damage, range, chance, radius, seconds...),
 * **Other numbers**: everything else in `config.js`.
 
 Type new values (percent rows are in %), use the search box to find a setting, and press **Save & restart**. The changed rows are highlighted and the little
@@ -94,9 +96,12 @@ Images (`assets/images/`)
 | giant-zombie-sheet.webp | Giant Zombie boss run sheet |
 | player-mage-sheet.png | player (hooded mage), 8 directions |
 | sword-blade.png / sword-hilt.png | sword (blade stretches with Sword Range) |
-| staff-bullet.png | Staff bullet (tinted per rarity) |
+| bow-arrow.png | Bow arrow (tinted per rarity) |
+| aim_aim_sheet_upper_body.png, aim_shoot_sheet_upper_body.png | Archer upper body (aiming / shooting), 8 columns x 8 directions |
+| aim_walk_forward / back / left / right_sheet_lower_body.png | Archer lower body walk cycles, 8 columns x 8 directions |
 | fx-fireball-explosion.png / fx-fireball-smoke.png | Fire turret explosion (the explosion sheet is cut with `FX_FRAMES` in `js/grimoire.js`) |
 | fx-ice-burst.png | Ice turret burst (cut with `ICE_FRAMES` in `js/grimoire.js`) |
+| fx-teleport-in.png | Spawn animation when a run starts (8 x 3 frames of 40 x 64, played by `js/teleport.js`; size / speed / timing are constants at the top of that file) |
 | fx-death-explosion.png | Death Explosion / Bleed explosion |
 | fx-boss-stomp.webp | boss stomp shockwave |
 | menu-background.webp | main menu art |
@@ -109,3 +114,10 @@ the sword swing file is `SWING_FILE` in the same place. To replace a sound, over
 * Balance numbers: `js/config.js` (every value has a short note).
 * Augment text and values: the `SP` / `SW` / `SG` tables (`levelup.js`, `grimoire.js`) and what `pickAug()` does.
 * Weapon Guide text: the `WG` table in `js/menus.js`.
+
+
+## The live 3D mage
+
+`assets/models/mage3d.json` holds the mage model (mesh, skin weights, skeleton) and its five animations (Run Forward / Back / Left / Right and the 1H Magic Attack cast), baked from the FBX files at 30 fps.
+The FBX files have no texture image, only a color per material, so the model colors are set in `LIVE3D.colors` (js/mage3d.js).
+`LIVE3D.on = false` switches back to the 16-direction sprite mage.
