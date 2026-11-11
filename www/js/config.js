@@ -9,7 +9,7 @@
 const FEEDBACK_URL = 'https://limbo-feedback-site.vercel.app/api/feedback';
 
 // Developer tools (Settings > Developer: start level, free chests, Editor mode). Set to false before you release the game so players cannot see them.
-const DEV_TOOLS = true;
+const DEV_TOOLS = false;
 
 // C holds every tunable number of the game (damage, speeds, ranges, boss timings...). Change values here to rebalance.
 const C = {
