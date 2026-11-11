@@ -68,7 +68,7 @@ canvas {
 }
 
 #time {
-  font-size: 34px;
+  font-size: 100%;
 }
 
 #lv,#kl {
@@ -76,7 +76,7 @@ canvas {
   border: 2px solid #fff6;
   border-radius: 999px;
   padding: 2px 12px;
-  font-size: 18px;
+  font-size: 100%;
 }
 
 .bar {
