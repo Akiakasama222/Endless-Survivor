@@ -257,6 +257,8 @@ function update(dt) {
   }
   // player arrows / orbs
   for (const b of S.bl) {
+    const bx0 = b.x;      // where the shot was before this step: hits are tested along the whole path travelled (see below)
+    const by0 = b.y;
     const turn = b.turn || (S.hm ? 8 : 0);
     if (turn) {
       // homing: steer towards the nearest enemy this bullet has not hit yet, keeping its speed
@@ -305,35 +307,55 @@ function update(dt) {
     }
     else if (b.orb ? !ABI.naturalWidth : !TRL.br)      // Bow arrows use the trail image and the Grimoire bolt has its own tail in the sprite, so these round puffs are only the fallback
       S.tr.push({ x: b.x, y: b.y, t: .25, m: .25, r: 5, c: b.orb ? '176,106,255' : RAR[PD.eq.r].rgb, z: b.orb ? 0 : C.arrowHeight - 18 });      // z lifts the Bow's glow trail to the arrow's height
-    for (const e of S.en) {
-      if (e.hp <= 0 || b.h.has(e) || b.life <= 0)
-        continue;
-      if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (2 + (e.hr || C.eHitR)) ** 2) {
-        hit(e, dmg() * b.dm);
-        if (!b.orb)
-          bloodHit(e);
-        if (b.orb)
-          arcaneHit(b.x, b.y);
-        onHit(e, dmg() * b.dm);      // Bleed, Thunder Strike, Homing Explosive Knives (combat.js)
-        if (S.ex)
-          boom(b.x, b.y, dmg(), 60, e);
-        b.h.add(e);
-        if (b.b > 0) {
-          const n = nearest(b.x, b.y, C.bounceRange, b.h);
-          if (n) {
-            const a = Math.atan2(n.y - b.y, n.x - b.x);
-            b.vx = Math.cos(a) * b.spd;
-            b.vy = Math.sin(a) * b.spd;
-            b.b--;
-            b.life = Math.max(b.life, .8);
-          }
-          else
-            b.life = 0;
+    // Swept hit test: on a slow device one step can be longer than an enemy is wide (knife: 1000 px/s = 50 px per frame at 20 FPS), so testing only the
+    // end point let shots fly straight through enemies. Instead the whole line from the old to the new position is tested and the first enemy it touches is hit
+    // (the shot is placed at the closest point to that enemy, so explosions / bounces start there). At 60 FPS the result is the same as before.
+    let hitE = null;
+    if (b.life > 0) {
+      const sdx = b.x - bx0;
+      const sdy = b.y - by0;
+      const sl = sdx * sdx + sdy * sdy;
+      let ht = 2;
+      for (const e of S.en) {
+        if (e.hp <= 0 || b.h.has(e))
+          continue;
+        const t = sl > 0 ? Math.max(0, Math.min(1, ((e.x - bx0) * sdx + (e.y - by0) * sdy) / sl)) : 1;
+        const r = 2 + (e.hr || C.eHitR);
+        if (t < ht && (bx0 + sdx * t - e.x) ** 2 + (by0 + sdy * t - e.y) ** 2 < r * r) {
+          hitE = e;
+          ht = t;
+        }
+      }
+      if (hitE) {
+        b.x = bx0 + sdx * ht;
+        b.y = by0 + sdy * ht;
+      }
+    }
+    if (hitE) {
+      const e = hitE;
+      hit(e, dmg() * b.dm);
+      if (!b.orb)
+        bloodHit(e);
+      if (b.orb)
+        arcaneHit(b.x, b.y);
+      onHit(e, dmg() * b.dm);      // Bleed, Thunder Strike, Homing Explosive Knives (combat.js)
+      if (S.ex)
+        boom(b.x, b.y, dmg(), 60, e);
+      b.h.add(e);
+      if (b.b > 0) {
+        const n = nearest(b.x, b.y, C.bounceRange, b.h);
+        if (n) {
+          const a = Math.atan2(n.y - b.y, n.x - b.x);
+          b.vx = Math.cos(a) * b.spd;
+          b.vy = Math.sin(a) * b.spd;
+          b.b--;
+          b.life = Math.max(b.life, .8);
         }
         else
           b.life = 0;
-        break;
       }
+      else
+        b.life = 0;
     }
   }
   if (C.gmShotTailFade > 0)
