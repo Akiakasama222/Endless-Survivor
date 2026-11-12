@@ -3,6 +3,13 @@
 // Draws one frame: isometric ground, characters, projectiles and effects.
 // ======================================================================
 
+// Restless sprite sheets: 30 frames per direction row (was 8). The sheets are 16 direction rows x RN_FRAMES columns.
+const RN_FRAMES = 30;
+// Playback rates below were tuned for 8 frames per cycle; RN_K keeps every cycle the same length now that there are more frames.
+const RN_K = RN_FRAMES / 8;
+// Jump sheet phases (frame numbers in restless-jump.png): crouch, in the air, landing, getting up.
+const RN_JUMP = { crouch0: 0, crouch1: 4, air0: 5, air1: 11, rec0: 12, rec1: RN_FRAMES - 1 };
+
 // Draws one frame of the game.
 function draw() {
   // Isometric view: the game logic stays on a flat ground plane; only the drawing is projected (2:1 diamond tiles, upright sprites)
@@ -234,42 +241,95 @@ function draw() {
       return;
     g.fillStyle = '#0003';
     g.beginPath();
-    g.ellipse(x, yb - 2, 14, 6, 0, 0, 6.3);
+    g.ellipse(x, yb - 2, 14 * C.eScale / 1.2, 6 * C.eScale / 1.2, 0, 0, 6.3);
     g.fill();
-    const top = yb - ZOM.oy / 2;
-    if (IMG.z.naturalWidth) {
-      if (e.ph === undefined)
-        e.ph = Math.random() * 8;
-      const dx = S.x - e.x;
-      const dy = S.y - e.y;
-      const th = Math.atan2((dx + dy) * .5, dx - dy);
-      const fi = ((Math.round((th - Math.PI / 2) / (Math.PI / 4)) % 8) + 8) % 8;
+    const top = yb - ZOM.oy / 2 * C.eScale;
+    const at = e.at;
+    if (at && at.k === 'jump' && at.go && !at.hit) {      // jump attack in the air: red ring on the ground where it will land
+      const lx = SX(at.tx, at.ty);
+      const ly = SY(at.tx, at.ty);
+      g.beginPath();
+      g.ellipse(lx, ly, C.eJumpR * 1.414, C.eJumpR * .707, 0, 0, 6.3);
+      g.fillStyle = 'rgba(255,70,70,.16)';
+      g.fill();
+      g.strokeStyle = 'rgba(255,90,90,.85)';
+      g.lineWidth = 2;
+      g.stroke();
+    }
+    // Restless animation: attack move (melee / cast / jump) > walking > standing. Rows = 16 facing directions, towards the player (locked while attacking).
+    if (e.ph === undefined)
+      e.ph = Math.random() * RN_FRAMES;
+    const dx = S.x - e.x;
+    const dy = S.y - e.y;
+    let row = restRow(Math.atan2((dx + dy) * .5, dx - dy) + (!e.at && e.mv && e.back ? Math.PI : 0));      // faces you, or faces away while backing off
+    let key;
+    let fr;
+    let lift = 0;      // extra height in the air during the jump (on top of the height already drawn in the jump sheet)
+    if (at) {
+      row = at.row;
+      const pr = Math.min(.999, at.t / at.T);
+      if (at.k === 'melee') {
+        key = 'atk';
+        fr = Math.min(RN_FRAMES - 1, Math.floor(pr * RN_FRAMES));
+      }
+      else if (at.k === 'cast') {
+        key = 'pcast';
+        fr = Math.min(RN_FRAMES - 1, Math.floor(pr * RN_FRAMES));
+      }
+      else {
+        const tw = C.eJumpWind;
+        const ta = tw + C.eJumpAir;
+        key = 'jump';
+        const J = RN_JUMP;
+        const span = (a, b, p) => a + Math.min(b - a, Math.floor(Math.max(0, Math.min(.999, p)) * (b - a + 1)));      // frame a..b for progress p (0..1)
+        if (at.t < tw)
+          fr = span(J.crouch0, J.crouch1, at.t / tw);      // crouch
+        else if (at.t < ta) {
+          fr = span(J.air0, J.air1, (at.t - tw) / C.eJumpAir);      // in the air: take-off, tuck, fall
+          lift = Math.sin((at.t - tw) / C.eJumpAir * Math.PI) * 14;
+        }
+        else
+          fr = span(J.rec0, J.rec1, (at.t - ta) / C.eJumpRec);      // landing, getting up, arms out
+      }
+    }
+    else if (e.mv) {
       const sp = 1 + C.eSpeedStep * Math.floor((S.lvl - 1) / C.eSpeedEvery);
-      const fr = Math.floor(S.t * 9 * sp + e.ph) % 8;
-      const sx = fr * ZOM.cw;
-      const sy = fi * ZOM.ch;
-      const dw = ZOM.cw / 2;
-      const dh = ZOM.ch / 2;
-      const dxp = x - ZOM.ox / 2;
-      if (C.pixEnemies && ZP.z) {
+      key = e.rg ? 'pwalk' : 'walk';
+      fr = Math.floor(S.t * 9 * RN_K * sp * (e.rg || !C.eJumpOn ? dnEnemySpd() : 1) + e.ph) % RN_FRAMES;
+    }
+    else if (e.rg) {
+      key = 'pcast';      // no purple idle sheet: the first cast frame is its ready stance
+      fr = 0;
+    }
+    else {
+      key = 'idle';
+      fr = Math.floor(S.t * 6 * RN_K + e.ph) % RN_FRAMES;
+    }
+    const R = RS[key];
+    if (R.img.naturalWidth) {
+      const dw = ZOM.cw / 2 * C.eScale;
+      const dh = ZOM.ch / 2 * C.eScale;
+      const dxp = x - ZOM.ox / 2 * C.eScale;
+      const ty = yb - R.oy / 2 * C.eScale - lift * C.eScale;      // frame top: this animation's feet row lands on the ground point
+      if (C.pixEnemies && R.px) {
         const px0 = Math.round(dxp);
-        const py0 = Math.round(top);
+        const py0 = Math.round(ty);
         const psx = fr * ZOM.pw;
-        const psy = fi * ZOM.ph;
+        const psy = row * ZOM.ph;
         g.imageSmoothingEnabled = false;
-        g.drawImage(e.rg && ZP.r ? ZP.r : ZP.z, psx, psy, ZOM.pw, ZOM.ph, px0, py0, dw, dh);
-        if (e.fl > 0 && ZP.w) {
+        g.drawImage(R.px, psx, psy, ZOM.pw, ZOM.ph, px0, py0, dw, dh);
+        if (e.fl > 0 && R.wp) {
           g.globalAlpha = .85;
-          g.drawImage(ZP.w, psx, psy, ZOM.pw, ZOM.ph, px0, py0, dw, dh);
+          g.drawImage(R.wp, psx, psy, ZOM.pw, ZOM.ph, px0, py0, dw, dh);
           g.globalAlpha = 1;
         }
         g.imageSmoothingEnabled = true;
       }
       else {
-        g.drawImage(e.rg && ZV.r ? ZV.r : IMG.z, sx, sy, ZOM.cw, ZOM.ch, dxp, top, dw, dh);
-        if (e.fl > 0 && ZV.w) {
+        g.drawImage(R.img, fr * ZOM.cw, row * ZOM.ch, ZOM.cw, ZOM.ch, dxp, ty, dw, dh);
+        if (e.fl > 0 && R.w) {
           g.globalAlpha = .85;
-          g.drawImage(ZV.w, sx, sy, ZOM.cw, ZOM.ch, dxp, top, dw, dh);
+          g.drawImage(R.w, fr * ZOM.cw, row * ZOM.ch, ZOM.cw, ZOM.ch, dxp, ty, dw, dh);
           g.globalAlpha = 1;
         }
       }
@@ -338,7 +398,7 @@ function draw() {
     if (e.bl) {
       g.strokeStyle = 'rgba(230,30,50,' + (.6 + .3 * Math.sin(S.t * 12)) + ')';
       g.lineWidth = 2;
-      g.strokeRect(x - 15, top, 30, ZOM.oy / 2);
+      g.strokeRect(x - 15 * C.eScale, top, 30 * C.eScale, ZOM.oy / 2 * C.eScale);
       g.drawImage(SPR.d, x - 12, top - 32 + Math.sin(S.t * 8) * 2, 24, 24);
     }
   };
@@ -480,10 +540,24 @@ function draw() {
       g.beginPath();
       g.ellipse(px, py - 3, 15, 7, 0, 0, 6.3);
       g.fill();
-      const th = facingAngle();
+      let th = facingAngle();
+      if (S.wp === 'sword' && (S.sw > 0 || S.sfade > 0)) {      // while swinging, the Sword character faces the direction of the swing
+        const a = S.sa || 0;
+        th = Math.atan2((Math.cos(a) + Math.sin(a)) * .5, Math.cos(a) - Math.sin(a));
+      }
       if (live3dReady()) {
-        // live 3D mage (Rogue and Grimoire): upper body turns to the enemy being aimed at (or the walking direction when nothing is in range), the legs follow the movement
-        drawLive3D(g, px, py, th, S.mv && S.fd !== undefined ? S.fd : null);
+        // live 3D character (Rogue, Sword and Grimoire): upper body turns to the enemy being aimed at (or the walking direction when nothing is in range), the legs follow the movement
+        let hd = null;      // Sword: the upper body turns so the hand meets the hilt (the blade's current angle, same as dSw below)
+        if (S.wp === 'sword') {
+          const p = 1 - S.sw / (S.sdur || .22);
+          const a = S.sw > 0 ? S.sa + (S.sd || 1) * C.arc * (2 * p * p * (3 - 2 * p) - 1) : (S.ba || 0);
+          hd = Math.atan2((Math.cos(a) + Math.sin(a)) * .5, Math.cos(a) - Math.sin(a));
+        }
+        else if (S.aimTg && S.aimTg.hp > 0) {      // Rogue / Grimoire: the casting hand points straight at the enemy being aimed at (the body itself still turns in steps)
+          const a = Math.atan2(S.aimTg.y - S.y, S.aimTg.x - S.x);
+          hd = Math.atan2((Math.cos(a) + Math.sin(a)) * .5, Math.cos(a) - Math.sin(a));
+        }
+        drawLive3D(g, px, py, th, S.mv && S.fd !== undefined ? S.fd : null, false, hd);
         return;
       }
       if (mage16Ready()) {
@@ -1000,8 +1074,14 @@ function draw() {
       continue;
     g.save();
     g.translate(SX(m.x, m.y), SY(m.x, m.y) - C.arrowHeight);      // same height as the Bow arrows
-    g.rotate(Math.atan2((m.vx + m.vy) * .5, m.vx - m.vy) + C.rocketRot);
-    g.drawImage(SPR.r, -24, -24, 48, 48);
+    if (SPR.mk) {      // the knife picture (tinted orange), pointing the way it flies, like the normal knives
+      g.rotate(Math.atan2((m.vx + m.vy) * .5, m.vx - m.vy));
+      g.drawImage(SPR.mk, -28, -20, 56, 40);
+    }
+    else {      // fallback while the knife picture loads: the old emoji rocket
+      g.rotate(Math.atan2((m.vx + m.vy) * .5, m.vx - m.vy) + C.rocketRot);
+      g.drawImage(SPR.r, -24, -24, 48, 48);
+    }
     g.restore();
   }
   for (const w of S.sws) {
@@ -1044,39 +1124,52 @@ function draw() {
     g.fill();
     g.stroke();
   }
-  for (const p of S.hs) {
-    if (hid(p.x, p.y, 18))
-      continue;
-    const x = SX(p.x, p.y);
-    const y = SY(p.x, p.y) - 18;
-    g.fillStyle = 'rgba(110,255,140,.35)';
-    g.beginPath();
-    g.arc(x, y, 11, 0, 6.3);
-    g.fill();
-    g.fillStyle = '#b8ffc4';
-    g.strokeStyle = '#fff';
-    g.lineWidth = 2;
-    g.beginPath();
-    g.arc(x, y, 5.5, 0, 6.3);
-    g.fill();
-    g.stroke();
+  // Health Siphon tethers: one red line from every drained enemy to the player (all tethers share two strokes, so it stays cheap in crowds)
+  if (S.st.length) {
+    const px = SX(S.x, S.y);
+    const py = SY(S.x, S.y) - 18;
+    g.save();
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (let pass = 0; pass < 2; pass++) {
+      g.lineWidth = pass ? 1.6 : 5;
+      for (const z of S.st) {
+        const e = z.e;
+        if (hid(e.x, e.y, 18))
+          continue;
+        const k = z.t / z.m;
+        g.strokeStyle = pass ? 'rgba(255,200,200,' + (.9 * k) + ')' : 'rgba(255,50,60,' + (.35 * k) + ')';
+        g.beginPath();
+        g.moveTo(SX(e.x, e.y), SY(e.x, e.y) - 18);
+        g.lineTo(px, py);
+        g.stroke();
+      }
+    }
+    g.restore();
   }
-  for (const p of S.sf) {
-    if (hid(p.x, p.y, 18))
-      continue;
-    const x = SX(p.x, p.y);
-    const y = SY(p.x, p.y) - 18;
-    g.fillStyle = 'rgba(255,90,90,.35)';
+  // overflow-heal burst lasers: a short green beam from the player to the enemy it hits, thick at the first instant and thinning out
+  for (const z of S.lz) {
+    const k = z.t / z.m;
+    const x1 = SX(z.x1, z.y1);
+    const y1 = SY(z.x1, z.y1) - 18;
+    const x2 = SX(z.x2, z.y2);
+    const y2 = SY(z.x2, z.y2) - 18;
+    g.save();
+    g.lineCap = 'round';
+    g.strokeStyle = 'rgba(80,255,120,' + (.4 * k) + ')';
+    g.lineWidth = 3 + 11 * k;
     g.beginPath();
-    g.arc(x, y, 11, 0, 6.3);
-    g.fill();
-    g.fillStyle = '#ffc4c4';
-    g.strokeStyle = '#fff';
-    g.lineWidth = 2;
-    g.beginPath();
-    g.arc(x, y, 5.5, 0, 6.3);
-    g.fill();
+    g.moveTo(x1, y1);
+    g.lineTo(x2, y2);
     g.stroke();
+    g.strokeStyle = 'rgba(220,255,230,' + (.95 * k) + ')';
+    g.lineWidth = 1 + 4 * k;
+    g.stroke();
+    g.fillStyle = 'rgba(190,255,205,' + (.8 * k) + ')';
+    g.beginPath();
+    g.arc(x2, y2, 4 + 9 * k, 0, 6.3);
+    g.fill();
+    g.restore();
   }
   if (S.wp === 'grimoire') {
     const zig = (a, b, n, j) => {
@@ -1163,7 +1256,7 @@ function draw() {
   if (SHOW_HB)
     hbDraw(g, SX, SY);
   g.lineCap = 'butt';
-  g.font = '20px "Lilita One",Arial';
+  g.font = '18px "Pixelify Sans","Courier New",monospace';
   g.textAlign = 'center';
   g.lineWidth = 4;
   g.strokeStyle = '#000';
@@ -1275,19 +1368,45 @@ function siphonRing(R) {
 // The body (and the sword) is drawn into a small canvas first so the blue tint only covers the character, then that canvas is drawn with the ghost's opacity.
 const GHC = { c: null, W: 360, H: 300, fx: 180, fy: 220 };
 
+// Blue copies of the sword's blade and hilt pictures (made once) for the afterimages.
+let GH_BL = null;
+
+function ghostBlade() {
+  if (GH_BL)
+    return GH_BL;
+  if (!IMG.b.naturalWidth || !IMG.h.naturalWidth)
+    return null;
+  const mk = im => {
+    const c = document.createElement('canvas');
+    c.width = im.naturalWidth;
+    c.height = im.naturalHeight;
+    const x = c.getContext('2d');
+    x.drawImage(im, 0, 0);
+    x.globalCompositeOperation = 'source-atop';
+    x.fillStyle = 'rgba(110,190,255,.55)';
+    x.fillRect(0, 0, c.width, c.height);
+    return c;
+  };
+  return GH_BL = { b: mk(IMG.b), h: mk(IMG.h) };
+}
+
 function ghostDraw(g, x, y, z) {
-  if (!GHC.c) {
-    GHC.c = document.createElement('canvas');
-    GHC.c.width = GHC.W;
-    GHC.c.height = GHC.H;
-  }
   const al = (z.st === 2 ? Math.max(0, z.fade / GH_FADE) : Math.min(1, z.age / .12)) * .55;
   if (al <= 0)
     return;
-  const c = GHC.c.getContext('2d');
+  const fast = live3dReady();      // the 3D character uses cached sprites (mage3d.js); the old sprite characters still use the canvas below
   const fx = GHC.fx;
   const fy = GHC.fy;
-  c.clearRect(0, 0, GHC.W, GHC.H);
+  let c = null;
+  if (!fast) {
+    if (!GHC.c) {
+      GHC.c = document.createElement('canvas');
+      GHC.c.width = GHC.W;
+      GHC.c.height = GHC.H;
+    }
+    c = GHC.c.getContext('2d');
+    c.clearRect(0, 0, GHC.W, GHC.H);
+  }
   const th = Math.atan2((Math.cos(z.a) + Math.sin(z.a)) * .5, Math.cos(z.a) - Math.sin(z.a));      // screen direction the afterimage faces
   const body = () => {
     const st0 = S.st0;
@@ -1295,7 +1414,7 @@ function ghostDraw(g, x, y, z) {
     S.st0 = z.st0;      // its own cast animation
     S.mv = 0;      // it stands still
     if (live3dReady())
-      drawLive3D(c, fx, fy, th, null, true);
+      drawLive3D(c, fx, fy, th, null, true, S.wp === 'sword' ? Math.atan2((Math.cos(sa) + Math.sin(sa)) * .5, Math.cos(sa) - Math.sin(sa)) : null);
     else if (mage16Ready())
       drawMage16(c, fx, fy, th, null);
     else if (S.wp === 'gun' && ARC.aim && ARC.f)
@@ -1327,23 +1446,60 @@ function ghostDraw(g, x, y, z) {
     c.drawImage(IMG.h, -10.25, 0, 20.5, 38.5);
     c.restore();
   };
-  if (sword && (Math.cos(sa) + Math.sin(sa)) * .5 < -.05) {
-    blade();
-    body();
+  if (fast) {
+    const tb = sword ? ghostBlade() : null;
+    const spr = l3GhostSprite(th, z.st0, sword ? Math.atan2((Math.cos(sa) + Math.sin(sa)) * .5, Math.cos(sa) - Math.sin(sa)) : th);      // Sword: hand on the hilt; Rogue / Grimoire: hand towards the target
+    const bodyF = () => {
+      const x0 = Math.round((x - spr.ox * spr.res) / spr.res) * spr.res;
+      const y0 = Math.round((y - 3 - spr.oy * spr.res) / spr.res) * spr.res;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(spr.cv, x0, y0, spr.bw * spr.res, spr.bh * spr.res);
+    };
+    const bladeF = () => {
+      if (!tb)
+        return;
+      const sdx = Math.cos(sa) - Math.sin(sa);
+      const sdy = (Math.cos(sa) + Math.sin(sa)) * .5;
+      const bl = Math.max(8, C.swordR * (1 + C.swordRangePerLvl * S.sr) - 24);
+      g.save();
+      g.translate(x, y - 30);
+      g.transform(Math.sin(sa) + Math.cos(sa), (Math.sin(sa) - Math.cos(sa)) * .5, sdx, sdy, 0, 0);
+      g.translate(0, 8);
+      g.drawImage(tb.b, -10.25, 37.5, 20.5, bl + 1);
+      g.drawImage(tb.h, -10.25, 0, 20.5, 38.5);
+      g.restore();
+    };
+    g.save();
+    g.globalAlpha = al;
+    if (sword && (Math.cos(sa) + Math.sin(sa)) * .5 < -.05) {
+      bladeF();
+      bodyF();
+    }
+    else {
+      bodyF();
+      bladeF();
+    }
+    g.restore();
   }
   else {
-    body();
-    if (sword)
+    if (sword && (Math.cos(sa) + Math.sin(sa)) * .5 < -.05) {
       blade();
+      body();
+    }
+    else {
+      body();
+      if (sword)
+        blade();
+    }
+    c.globalCompositeOperation = 'source-atop';      // blue tint, only where something was drawn
+    c.fillStyle = 'rgba(110,190,255,.55)';
+    c.fillRect(0, 0, GHC.W, GHC.H);
+    c.globalCompositeOperation = 'source-over';
+    g.save();
+    g.globalAlpha = al;
+    g.drawImage(GHC.c, x - fx, y - fy);
+    g.restore();
   }
-  c.globalCompositeOperation = 'source-atop';      // blue tint, only where something was drawn
-  c.fillStyle = 'rgba(110,190,255,.55)';
-  c.fillRect(0, 0, GHC.W, GHC.H);
-  c.globalCompositeOperation = 'source-over';
-  g.save();
-  g.globalAlpha = al;
-  g.drawImage(GHC.c, x - fx, y - fy);
-  g.restore();
   // the sword's slash effect, around the afterimage (same drawing as the player's slashFx in draw())
   if (sword && SLI.naturalWidth && (z.st === 1 || (z.st === 2 && z.sfade > 0))) {
     let fi;

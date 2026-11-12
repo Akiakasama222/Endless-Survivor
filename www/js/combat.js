@@ -41,7 +41,7 @@ function hit(e, d, q) {
       S.cn.push({ x: e.x + (Math.random() - .5) * 18, y: e.y + (Math.random() - .5) * 18, v: e.boss ? C.coinBoss : C.coinValue });
     S.kills++;
     sfx('kill');
-    if (S.ls && !S.nols)      // Lifesteal: killing an enemy heals a share of ITS max health (excess healing becomes a homing projectile in healP)
+    if (S.ls && !S.nols)      // Lifesteal: killing an enemy heals a share of ITS max health (excess healing becomes a burst laser in healP)
       healP(e.mx * C.killHeal * S.ls);
     if (S.ns && ++S.kc >= C.shieldKills) {
       S.kc = 0;
@@ -205,6 +205,7 @@ function sword(dt) {
       S.sw = S.sdur;
       S.la = S.t;
       S.sa = a;
+      S.st0 = S.t;      // the 3D character plays its attack animation from this moment (mage3d.js)
       S.sd = -(S.sd || 1);
       S.sh2 = new Set();
       sfx('swing');
@@ -233,7 +234,7 @@ function mwQueue() {
   for (let i = 1; i <= n; i++) {
     if (S.gh.length > 60)
       S.gh.shift();
-    S.gh.push({ x: S.x, y: S.y, w: C.multiwieldDelay * i, age: 0, a, st: 0, fade: 0, sfade: 0, sw: 0, sdur: 0, sa: a, sd: S.sd || 1, sh2: null, st0: undefined });
+    S.gh.push({ x: S.x, y: S.y, w: C.multiwieldDelay * i, age: 0, a, st: 0, fade: 0, sfade: 0, sw: 0, sdur: 0, sa: a, sd: S.sd || 1, sh2: null, st0: undefined, tg: null, nt: 0 });
   }
 }
 
@@ -284,7 +285,12 @@ function mwStep(dt) {
     gh.age += dt;
     if (gh.st === 0) {
       gh.w -= dt;
-      const t = nearest(gh.x, gh.y, R);
+      // performance: a waiting afterimage looks for its target 8 times a second (not every frame), but always freshly at the moment it attacks
+      if (gh.w <= 0 || (gh.nt -= dt) <= 0 || !gh.tg || gh.tg.hp <= 0) {
+        gh.tg = nearest(gh.x, gh.y, R);
+        gh.nt = .12;
+      }
+      const t = gh.tg;
       if (t)
         gh.a = Math.atan2(t.y - gh.y, t.x - gh.x);      // while it waits, the afterimage turns towards the nearest enemy
       if (gh.w > 0)
@@ -298,6 +304,7 @@ function mwStep(dt) {
         gh.sw = gh.sdur;
         gh.sa = gh.a;
         gh.sd = S.sd || 1;
+        gh.st0 = S.t;      // the afterimage's own attack animation
         gh.sh2 = new Set();
         gh.st = 1;
         sfx('swing');

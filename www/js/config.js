@@ -9,7 +9,7 @@
 const FEEDBACK_URL = 'https://limbo-feedback-site.vercel.app/api/feedback';
 
 // Developer tools (Settings > Developer: start level, free chests, Editor mode). Set to false before you release the game so players cannot see them.
-const DEV_TOOLS = false;
+const DEV_TOOLS = true;
 
 // C holds every tunable number of the game (damage, speeds, ranges, boss timings...). Change values here to rebalance.
 const C = {
@@ -29,10 +29,10 @@ const C = {
   gmFx: 1, // Fireball explosion sprite scale
   gmIceR: 70, // Ice turret explosion radius (base)
   gmSlow: .5, // Ice turret slow strength (base)
-  burnChance: .5, // Fire turret: chance to inflict Burn on each enemy it hits
-  burnDmg: .5, // Burn: total damage over its duration, as a share of the Fire turret's damage (.5 = 50%)
+  burnChance: 1, // Fire turret: chance to inflict Burn on each enemy it hits
+  burnDmg: 1, // Burn: total damage over its duration, as a share of the Fire turret's damage (.5 = 50%)
   burnT: 3, // Burn: duration in seconds
-  burnTick: .5, // Burn: seconds between damage ticks
+  burnTick: 1, // Burn: seconds between damage ticks
   freezeT: 2, // Ice turret: seconds an already-slowed enemy stays frozen (stunned); its slow restarts when it thaws
   teslaChance: .25, // Lightning turret: chance to inflict Tesla on each enemy it zaps
   teslaT: 3, // Tesla: duration in seconds
@@ -101,6 +101,23 @@ const C = {
   rangerRange: 420, // Ranged zombie shooting range
   rangerCd: 2, // Ranged zombie seconds between shots
   eBulletSpeed: 220, // Enemy bullet speed
+  eScale: 1.6, // Restless: size on screen (1 = half the sheet's pixel size, 1.6 = 60% bigger, 2 = double)
+  eAtkRange: 34, // Restless: distance to the player (px) at which it stops and starts its melee attack
+  eAtkReach: 48, // Restless: the swing only hurts if the player is still this close (px) when the hit lands, so you can step away
+  eAtkT: .9, // Restless: seconds one melee attack lasts (it cannot move meanwhile)
+  eAtkHit: .4, // Restless: the moment the melee hit lands, as a share of the attack (.4 = 40% in, when the arms are out)
+  eAtkCd: 1, // Restless: seconds it waits after an attack before it can attack again
+  eCastT: .9, // Purple Restless: seconds one cast lasts (it cannot move meanwhile)
+  eCastHit: .5, // Purple Restless: the moment the bolt leaves, as a share of the cast
+  eJumpOn: 1, // Night: 1 = Blue Restless use the Jump attack to close the gap, 0 = off
+  eJumpMin: 130, // Jump attack: it only jumps when the player is further away than this (px)
+  eJumpMax: 360, // Jump attack: ... and closer than this (px)
+  eJumpCd: 4, // Jump attack: seconds before the same Restless may jump again
+  eJumpWind: 4, // Jump attack: crouch seconds before it leaps
+  eJumpAir: 1, // Jump attack: seconds in the air
+  eJumpRec: .35, // Jump attack: seconds it needs to get up after landing
+  eJumpR: 55, // Jump attack: landing shockwave radius (px)
+  eJumpDmg: 1.5, // Jump attack: damage as a multiple of a normal Restless hit
   pSpeed: 150, // Player movement speed
   xpBase: 3, // XP needed for level 2
   xpLvl: 2, // Extra XP needed per level
@@ -110,8 +127,8 @@ const C = {
   spawnBase: 0.7, // Enemy spawns per second at the start
   spawnGrow: 1 / 60, // Spawn rate growth per second
   arrowStart: 18, // How far in front of the rogue (toward the target) a Rogue knife starts, so it leaves the hand instead of the body
-  pixelScale: 2, // Retro resolution: the game is drawn with this many times fewer pixels and stretched with sharp pixels (1 = full sharpness, 1.5 = a bit sharper than half, 2 = half, 3 = a third, 4 = a quarter)
-  fps: 30, // Frame cap for the retro look (update + draw run this many times a second): 30 = retro, 60 = smooth, 0 = no cap (follows your monitor). Keep it at 24 or higher or the game runs in slow motion
+  pixelScale: 1.5, // Retro resolution: the game is drawn with this many times fewer pixels and stretched with sharp pixels (1 = full sharpness, 1.5 = a bit sharper than half, 2 = half, 3 = a third, 4 = a quarter)
+  fps: 60, // Frame cap for the retro look (update + draw run this many times a second): 30 = retro, 60 = smooth, 0 = no cap (follows your monitor). Keep it at 24 or higher or the game runs in slow motion
   dayNight: 1, // Day / night cycle: 1 = on, 0 = always daytime
   dayLen: 240, // Length of one full day in seconds of play time (sunrise > day > sunset > night)
   dayStart: .14, // Time of day when a run starts (0 = late night, .14 = bright morning, .35 = midday, .65 = sunset, .8 = night)
@@ -149,7 +166,7 @@ const C = {
   // ---- Augment numbers: the "per level" values of the augments (all of them can be edited in Editor mode) ----
   multiwieldDmg: .75, // MultiWield (Orb of Power): damage of each delayed attack as a share of your damage (.75 = 75%)
   multiwieldDelay: .3, // MultiWield: seconds between your attack and each delayed attack (the 2nd one comes 2x this later, and so on)
-  killHeal: .5, // Lifesteal: share of a killed enemy's max health that heals you, per level
+  killHeal: .1, // Lifesteal: share of a killed enemy's max health that heals you, per level
   regenPct: .1, // Regeneration: share of your max health regenerated every second, per level
   lifesteal: .1, // (unused now) old Lifesteal: share of the damage you deal that heals you
   shieldKills: 10, // Shield: kills needed to regain one shield charge
@@ -166,7 +183,7 @@ const C = {
   armorPerLvl: 20, // Sword Armor augment: damage blocked from every hit you take, per level (0 armor at the start)
   hardenPerLvl: .5, // Harden (Orb of Perseverance): +% of your total armor per level (.5 = +50%, added together: x1.5, x2, x2.5...)
   hardenArmor: 20, // Harden: flat armor gained per level (added to your armor BEFORE the % increase is applied)
-  sharpenMult: 5, // Sharpen (Orb of Power): multiplies your current damage by this
+  sharpenMult: 2.5, // Sharpen (Orb of Power): multiplies your current damage by this
   swordRangePerLvl: .5, // Sword Range augment: extra sword range per level (.5 = +50%)
   ddTicksPerLvl: 2, // Dance with Death: how many ticks the damage is split into, per level
   swirlEvery: 3, // Swirl: a sword is thrown on every Nth attack
@@ -178,8 +195,8 @@ const C = {
   vortexChance: .1, // Sword Soul Vortex: chance on enemy kill to pull all enemies towards you, per level (.1 = 10%, 20%, 30%...)
   vortexT: .5, // Soul Vortex: how long the pull lasts (seconds)
   vortexRate: 5, // Soul Vortex: pull strength (how fast enemies close the distance; higher = faster)
-  gmTurAS: .5, // Fire / Lightning / Ice turrets: extra turret attack speed per level after the first (.5 = +50%; stacks with Haste)
-  gmIceRPerLvl: .01, // Ice turret: extra burst radius per level (.01 = +1%)
+  gmTurAS: .25, // Fire / Lightning / Ice turrets: extra turret attack speed per level after the first (.5 = +50%; stacks with Haste)
+  gmIceRPerLvl: .5, // Ice turret: extra burst radius per level (.01 = +1%)
   gmIceDmg: .75, // Ice turret: damage as a share of your damage
   gmChainPerLvl: 1, // Lightning turret: extra chain jumps per level
   gmStun: 1, // Lightning turret: stun seconds (fixed, does not grow with levels)
@@ -188,7 +205,8 @@ const C = {
   thunderMaxLvl: 10, // Thunder Strike: highest level
   thunderDmg: 1, // Thunder Strike: damage as a share of your damage
   siphonDmg: .5, // Health Siphon: damage to every enemy in range, as a share of your damage
-  siphonOrbs: 8, // Health Siphon: most red orbs sent per tick (the drained HP of the other enemies is added to them)
+  siphonOrbs: 8, // Health Siphon: most red tethers drawn per tick (every enemy in range is still drained and heals you)
+  laserGap: .12, // Excess healing: minimum seconds between two green burst lasers (overflow damage piles up into the next one)
   siphonPerLvl: .5 // Health Siphon: extra drain damage per level after the first (.5 = +50%)
 };
 

@@ -12,7 +12,7 @@ function pause() {
   duckMusic(1);
   const o = $('ov');
   o.style.display = 'flex';
-  o.innerHTML = '<h1>Paused</h1><button class="opt" id="rsm"><b>Resume</b><span>Back to the run</span></button><button class="opt" id="qt" style="border-color:#ff5d63"><b style="color:#ff5d63">Quit run</b><span>Records are saved · go to main menu</span></button><button class="opt" id="wgp" style="border-color:#fff8"><b style="color:#fff">Weapon Guide</b><span>Weapons, basic and special augments</span></button><button class="opt" id="egp" style="border-color:#fff8"><b style="color:#fff">Enemy Guide</b><span>Zombies, ranged zombies, the boss and day / night</span></button><button class="opt" id="fbp" style="border-color:#fff8"><b style="color:#fff">Feedback</b><span>Tell us what you think of the game</span></button><button class="opt" id="stp" style="border-color:#fff8"><b style="color:#fff">Settings</b></button>';
+  o.innerHTML = '<h1>Paused</h1><button class="opt" id="rsm"><b>Resume</b><span>Back to the run</span></button><button class="opt" id="qt" style="border-color:#ff5d63"><b style="color:#ff5d63">Quit run</b><span>Records are saved · go to main menu</span></button><button class="opt" id="wgp" style="border-color:#fff8"><b style="color:#fff">Weapon Guide</b><span>Weapons, basic and special augments</span></button><button class="opt" id="egp" style="border-color:#fff8"><b style="color:#fff">Enemy Guide</b><span>Restless, the boss and day / night</span></button><button class="opt" id="fbp" style="border-color:#fff8"><b style="color:#fff">Feedback</b><span>Tell us what you think of the game</span></button><button class="opt" id="stp" style="border-color:#fff8"><b style="color:#fff">Settings</b></button>';
   $('wgp').onclick = () => weaponGuide('pause');
   $('egp').onclick = () => enemyGuide('pause');
   $('fbp').onclick = () => feedbackScreen('pause');
@@ -98,9 +98,9 @@ const ORB_GUIDE = [
       ['Harden', 'Gain +' + C.hardenArmor + ' armor per level, then increase your total armor by ' + pc(C.hardenPerLvl) + '% per level (added together).'],
       ['Shield +1', 'Blocks 1 hit. +1 charge regained per ' + C.shieldKills + ' kills. Max charges +1 per level.'],
       ['Dance with Death', 'Damage you take becomes damage over time, split into ' + C.ddTicksPerLvl + ' ticks per level (one tick every ' + C.dwdTick + 's).'],
-      ['Lifesteal +' + pc(C.killHeal) + '% on kill', 'Killing an enemy heals ' + pc(C.killHeal) + '% of its max health per level. Excess healing becomes a homing projectile (damage = the excess).'],
+      ['Lifesteal +' + pc(C.killHeal) + '% on kill', 'Killing an enemy heals ' + pc(C.killHeal) + '% of its max health per level. Excess healing becomes a burst laser (damage = the excess).'],
       ['Regeneration +' + pc(C.regenPct) + '%', 'Regenerate ' + pc(C.regenPct) + '% of your max health per second, per level.'],
-      ['Health Siphon', 'Drains all enemies in your weapon\'s range (the Sword\'s reach, or the Bow / Grimoire attack range) for ' + pc(C.siphonDmg) + '% of your damage at your attack speed. Red orbs carry the drained HP back to you. Drain damage +' + pc(C.siphonPerLvl) + '% per level. Excess healing becomes a homing projectile.']
+      ['Health Siphon', 'Drains all enemies in your weapon\'s range (the Sword\'s reach, or the Bow / Grimoire attack range) for ' + pc(C.siphonDmg) + '% of your damage at your attack speed. Red tethers link you to every drained enemy and carry the HP back to you. Drain damage +' + pc(C.siphonPerLvl) + '% per level. Excess healing becomes a burst laser.']
     ]
   ],
   [
@@ -145,23 +145,24 @@ function enemyGuide(from) {
     sec('ALL ENEMIES GROW STRONGER') +
     row('Level scaling', 'Every level you gain, enemies get +' + C.eHpLvl + ' HP and +' + C.eDmgLvl + ' damage. Every ' + C.eSpeedEvery + ' levels they also move +' + sp + '% faster. Every 50 levels their HP and damage double.') +
     row('How many', 'Up to ' + C.capBase + ' enemies at once, +' + C.capPerLvl + ' for every level you gain. They walk in from just outside the screen and push each other apart so they do not stack.') +
-    head(IMAGE_FILES.guideZombie, 'Zombie', 'The basic enemy. Walks straight at you and hurts you on touch.') +
+    head(IMAGE_FILES.guideZombie, 'Restless (Blue)', 'The basic enemy. Walks straight at you, then stops and swings at you.') +
     row('Health', C.eHp + ' (+' + C.eHpLvl + ' per level)') +
-    row('Damage', C.eDmg + ' (+' + C.eDmgLvl + ' per level) when it touches you, at most once per second') +
+    row('Damage', C.eDmg + ' (+' + C.eDmgLvl + ' per level). Touching it is harmless: it only hurts you with its attack, once per swing.') +
+    row('Attack', 'Starts within ' + C.eAtkRange + ' px of you and cannot move until the swing is over (' + C.eAtkT + 's). The hit lands ' + pc(C.eAtkHit) + '% of the way in, so you can step away in time. Waits ' + C.eAtkCd + 's before the next one.') +
     row('Speed', C.eSpeed + ' (+' + sp + '% every ' + C.eSpeedEvery + ' levels)') +
-    head(IMAGE_FILES.guideRanger, 'Ranged Zombie', 'Purple zombie that shoots from a distance.') +
-    row('Appears', 'From level ' + C.rangerFrom + ' on. ' + pc(C.rangerChance) + '% of new zombies are ranged.') +
-    row('Attack', 'Shoots a bolt every ' + C.rangerCd + 's when you are within ' + C.rangerRange + ' px. The bolt does the same damage as a zombie touch and flies at ' + C.eBulletSpeed + ' px/s.') +
-    row('Behaviour', 'Backs away when you get close and keeps its distance, so you have to chase it down. Same health and speed as a normal zombie.') +
+    head(IMAGE_FILES.guideRanger, 'Purple Restless', 'Casts bolts from a distance.') +
+    row('Appears', 'From level ' + C.rangerFrom + ' on. ' + pc(C.rangerChance) + '% of new Restless are purple.') +
+    row('Attack', 'Casts a bolt every ' + C.rangerCd + 's when you are within ' + C.rangerRange + ' px. It stands still while casting (' + C.eCastT + 's). The bolt does the same damage as a Restless swing and flies at ' + C.eBulletSpeed + ' px/s.') +
+    row('Behaviour', 'Backs away when you get close and keeps its distance, so you have to chase it down. Same health and speed as a Blue Restless.') +
     head(IMAGE_FILES.guideGiant, 'Giant Zombie (Boss)', 'A boss that arrives every ' + C.bossEvery + ' levels.') +
     row('Arrival', 'All other enemies are cleared, then a ' + C.bossWarn + ' second warning counts down before it arrives.') +
-    row('Health and damage', C.bossHp + 'x the health of a normal zombie at your level and ' + C.bossDmg + 'x its damage. It walks at 60% of zombie speed.') +
+    row('Health and damage', C.bossHp + 'x the health of a Restless at your level and ' + C.bossDmg + 'x its damage. It walks at 60% of Restless speed.') +
     row('Charge', 'Winds up for ' + C.bossWind + 's, then dashes ' + C.bossDashLen + ' px in a straight line. It hits you once if it catches you.') +
     row('Jump Slam', 'Winds up for ' + C.bossWind + 's, then leaps to where you stood. The landing shockwave (radius ' + C.bossJumpR + ' px) hurts everything inside it.') +
     row('After an attack', 'Rests for ' + C.bossRest + 's, and attacks at most every ' + C.bossGap + 's. Bosses cannot be pulled by Soul Vortex. Defeating one drops a shower of XP gems.') +
     (C.dayNight && C.dayNightFx ?
       sec('DAY AND NIGHT') +
-      row('🌙 Night', 'Enemies move ' + pc(C.nightSpeed) + '% faster and deal ' + pc(C.nightDmg) + '% more damage.') +
+      row('🌙 Night', (C.eJumpOn ? 'Purple Restless and the boss move ' : 'Enemies move ') + pc(C.nightSpeed) + '% faster and all enemies deal ' + pc(C.nightDmg) + '% more damage.' + (C.eJumpOn ? ' Blue Restless do not speed up: they leap at you from ' + C.eJumpMin + '-' + C.eJumpMax + ' px away: a red ring shows where they land, and the shockwave (radius ' + C.eJumpR + ' px) hits for ' + C.eJumpDmg + 'x damage.' : '')) +
       row('☀️ Day', 'Enemies take ' + pc(C.dayVuln) + '% more damage from everything you do. A full day lasts ' + C.dayLen + ' seconds.') : '');
   o.innerHTML = '<h1>Enemy Guide</h1><div style="flex:1;min-height:0;overflow-y:auto;width:100%;max-width:520px;margin:0 auto">' + html + '</div><button class="opt" id="egb" style="border-color:#fff8;max-width:520px;width:100%;margin:0 auto;text-align:center"><b style="color:#fff">Back</b></button>';
   $('egb').onclick = () => {
@@ -184,6 +185,7 @@ function menu() {
   o.style.display = 'flex';
   // Full-screen art with the title and buttons on top (styles: .menu-card, .mbtn ... in css/style.css)
   o.innerHTML = '<div class="menu-card">' +
+    '<span class="mver">v' + GAME_VERSION + '</span>' +
     '<h1 class="mtitle">Limbo</h1>' +
     '<p class="msub">Oblivion Survivor</p>' +
     '<button class="mbtn play" id="pl">Play</button>' +

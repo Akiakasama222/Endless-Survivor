@@ -79,6 +79,103 @@ function snapDir8(ux, uy) {
   return [.5 * cx + cy, cy - .5 * cx];
 }
 
+// ----------------------------------------------------------------------
+// RESTLESS ATTACKS
+// Restless no longer hurt you by touching you. They stop and play an attack move instead, and cannot move until it is over (e.at is the attack in progress, null = free to move):
+//   melee  (Blue Restless close to you)       : arms swing, hurts you at the hit moment only if you are still within C.eAtkReach
+//   cast   (Purple Restless within range)     : the bolt leaves at the hit moment, aimed at where you are then
+//   jump   (Blue Restless at NIGHT, mid range): crouch, leap to where you stood, shockwave on landing, get up. Closes the gap quickly
+// A stun / freeze interrupts the attack.
+// ----------------------------------------------------------------------
+
+// Starts an attack of kind 'melee', 'cast' or 'jump' (the Restless turns to face you and locks that direction).
+function restAttackStart(e, kind) {
+  const dx = S.x - e.x;
+  const dy = S.y - e.y;
+  e.at = {
+    k: kind,
+    t: 0,
+    T: kind === 'melee' ? C.eAtkT : kind === 'cast' ? C.eCastT : C.eJumpWind + C.eJumpAir + C.eJumpRec,
+    row: restRow(Math.atan2((dx + dy) * .5, dx - dy)),
+    hit: false,
+    go: false,
+    sx: e.x,
+    sy: e.y,
+    tx: e.x,
+    ty: e.y
+  };
+  if (kind === 'jump') {
+    e.jcd = C.eJumpCd;
+    sfx('wind');
+  }
+}
+
+// Advances the attack in progress by dt seconds (the Restless stands still, except for the jump's flight).
+function restAttackStep(e, dt) {
+  const a = e.at;
+  const dx = S.x - e.x;
+  const dy = S.y - e.y;
+  const d = Math.hypot(dx, dy) || 1;
+  a.t += dt;
+  e.fl -= dt;
+  if (a.k === 'melee') {
+    if (!a.hit && a.t >= a.T * C.eAtkHit) {
+      a.hit = true;
+      sfx('dash');
+      if (d < C.eAtkReach && S.inv <= 0) {      // you can step out of reach before the arms land
+        hurt(e.d * dnEnemyDmg());      // +damage at night (daynight.js)
+        S.inv = .15;
+      }
+    }
+  }
+  else if (a.k === 'cast') {
+    if (!a.hit && a.t >= a.T * C.eCastHit) {
+      a.hit = true;
+      sfx('eshot');
+      S.eb.push({ x: e.x, y: e.y, vx: dx / d * C.eBulletSpeed, vy: dy / d * C.eBulletSpeed, life: 2.5, d: e.d });
+    }
+  }
+  else {
+    const tw = C.eJumpWind;
+    const ta = tw + C.eJumpAir;
+    if (a.t < tw) {      // crouching: keeps turning towards you
+      a.row = restRow(Math.atan2((dx + dy) * .5, dx - dy));
+    }
+    else if (!a.go) {      // take off: the landing spot is where you stand right now (you have the flight time to move away)
+      a.go = true;
+      const stop = Math.min(d, C.pHitR + 12);
+      a.tx = S.x - dx / d * stop;
+      a.ty = S.y - dy / d * stop;
+      sfx('dash');
+    }
+    if (a.go && a.t < ta) {
+      const p = (a.t - tw) / C.eJumpAir;
+      e.x = a.sx + (a.tx - a.sx) * p;
+      e.y = a.sy + (a.ty - a.sy) * p;
+    }
+    else if (a.go && !a.hit) {      // landing
+      a.hit = true;
+      e.x = a.tx;
+      e.y = a.ty;
+      sfx('dexp');
+      for (let i = 0; i < 8; i++) {
+        const an = i / 8 * 6.283;
+        S.tr.push({ x: e.x + Math.cos(an) * 14, y: e.y + Math.sin(an) * 14, t: .45, m: .45, r: 9, c: '205,190,160', z: 4 });
+      }
+      if (Math.hypot(S.x - e.x, S.y - e.y) < C.eJumpR + C.pHitR && S.inv <= 0) {
+        hurt(e.d * C.eJumpDmg * dnEnemyDmg());
+        S.inv = .15;
+      }
+    }
+  }
+  if (a.t >= a.T) {      // finished: free to move again after a short pause
+    e.at = null;
+    e.cd = C.eAtkCd;
+    if (a.k === 'cast')
+      e.sh = C.rangerCd;
+  }
+}
+
 // One simulation step: moves everything forward by dt seconds (player, weapons, enemies, spawning, gems, level-ups).
 // One player shot (Bow arrow / Grimoire orb) aimed at angle o towards enemy t; dm = its damage multiplier (1 = normal, C.multiwieldDmg for a MultiWield repeat).
 // The Bow and the Grimoire fire different shots: own speed, lifetime and look (the Grimoire's is a purple orb).
@@ -388,6 +485,7 @@ function update(dt) {
       continue;
     }
     if (e.stun > 0) {
+      e.at = null;      // a stun / freeze interrupts an attack
       e.stun -= dt;
       e.fl -= dt;
       e.cd -= dt;
@@ -401,19 +499,22 @@ function update(dt) {
     const dx = S.x - e.x;
     const dy = S.y - e.y;
     const d = Math.hypot(dx, dy) || 1;
-    let k = sm * sl * C.eSpeed * dnEnemySpd() * dt;      // +speed at night (daynight.js)
+    if (e.at) {      // attacking: it cannot move until the attack is finished (slowed enemies attack slower too)
+      restAttackStep(e, dt * sl);
+      continue;
+    }
+    let k = sm * sl * C.eSpeed * (e.rg || !C.eJumpOn ? dnEnemySpd() : 1) * dt;      // +speed at night (daynight.js); Blue Restless get the Jump attack instead (unless it is turned off)
     if (e.rg) {
       if (d < 200)
         k = -k * .8;
       else if (d < 300)
         k = 0;
       e.sh -= dt;
-      if (e.sh <= 0 && d < C.rangerRange) {
-        e.sh = C.rangerCd;
-        sfx('eshot');
-        S.eb.push({ x: e.x, y: e.y, vx: dx / d * C.eBulletSpeed, vy: dy / d * C.eBulletSpeed, life: 2.5, d: e.d });
-      }
     }
+    else if (d < C.eAtkRange * .75)
+      k = 0;      // right next to you: stands and waits for its attack pause to end
+    e.mv = k !== 0;      // drawn walking (otherwise idle)
+    e.back = k < 0;      // a Purple Restless backing away is drawn turned away from you (it turns back to face you when it casts)
     {
       let ux = dx / d;
       let uy = dy / d;
@@ -441,10 +542,16 @@ function update(dt) {
         e.y += oy / k * 30 * dt;
       }
     }
-    if (d < C.eHitR + C.pHitR && e.cd <= 0 && S.inv <= 0) {
-      hurt(e.d * dnEnemyDmg());      // +damage at night (daynight.js)
-      e.cd = 1;
-      S.inv = .15;
+    e.jcd = (e.jcd === undefined ? Math.random() * C.eJumpCd * .5 : e.jcd) - dt;
+    if (e.cd <= 0) {      // no touch damage any more: it starts an attack move instead
+      if (e.rg) {
+        if (e.sh <= 0 && d < C.rangerRange)
+          restAttackStart(e, 'cast');
+      }
+      else if (d < C.eAtkRange)
+        restAttackStart(e, 'melee');
+      else if (C.eJumpOn && e.jcd <= 0 && dnNight() && d > C.eJumpMin && d < C.eJumpMax)      // night: leaps over the gap
+        restAttackStart(e, 'jump');
     }
   }
   for (const e of S.en)

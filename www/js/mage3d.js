@@ -31,6 +31,7 @@ const LIVE3D = {
   castFrom: .28,
   castMax: .9,
   strafeSwap: false,
+  handMax: 1.4,      // Sword: the most the upper body may twist away from the legs to bring the hand to the hilt (radians)
   outline: true,
   outlineColor: [18, 10, 34],
   light: [-.45, .8, .25],
@@ -69,7 +70,7 @@ fetch(LIVE3D.file).then(r => r.json()).then(j => {
   };
   for (const k in j.anims) {
     const a = j.anims[k];
-    d.anims[k] = { n: a.n, dur: a.dur, loop: a.loop, d: l3Decode(a.d, Float32Array) };
+    d.anims[k] = { n: a.n, dur: a.dur, loop: a.loop, d: l3Decode(a.d, Float32Array), hy: l3Decode(a.hy, Float32Array), cy: l3Decode(a.cy, Float32Array), hd: l3Decode(a.hd, Float32Array) };
   }
   // lower body = hips and everything below the two upper-leg bones; everything else (spine, arms, head) is upper body
   d.lower = new Uint8Array(nb);
@@ -91,12 +92,19 @@ fetch(LIVE3D.file).then(r => r.json()).then(j => {
   d.SX = new Float32Array(d.nv); d.SY = new Float32Array(d.nv); d.SD = new Float32Array(d.nv);
   d.palette = d.mats.map(n => LIVE3D.colors[n] || [200, 200, 200]);
   d.hipsRest = [d.rest[0], d.rest[1], d.rest[2]];
+  d.iHips = d.names.indexOf('Hips');
+  d.iSpine = d.names.indexOf('Spine');
+  // the bones from the hips up to the head, and the head's rotation in the bind pose (needed to measure where the head is looking)
+  d.chain = ['Hips', 'Spine', 'Spine1', 'Spine2', 'Neck', 'Head'].map(n => d.names.indexOf(n));
+  d.bindHeadQ = [0, 0, 0, 1];
+  for (const b of d.chain)
+    d.bindHeadQ = l3Qmul(d.bindHeadQ, [d.rest[b * 7 + 3], d.rest[b * 7 + 4], d.rest[b * 7 + 5], d.rest[b * 7 + 6]]);
   LIVE3D.d = d;
 }).catch(() => { });
 
-// True when the live 3D mage should be drawn for the current weapon (Rogue / Grimoire) and the model has loaded.
+// True when the live 3D character should be drawn for the current weapon (Rogue / Sword / Grimoire) and the model has loaded.
 function live3dReady() {
-  return LIVE3D.on && !!LIVE3D.d && (S.wp === 'gun' || S.wp === 'grimoire');
+  return LIVE3D.on && !!LIVE3D.d && (S.wp === 'gun' || S.wp === 'sword' || S.wp === 'grimoire');
 }
 
 // Writes the bone transforms of animation `a` at frame position `fp` (can be fractional) into `out` for every bone where only(b) is true.
@@ -140,6 +148,75 @@ function l3Sample(d, a, fp, out, pick) {
     out[o + 5] = z / l;
     out[o + 6] = w / l;
   }
+}
+
+// Body yaw (radians, 0 = facing straight ahead) of animation a at frame position fp, from its baked hips (arr = 'hy') or chest (arr = 'cy') yaw per frame.
+function l3Yaw(a, fp, arr) {
+  const n = a.n;
+  let f0;
+  let f1;
+  let t;
+  if (a.loop) {
+    fp = ((fp % n) + n) % n;
+    f0 = Math.floor(fp);
+    f1 = (f0 + 1) % n;
+    t = fp - f0;
+  }
+  else {
+    fp = Math.max(0, Math.min(n - 1, fp));
+    f0 = Math.floor(fp);
+    f1 = Math.min(n - 1, f0 + 1);
+    t = fp - f0;
+  }
+  return a[arr][f0] + (a[arr][f1] - a[arr][f0]) * t;
+}
+
+// Quaternion helpers (x, y, z, w) for the twist below.
+const l3Qmul = (a, b) => [
+  a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+  a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+  a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+  a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]
+];
+
+const l3Yq = a => [0, Math.sin(a / 2), 0, Math.cos(a / 2)];      // a turn about the vertical axis
+
+// The animations do not face straight ahead (the cast swings the whole body round by about 140 degrees, the idle stance is turned sideways), so the pose is straightened:
+// dh turns the hips (and with them the legs) and ds twists the spine, both about the vertical axis, so that hips and chest end up facing the aim.
+function l3Twist(d, dh, ds) {
+  const P = d.pose;
+  const h = d.iHips * 7;
+  const s = d.iSpine * 7;
+  let qh = [P[h + 3], P[h + 4], P[h + 5], P[h + 6]];
+  qh = l3Qmul(l3Yq(dh), qh);
+  P[h + 3] = qh[0]; P[h + 4] = qh[1]; P[h + 5] = qh[2]; P[h + 6] = qh[3];
+  const qs = [P[s + 3], P[s + 4], P[s + 5], P[s + 6]];
+  const hc = [-qh[0], -qh[1], -qh[2], qh[3]];      // inverse of the hips rotation
+  const r = l3Qmul(l3Qmul(l3Qmul(hc, l3Yq(ds)), qh), qs);
+  P[s + 3] = r[0]; P[s + 4] = r[1]; P[s + 5] = r[2]; P[s + 6] = r[3];
+}
+
+// In the cast animation the head keeps looking straight ahead while the body twists around it, so after the body has been straightened the head must not be dragged along:
+// the neck is turned (about the vertical axis) until the head looks the way the animation has it (headTarget, radians).
+function l3FixHead(d, headTarget) {
+  const P = d.pose;
+  const c = d.chain;
+  const ql = i => [P[c[i] * 7 + 3], P[c[i] * 7 + 4], P[c[i] * 7 + 5], P[c[i] * 7 + 6]];
+  let qw = ql(0);
+  for (let i = 1; i <= 3; i++)
+    qw = l3Qmul(qw, ql(i));      // world rotation of the chest (Spine2)
+  const qn = ql(4);
+  let qh = l3Qmul(l3Qmul(qw, qn), ql(5));      // world rotation of the head
+  const bc = d.bindHeadQ;
+  const rel = l3Qmul(qh, [-bc[0], -bc[1], -bc[2], bc[3]]);      // head rotation compared with the bind pose
+  const vx = 2 * (rel[0] * rel[2] + rel[3] * rel[1]);
+  const vz = 1 - 2 * (rel[0] * rel[0] + rel[1] * rel[1]);
+  const now = Math.atan2(vx, vz);
+  const turn = Math.atan2(Math.sin(headTarget - now), Math.cos(headTarget - now));
+  const qc = [-qw[0], -qw[1], -qw[2], qw[3]];
+  const r = l3Qmul(l3Qmul(l3Qmul(qc, l3Yq(turn)), qw), qn);
+  const o = c[4] * 7;
+  P[o + 3] = r[0]; P[o + 4] = r[1]; P[o + 5] = r[2]; P[o + 6] = r[3];
 }
 
 // Turns the bone transforms in d.pose into skin matrices (d.skin) that include the global turn (yaw) and scale.
@@ -352,7 +429,9 @@ function l3Raster(d, R, res, ox, oy) {
 }
 
 // Draws the live 3D mage with its feet at (px, py - 3). aim = screen angle the body faces, mv = the screen angle the player is moving in (or null when standing still).
-function drawLive3D(g, px, py, aim, mv, ghost) {
+// hand (optional) = screen angle of the Sword's hilt: the upper body (but not the head) is then twisted so the right hand ends up where the hilt is.
+// noDraw = true only renders into the model's own pixel buffer and returns where the feet are in it (used to build the afterimage sprites below).
+function drawLive3D(g, px, py, aim, mv, ghost, hand, noDraw) {
   const L = LIVE3D;
   const d = L.d;
   const R = ghost ? L.gh : L.mn;      // an afterimage (ghost = true) has its own buffer and never changes the player's turn
@@ -390,6 +469,12 @@ function drawLive3D(g, px, py, aim, mv, ghost) {
   else
     R.yaw += Math.sign(df) * step;
   const yaw = R.yaw;
+  let handYaw = null;      // the same screen-angle -> model-rotation conversion as for the aim
+  if (hand !== null && hand !== undefined) {
+    const hx = Math.cos(hand);
+    const hy = Math.sin(hand);
+    handYaw = Math.atan2(hy + hx * .5, hy - hx * .5);
+  }
   // which leg animation
   let leg = null;
   if (mv !== null) {
@@ -422,7 +507,7 @@ function drawLive3D(g, px, py, aim, mv, ghost) {
     const a = d.anims[leg];
     legFrame = q * L.runSpeed * (1 + C.moveSpeedPerLvl * S.nsp) / a.dur * a.n;
   }
-  const key = [leg, Math.round(legFrame * 4), Math.round(upFrame * 4), Math.round(yaw * 200), res, L.height, L.tilt].join(',');
+  const key = [leg, Math.round(legFrame * 4), Math.round(upFrame * 4), Math.round(yaw * 200), handYaw === null ? '' : Math.round(handYaw * 200), res, L.height, L.tilt].join(',');
   if (key !== R.key) {
     R.key = key;
     // pose: lower-body bones from the leg animation (or the cast stance), the others from the cast animation
@@ -430,12 +515,35 @@ function drawLive3D(g, px, py, aim, mv, ghost) {
     const lowerFrame = leg !== null ? legFrame : 0;
     l3Sample(d, lowerAnim, lowerFrame, d.pose, b => d.lower[b]);
     l3Sample(d, cast, upFrame, d.pose, b => 1 - d.lower[b]);
+    // straighten the pose so hips and chest face the aim:
+    //   standing still: the legs of the cast stance are turned back by the stance's own yaw; running: the run animations already face the way they run
+    //   chest: whatever yaw the hips have now plus the twist the cast animation puts into the spine (frame by frame) is cancelled
+    const hipsNow = leg !== null ? l3Yaw(lowerAnim, lowerFrame, 'hy') : 0;
+    const dh = leg !== null ? 0 : -l3Yaw(cast, 0, 'hy');
+    const ds = -(hipsNow + l3Yaw(cast, upFrame, 'cy') - l3Yaw(cast, upFrame, 'hy'));
+    l3Twist(d, dh, ds);
+    l3FixHead(d, l3Yaw(cast, upFrame, 'hd'));
+    if (handYaw !== null) {
+      // Sword: measure where the right hand points (seen from the hips) with this pose, then twist the spine by the difference so the hand sits on the hilt.
+      // The legs keep following the aim, and the head is locked on the aim again afterwards, so only the torso and arms swing round.
+      l3Skin(d, 0, 1);
+      const iH = d.names.indexOf('RightHand') * 12;
+      const iB = d.iHips * 12;
+      const ha = Math.atan2(d.world[iH + 3] - d.world[iB + 3], d.world[iH + 11] - d.world[iB + 11]);
+      let tw = handYaw - (yaw + ha);
+      tw = Math.atan2(Math.sin(tw), Math.cos(tw));
+      tw = Math.max(-L.handMax, Math.min(L.handMax, tw));
+      l3Twist(d, 0, tw);
+      l3FixHead(d, l3Yaw(cast, upFrame, 'hd'));
+    }
     const sc = L.height / (868.2 - 8.3) / L.tilt;      // model units (cm) to game px: the model is 860 tall and its height is multiplied by tilt on screen
     l3Skin(d, yaw, sc);
     l3Vertices(d, L.tilt);
     l3Raster(d, R, res, ox, oy);
     R.ctx.putImageData(R.id, 0, 0);
   }
+  if (noDraw)
+    return { cv: R.cv, bw, bh, res, ox, oy };
   g.save();
   g.imageSmoothingEnabled = false;
   // the buffer's feet position is snapped to the canvas pixel grid so the character never shimmers
@@ -443,4 +551,47 @@ function drawLive3D(g, px, py, aim, mv, ghost) {
   const y0 = Math.round((py - 3 - oy * res) / res) * res;
   g.drawImage(R.cv, x0, y0, bw * res, bh * res);
   g.restore();
+}
+
+// MultiWield afterimages: instead of rendering the 3D model again for every afterimage every frame (10,000+ triangles each), the blue see-through sprites are cached.
+// A sprite is made once per (facing in 16 directions, attack-animation step at 12 per second, hilt direction) and shared by every afterimage that needs it.
+const GH_SPR = new Map();
+
+function l3GhostSprite(th, st0, hand) {
+  const L = LIVE3D;
+  const res = Math.max(1, C.pixelScale || 1);
+  const q = Math.PI / 8;
+  const k16 = Math.round(th / q);
+  const hk = hand === null || hand === undefined ? 'n' : ((Math.round(hand / q) % 16) + 16) % 16;
+  const dur = Math.max(.2, Math.min(L.castMax, .9 / rate()));
+  let qs = -1;      // which step of the attack animation (-1 = standing)
+  if (st0 !== undefined) {
+    const since = S.t - st0;
+    if (since >= 0 && since < dur)
+      qs = Math.floor(since * 12);
+  }
+  const key = [((k16 % 16) + 16) % 16, qs, hk, Math.round(dur * 20), res, L.height, L.tilt, S.wp].join(',');
+  let e = GH_SPR.get(key);
+  if (e) {
+    GH_SPR.delete(key);      // keep the most recently used at the end
+    GH_SPR.set(key, e);
+    return e;
+  }
+  const keep = S.st0;
+  S.st0 = qs >= 0 ? S.t - Math.min(dur - .001, (qs + .5) / 12) : undefined;
+  const r = drawLive3D(null, 0, 0, k16 * q, null, true, hk === 'n' ? null : hk * q, true);
+  S.st0 = keep;
+  const cv2 = document.createElement('canvas');
+  cv2.width = r.bw;
+  cv2.height = r.bh;
+  const x = cv2.getContext('2d');
+  x.drawImage(r.cv, 0, 0);
+  x.globalCompositeOperation = 'source-atop';      // the blue tint, baked in
+  x.fillStyle = 'rgba(110,190,255,.55)';
+  x.fillRect(0, 0, r.bw, r.bh);
+  e = { cv: cv2, bw: r.bw, bh: r.bh, res: r.res, ox: r.ox, oy: r.oy };
+  GH_SPR.set(key, e);
+  if (GH_SPR.size > 160)
+    GH_SPR.delete(GH_SPR.keys().next().value);
+  return e;
 }

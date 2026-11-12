@@ -41,7 +41,7 @@ const ORB_POOL = {
     ],
     [
       'ls', 'Lifesteal +' + pc(C.killHeal) + '% on kill',
-      () => 'Killing an enemy heals ' + pcn(C.killHeal, S.ls) + '% → ' + pcn(C.killHeal, S.ls + 1) + '% of its max health · every instance of excess healing becomes a homing projectile (damage = the excess)'
+      () => 'Killing an enemy heals ' + pcn(C.killHeal, S.ls) + '% → ' + pcn(C.killHeal, S.ls + 1) + '% of its max health · every instance of excess healing becomes a burst laser (damage = the excess)'
     ],
     [
       'nrg', 'Regeneration +' + pc(C.regenPct) + '%',
@@ -49,7 +49,7 @@ const ORB_POOL = {
     ],
     [
       'nhs', 'Health Siphon',
-      () => S.nhs ? 'Drain damage +' + pc(C.siphonPerLvl) + '% per level (' + Math.round(100 * C.siphonDmg * gSip()) + '% → ' + Math.round(100 * C.siphonDmg * gSip(S.nhs + 1)) + '% of your damage) · drains enemies in your weapon\'s range ' + rate().toFixed(1) + 'x per second (attack speed) · excess healing becomes a homing projectile' : 'Drains EVERY enemy in your weapon\'s range for ' + pc(C.siphonDmg) + '% of your damage at your attack speed · excess healing becomes a homing projectile (damage = the excess)'
+      () => S.nhs ? 'Drain damage +' + pc(C.siphonPerLvl) + '% per level (' + Math.round(100 * C.siphonDmg * gSip()) + '% → ' + Math.round(100 * C.siphonDmg * gSip(S.nhs + 1)) + '% of your damage) · drains enemies in your weapon\'s range ' + rate().toFixed(1) + 'x per second (attack speed) · excess healing becomes a burst laser' : 'Drains EVERY enemy in your weapon\'s range for ' + pc(C.siphonDmg) + '% of your damage at your attack speed · excess healing becomes a burst laser (damage = the excess)'
     ]
   ],
   practice: [

@@ -33,7 +33,7 @@ const EDITOR_GROUPS = [
     ['orbTime', 'Orbs: seconds to stand close to use one', 'n'],
     ['orbRadius', 'Orbs: how close you must stand (px)', 'n']
   ]],
-  ['Enemies', 'Normal zombies: strength, speed and how many appear.', [
+  ['Enemies', 'Restless: strength, speed, attacks and how many appear.', [
     ['eHp', 'Base HP', 'n'],
     ['eHpLvl', 'HP gained per player level', 'n'],
     ['eDmg', 'Base damage', 'n'],
@@ -45,11 +45,28 @@ const EDITOR_GROUPS = [
     ['capPerLvl', 'Extra enemies allowed per level', 'n'],
     ['spawnBase', 'Spawns per second at the start', 'n'],
     ['spawnGrow', 'Spawn rate growth per second', 'n'],
-    ['rangerFrom', 'Ranged zombies appear from level', 'i'],
-    ['rangerChance', 'Chance a zombie is ranged', '%'],
-    ['rangerRange', 'Ranged zombie shooting range (px)', 'n'],
-    ['rangerCd', 'Ranged zombie seconds between shots', 'n'],
-    ['eBulletSpeed', 'Enemy bullet speed', 'n']
+    ['rangerFrom', 'Purple Restless appear from level', 'i'],
+    ['rangerChance', 'Chance a Restless is purple (ranged)', '%'],
+    ['rangerRange', 'Purple Restless shooting range (px)', 'n'],
+    ['rangerCd', 'Purple Restless seconds between casts', 'n'],
+    ['eBulletSpeed', 'Enemy bullet speed', 'n'],
+    ['eScale', 'Restless size (1 = small, 2 = double)', 'n'],
+    ['eAtkRange', 'Melee attack starts at this distance (px)', 'n'],
+    ['eAtkReach', 'Melee attack still hits within this distance (px)', 'n'],
+    ['eAtkT', 'Melee attack length (seconds, it cannot move meanwhile)', 'n'],
+    ['eAtkHit', 'Melee hit moment (share of the attack)', '%'],
+    ['eAtkCd', 'Seconds between attacks', 'n'],
+    ['eCastT', 'Purple cast length (seconds, it cannot move meanwhile)', 'n'],
+    ['eCastHit', 'Purple bolt leaves at (share of the cast)', '%'],
+    ['eJumpOn', 'Night Jump attack (1 = on, 0 = off)', 'i'],
+    ['eJumpMin', 'Jump attack: only jumps when further than (px)', 'n'],
+    ['eJumpMax', 'Jump attack: ... and closer than (px)', 'n'],
+    ['eJumpCd', 'Jump attack: seconds between jumps', 'n'],
+    ['eJumpWind', 'Jump attack: crouch seconds', 'n'],
+    ['eJumpAir', 'Jump attack: seconds in the air', 'n'],
+    ['eJumpRec', 'Jump attack: seconds to get up after landing', 'n'],
+    ['eJumpR', 'Jump attack: landing shockwave radius (px)', 'n'],
+    ['eJumpDmg', 'Jump attack: damage (x a normal hit)', 'n']
   ]],
   ['Boss (Giant Zombie)', 'The boss that appears every few levels. Its HP and damage are multiples of a normal enemy\'s.', [
     ['bossEvery', 'A boss appears every N levels', 'i'],
@@ -157,7 +174,8 @@ const EDITOR_GROUPS = [
     ['thunderDmg', 'Thunder Strike: damage (share of your damage)', '%'],
     ['gmThR', 'Thunder Strike: radius', 'n'],
     ['siphonDmg', 'Health Siphon: damage to every enemy in range (share of your damage)', '%'],
-    ['siphonOrbs', 'Health Siphon: most red orbs per tick', 'i'],
+    ['siphonOrbs', 'Health Siphon: most red tethers drawn per tick', 'i'],
+    ['laserGap', 'Excess healing: seconds between green burst lasers', 'n'],
     ['siphonPerLvl', 'Health Siphon: extra drain damage per level', '%']
   ]]
 ];

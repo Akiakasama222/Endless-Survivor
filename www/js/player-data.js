@@ -142,6 +142,30 @@ BUL.onload = () => {
   });
 };
 
+// Homing Explosive Knife: the same knife picture, a little bigger, tinted fiery orange with an orange glow (built once the picture has loaded;
+// until then the old emoji rocket is drawn).
+const MKN = { w: 34, h: 13 };
+
+BUL.addEventListener('load', () => {
+  const t = document.createElement('canvas');
+  t.width = MKN.w;
+  t.height = MKN.h;
+  const tx = t.getContext('2d');
+  tx.drawImage(BUL, 0, 0, MKN.w, MKN.h);
+  tx.globalCompositeOperation = 'color';
+  tx.fillStyle = '#ff7a1a';
+  tx.fillRect(0, 0, MKN.w, MKN.h);
+  tx.globalCompositeOperation = 'destination-in';
+  tx.drawImage(BUL, 0, 0, MKN.w, MKN.h);
+  SPR.mk = spr(56, 40, (x, u, v) => {
+    x.shadowColor = '#ff5a14';
+    x.shadowBlur = 10;
+    x.drawImage(t, u - MKN.w / 2, v - MKN.h / 2, MKN.w, MKN.h);
+    x.shadowBlur = 0;
+    x.drawImage(t, u - MKN.w / 2, v - MKN.h / 2, MKN.w, MKN.h);
+  });
+});
+
 BUL.src = IMAGE_FILES.arrow;
 
 // Saves the player profile.
@@ -283,8 +307,10 @@ function init() {
     bs: [],
     xh: 0,
     xt: 0,
-    hs: [],
-    sf: [],
+    xl: 0,
+    xlt: 0,
+    lz: [],
+    st: [],
     sfa: 0,
     sft: 0,
     nols: 0,

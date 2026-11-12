@@ -68,14 +68,33 @@ const dnLights = [];
 const DN_ISO = .5;      // the ground is drawn squashed 2:1 in this isometric view, so every light is an ellipse half as tall as it is wide
 const DN_WIDE = 1.3;    // lights are made a bit wider so that flattening them does not shrink the lit area too much
 
+// Performance: lights of the same colour that sit close together (tails, zaps, trails) are merged into one, and the number of lights is capped,
+// so a late run with hundreds of effects costs about the same as an early one.
+const DN_MAX = 48;      // most lights drawn per frame (the strongest ones win)
+const DN_CELL = 56;     // lights of one colour inside the same cell of this size are merged
+const dnCell = new Map();
+
 const dnAdd = (x, y, r, a, c) => {
   if (a <= .01)
     return;
-  dnLights.push({ x, y, r: r * C.fxLightR * DN_WIDE, a: Math.min(1, a * C.fxLight), c, f: DN_ISO });
+  r *= C.fxLightR * DN_WIDE;
+  a = Math.min(1, a * C.fxLight);
+  const key = c + '|' + Math.round(x / DN_CELL) + '|' + Math.round(y / DN_CELL);
+  const o = dnCell.get(key);
+  if (o) {      // merge: keep the stronger / larger one, add a little strength
+    o.a = Math.min(1, Math.max(o.a, a) + Math.min(o.a, a) * .25);
+    if (r > o.r)
+      o.r = r;
+    return;
+  }
+  const L = { x, y, r, a, c, f: DN_ISO };
+  dnCell.set(key, L);
+  dnLights.push(L);
 };
 
 const dnCollect = (SX, SY, W, H) => {
   dnLights.length = 0;
+  dnCell.clear();
   const P = (o, lift) => [SX(o.x, o.y), SY(o.x, o.y) - (lift || 0)];
   const on = (x, y, r) => x > -r * 1.5 && x < W + r * 1.5 && y > -r * 1.5 && y < H + r * 1.5;
   const add = (x, y, r, a, c) => on(x, y, r) && dnAdd(x, y, r, a, c);
@@ -98,13 +117,13 @@ const dnCollect = (SX, SY, W, H) => {
     const q = P(b, 18);
     add(q[0], q[1], 85, .85, '255,77,240');
   }
-  for (const p of S.hs) {
-    const q = P(p, 18);
-    add(q[0], q[1], 65, .7, '110,255,140');
+  for (const z of S.st) {      // Health Siphon tethers: a small red light at the enemy end (one light, not a trail)
+    const q = P(z.e, 18);
+    add(q[0], q[1], 60, .6 * z.t / z.m, '255,90,90');
   }
-  for (const p of S.sf) {
-    const q = P(p, 18);
-    add(q[0], q[1], 65, .7, '255,90,90');
+  for (const z of S.lz) {      // overflow-heal lasers: a green light where the beam lands
+    const q = P({ x: z.x2, y: z.y2 }, 18);
+    add(q[0], q[1], 85, .85 * z.t / z.m, '110,255,140');
   }
   // Grimoire turret shots in the air, and the turrets next to the player
   for (const b of S.tb) {
@@ -162,7 +181,7 @@ const dnCollect = (SX, SY, W, H) => {
   }
   for (const z of S.at) {      // fading tail of a Grimoire bolt
     const a = Math.max(0, z.t / z.m);
-    for (let i = 0; i < z.pts.length; i += 3) {
+    for (let i = 0; i < z.pts.length; i += 6) {
       const q = P(z.pts[i], 18);
       add(q[0], q[1], 70, a * (1 - i / z.pts.length) * .8, '170,100,255');
     }
@@ -174,8 +193,45 @@ const dnCollect = (SX, SY, W, H) => {
 };
 
 // Offscreen layer that holds the darkness (and the holes cut into it by the lights).
+// Performance: the darkness is kept at half resolution (it is soft anyway), and every light is a pre-drawn sprite that is just stretched
+// onto the layer with drawImage (before, every light built its own gradient and filled a big rectangle every frame).
 let dnCv = null;
 let dnCx = null;
+const DN_RES = .5;      // resolution of the darkness layer compared to the screen
+
+let dnHoleSpr = null;
+const dnHole = () => {      // white-to-clear soft circle used to cut the holes (same falloff as the old gradient)
+  if (dnHoleSpr)
+    return dnHoleSpr;
+  const n = 128;
+  dnHoleSpr = document.createElement('canvas');
+  dnHoleSpr.width = dnHoleSpr.height = n;
+  const x = dnHoleSpr.getContext('2d');
+  const gd = x.createRadialGradient(n / 2, n / 2, n / 2 * .1, n / 2, n / 2, n / 2);
+  gd.addColorStop(0, 'rgba(0,0,0,1)');
+  gd.addColorStop(.5, 'rgba(0,0,0,.5)');
+  gd.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = gd;
+  x.fillRect(0, 0, n, n);
+  return dnHoleSpr;
+};
+
+const dnGlowSprs = {};
+const dnGlow = c0 => {      // soft coloured glow, one sprite per colour (colours are rounded to steps of 16 so orbs with random hues cannot fill the cache)
+  const c = c0.split(',').map(v => Math.min(255, Math.round(v / 16) * 16)).join(',');
+  if (dnGlowSprs[c])
+    return dnGlowSprs[c];
+  const n = 128;
+  const cv2 = document.createElement('canvas');
+  cv2.width = cv2.height = n;
+  const x = cv2.getContext('2d');
+  const gd = x.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2 * .8);
+  gd.addColorStop(0, 'rgba(' + c + ',1)');
+  gd.addColorStop(1, 'rgba(' + c + ',0)');
+  x.fillStyle = gd;
+  x.fillRect(0, 0, n, n);
+  return dnGlowSprs[c] = cv2;
+};
 
 // Draws the tint, the light around the player and the lights of all effects over the world. Call after the world is drawn, before the bright effect sprites and the HUD.
 const dnDraw = (g, W, H, SX, SY) => {
@@ -194,52 +250,47 @@ const dnDraw = (g, W, H, SX, SY) => {
     dnCv = document.createElement('canvas');
     dnCx = dnCv.getContext('2d');
   }
-  if (dnCv.width !== cv.width || dnCv.height !== cv.height) {
-    dnCv.width = cv.width;
-    dnCv.height = cv.height;
+  const lw = Math.max(1, Math.round(cv.width * DN_RES));
+  const lh = Math.max(1, Math.round(cv.height * DN_RES));
+  if (dnCv.width !== lw || dnCv.height !== lh) {
+    dnCv.width = lw;
+    dnCv.height = lh;
   }
-  const d = cv.width / W;
+  const d = lw / W;
   const x = dnCx;
   x.setTransform(1, 0, 0, 1, 0, 0);
   x.globalCompositeOperation = 'source-over';
-  x.clearRect(0, 0, dnCv.width, dnCv.height);
+  x.globalAlpha = 1;
+  x.clearRect(0, 0, lw, lh);
   x.setTransform(d, 0, 0, d, 0, 0);
   x.fillStyle = 'rgb(' + Math.round(r) + ',' + Math.round(gr) + ',' + Math.round(b) + ')';
   x.fillRect(0, 0, W, H);
   // cut light into the darkness: destination-out removes the tint where alpha > 0 (so the picture stays as it is there)
   x.globalCompositeOperation = 'destination-out';
+  const hs = dnHole();
   const hole = (cx, cy, R, a, f) => {
-    x.save();
-    x.translate(cx, cy);
-    x.scale(1, f);
-    const gd = x.createRadialGradient(0, 0, R * .1, 0, 0, R);
-    gd.addColorStop(0, 'rgba(0,0,0,' + a + ')');
-    gd.addColorStop(.5, 'rgba(0,0,0,' + a * .5 + ')');
-    gd.addColorStop(1, 'rgba(0,0,0,0)');
-    x.fillStyle = gd;
-    x.fillRect(-R, -R, R * 2, R * 2);
-    x.restore();
+    x.globalAlpha = a;
+    x.drawImage(hs, cx - R, cy - R * f, R * 2, R * 2 * f);
   };
   hole(SX(S.x, S.y), SY(S.x, S.y) - 20, Math.max(120, C.nightLightR) * DN_WIDE, Math.min(1, C.nightLight * dark), DN_ISO);      // the player's own light
   dnCollect(SX, SY, W, H);
+  if (dnLights.length > DN_MAX) {      // keep the strongest lights (strength x size)
+    dnLights.sort((u, v) => v.a * v.r - u.a * u.r);
+    dnLights.length = DN_MAX;
+  }
   for (const L of dnLights)
     hole(L.x, L.y, L.r, L.a, L.f);
+  x.globalAlpha = 1;
   g.save();
   g.globalCompositeOperation = 'multiply';
+  g.imageSmoothingEnabled = true;
   g.drawImage(dnCv, 0, 0, W, H);
   // soft coloured glow on top of the lit area (additive), so fire looks orange, ice blue, lightning yellow...
   g.globalCompositeOperation = 'lighter';
   for (const L of dnLights) {
-    g.save();
-    g.translate(L.x, L.y);
-    g.scale(1, L.f);
-    const gd = g.createRadialGradient(0, 0, 0, 0, 0, L.r * .8);
-    const a = L.a * dark * .32;
-    gd.addColorStop(0, 'rgba(' + L.c + ',' + a + ')');
-    gd.addColorStop(1, 'rgba(' + L.c + ',0)');
-    g.fillStyle = gd;
-    g.fillRect(-L.r, -L.r, L.r * 2, L.r * 2);
-    g.restore();
+    const R = L.r * .8;
+    g.globalAlpha = Math.min(1, L.a * dark * .32);
+    g.drawImage(dnGlow(L.c), L.x - R, L.y - R * L.f, R * 2, R * 2 * L.f);
   }
   g.restore();
 };

@@ -50,6 +50,18 @@ Any static web host works too (upload the whole folder).
 
 All scripts share one global scope, so keep the order in `index.html`.
 
+## Restless (basic enemies)
+
+The basic enemy is the **Restless**: Blue (melee) and Purple (ranged, from level `rangerFrom`). They do **not** hurt you by touching you any more. They play an attack move instead and **cannot move until it is finished**
+(a stun / freeze interrupts it):
+
+* Blue: stops within `eAtkRange` px and swings (`eAtkT` s). The hit lands at `eAtkHit` of the swing and only hurts if you are still within `eAtkReach` px, so you can step away.
+* Purple: casts for `eCastT` s and the bolt leaves at `eCastHit` of the cast, aimed at where you are then.
+* **At night** Blue Restless use a **Jump attack** to close the gap: when you are between `eJumpMin` and `eJumpMax` px away they crouch (`eJumpWind`), leap to where you stood (`eJumpAir`, a red ring marks the landing),
+  a shockwave (`eJumpR` px, `eJumpDmg` x damage) hits on landing and they need `eJumpRec` s to get up. Turn it off with `eJumpOn: 0`.
+
+All of these numbers are in `js/config.js` and in Editor mode > Enemies. The code is `restAttackStart` / `restAttackStep` in `js/update.js` and the Restless part of `dE` in `js/draw.js`.
+
 ## Editor mode (change the game's numbers without code)
 
 **Settings > Developer > Editor mode** lists the game's numbers in groups, each with its default value:
@@ -92,7 +104,11 @@ Images (`assets/images/`)
 
 | File | Used for |
 |------|----------|
-| zombie-sheet.png | basic zombie walk sheet (8 directions x 8 frames) |
+| restless-idle.png | Restless standing (16 directions x 8 frames, 79 x 108 each; row 0 faces the viewer, then turns towards the right: row 4 = right, 8 = away, 12 = left) |
+| restless-walk.png / restless-purple-walk.png | Blue / Purple Restless walking |
+| restless-attack.png | Blue Restless melee attack |
+| restless-jump.png | Blue Restless night Jump attack (frames 0-1 crouch, 2 in the air, 3-7 landing and getting up) |
+| restless-purple-cast.png | Purple Restless casting its bolt |
 | giant-zombie-sheet.webp | Giant Zombie boss run sheet |
 | player-mage-sheet.png | player (hooded mage), 8 directions |
 | sword-blade.png / sword-hilt.png | sword (blade stretches with Sword Range) |

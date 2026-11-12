@@ -308,19 +308,14 @@ function deathBoom(x, y, d, r, s) {
   sfx('dexp');
 }
 
-// Excess healing (healing past max HP) from Lifesteal / Health Siphon: EVERY heal instance that overflows spawns its own homing projectile
-// carrying exactly the overflow as damage (1:1). Overflow under 1 is carried over (S.xh) so it is never lost. At the 80-projectile cap the damage is merged into the newest one.
-// Spawns a homing projectile carrying d damage (overflow healing becomes damage).
+// Excess healing (healing past max HP) from Lifesteal / Health Siphon: the overflow is stored (S.xl) and fired as BURST LASERS: short green beams
+// from the player to the nearest enemy that deal exactly the overflow as damage (1:1). Nothing flies around any more, so it costs almost nothing to draw.
+// Performance: at most one beam per C.laserGap seconds, and damage that piles up is merged into the next beam instead of making more beams.
 function homing(d) {
-  if (S.hs.length >= 80) {
-    S.hs[S.hs.length - 1].d += d;
-    return;
-  }
-  const a = Math.random() * 6.283;
-  S.hs.push({ x: S.x, y: S.y, vx: Math.cos(a) * 220, vy: Math.sin(a) * 220, life: 4, d, tg: null });
+  S.xl += d;
 }
 
-// Heals the player by x; any healing past max HP is stored and turned into a homing projectile.
+// Heals the player by x; any healing past max HP is stored and fired as a burst laser.
 function healP(x) {
   const u = Math.min(x, Math.max(0, maxHp() - S.hp));
   S.hp += u;
@@ -336,78 +331,41 @@ function healP(x) {
   }
 }
 
-// Moves the homing overflow-heal projectiles and damages what they hit.
+// Fires the overflow-heal laser bursts and ages the beams.
 function xhStep(dt) {
-  for (const p of S.hs) {
-    if (!p.tg || p.tg.hp <= 0)
-      p.tg = nearest(p.x, p.y, 800);
-    if (p.tg) {
-      const dx = p.tg.x - p.x;
-      const dy = p.tg.y - p.y;
-      const l = Math.hypot(dx, dy) || 1;
-      p.vx += dx / l * 1800 * dt;
-      p.vy += dy / l * 1800 * dt;
-      const n = Math.hypot(p.vx, p.vy) || 1;
-      p.vx = p.vx / n * 320;
-      p.vy = p.vy / n * 320;
-    }
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.life -= dt;
-    S.tr.push({ x: p.x, y: p.y, t: .3, m: .3, r: 5, c: '110,255,140' });
-    for (const e of S.en) {
-      if (e.hp <= 0)
-        continue;
-      if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < (6 + (e.hr || C.eHitR)) ** 2) {
-        S.nols = 1;
-        hit(e, p.d);
-        S.nols = 0;
-        p.life = 0;
-        for (let i = 0; i < 6; i++)
-          S.tr.push({ x: p.x + (Math.random() - .5) * 14, y: p.y + (Math.random() - .5) * 14, t: .35, m: .35, r: 4, c: '160,255,170' });
-        break;
-      }
+  S.xlt -= dt;
+  if (S.xl >= 1 && S.xlt <= 0) {
+    const e = nearest(S.x, S.y, 800);
+    if (e) {
+      S.xlt = C.laserGap;
+      const d = S.xl;
+      S.xl = 0;
+      S.nols = 1;
+      hit(e, d);
+      S.nols = 0;
+      S.lz.push({ x1: S.x, y1: S.y, x2: e.x, y2: e.y, t: .18, m: .18, e });
+      if (S.lz.length > 8)
+        S.lz.shift();
     }
   }
-  cull(S.hs, p => p.life > 0);
-}
-
-// Health Siphon drain orb: a red projectile that leaves a drained enemy, homes to the player and heals on arrival (heal overflow still becomes a green homing projectile via healP)
-// Health Siphon: spawns a red orb at (x, y) that flies to the player and heals h on arrival.
-function drain(x, y, h) {
-  if (S.sf.length >= 120) {
-    S.sf[S.sf.length - 1].h += h;
-    return;
+  for (const z of S.lz) {
+    z.t -= dt;
+    z.x1 = S.x;      // the beam stays attached to the player
+    z.y1 = S.y;
+    if (z.e && z.e.hp > 0) {
+      z.x2 = z.e.x;
+      z.y2 = z.e.y;
+    }
   }
-  const a = Math.random() * 6.283;
-  S.sf.push({ x, y, vx: Math.cos(a) * 220, vy: Math.sin(a) * 220, life: 6, h });
+  cull(S.lz, z => z.t > 0);
 }
 
-// Moves the Health Siphon orbs towards the player and heals on arrival.
+// Health Siphon tethers: a red line from every drained enemy to the player. The healing is instant (no flying orbs), the line just fades out.
+// Performance: only C.siphonOrbs tethers are drawn per tick (the HP drained from the rest is added to the healing), and each one is a single line.
 function sfStep(dt) {
-  for (const p of S.sf) {
-    const dx = S.x - p.x;
-    const dy = S.y - p.y;
-    const l = Math.hypot(dx, dy) || 1;
-    p.vx += dx / l * 1800 * dt;
-    p.vy += dy / l * 1800 * dt;
-    const n = Math.hypot(p.vx, p.vy) || 1;
-    p.vx = p.vx / n * 320;
-    p.vy = p.vy / n * 320;
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.life -= dt;
-    if (S.tr.length < 200)
-      S.tr.push({ x: p.x, y: p.y, t: .3, m: .3, r: 5, c: '255,90,90' });
-    if (l < 18 || p.life <= 0) {
-      p.life = 0;
-      S.sfa += p.h;
-      healP(p.h);
-      for (let i = 0; i < 4; i++)
-        S.tr.push({ x: S.x + (Math.random() - .5) * 14, y: S.y + (Math.random() - .5) * 14, t: .35, m: .35, r: 4, c: '255,150,150' });
-    }
-  }
-  cull(S.sf, p => p.life > 0);
+  for (const z of S.st)
+    z.t -= dt;
+  cull(S.st, z => z.t > 0 && z.e.hp > 0);
   S.sft -= dt;
   if (S.sft <= 0) {
     S.sft = .5;
@@ -679,7 +637,7 @@ function grimoireStep(dt) {
   cull(S.ic, z => z.a < .9);
 }
 
-// Health Siphon (shared special augment, runs for every weapon): ticks at your attack speed; drains every enemy within attack range; the drained HP is carried to you by red projectiles
+// Health Siphon (shared special augment, runs for every weapon): ticks at your attack speed; drains every enemy within attack range; the drained HP flows to you along red tethers
 function siphonStep(dt) {
   if (S.nhs) {
     S.sip -= dt;
@@ -687,8 +645,8 @@ function siphonStep(dt) {
       // drains EVERY enemy inside the weapon's range (weaponRange(), combat.js) for C.siphonDmg (50%) of your damage (scaled by the augment level)
       const d = dmg() * C.siphonDmg * gSip();
       const R2 = weaponRange() ** 2;
-      const orbs = [];
       let n = 0;
+      let heal = 0;
       for (const e of S.en) {
         if (e.hp <= 0)
           continue;
@@ -697,18 +655,23 @@ function siphonStep(dt) {
           d2 = Math.max(0, Math.sqrt(d2) - (e.hr - 16)) ** 2;
         if (d2 >= R2)
           continue;
-        const dd = Math.min(d, e.hp);
-        e.fl = .1;
+        heal += Math.min(d, e.hp);
         hit(e, d, 1);
-        // at most C.siphonOrbs red orbs per tick (keeps the game fast in crowds): the HP drained from the rest is added to those orbs
-        if (orbs.length < C.siphonOrbs)
-          orbs.push({ x: e.x, y: e.y, h: dd });
-        else
-          orbs[n % orbs.length].h += dd;
+        // at most C.siphonOrbs tethers per tick are drawn (keeps the game fast in crowds); everyone in range is still drained and heals you
+        if (S.st.length < C.siphonOrbs * 2 && n < C.siphonOrbs && e.hp > 0) {
+          e.fl = .1;
+          const old = S.st.find(z => z.e === e);
+          if (old)
+            old.t = old.m = .22;
+          else
+            S.st.push({ e, t: .22, m: .22 });
+        }
         n++;
       }
-      for (const o of orbs)
-        drain(o.x, o.y, o.h);
+      if (heal > 0) {
+        S.sfa += heal;
+        healP(heal);
+      }
       S.sip = n ? 1 / rate() : .1;      // with nothing in range, look again 10 times a second instead of every frame
     }
   }

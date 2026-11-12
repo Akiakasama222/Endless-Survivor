@@ -91,16 +91,29 @@ function cull(a, f) {
 
 // Sword art: handle and blade are separate images so Sword Range can stretch only the blade
 // Player art: Hooded Mage, 8 facing directions (S, SW, W, NW, N, NE, E, SE)
-// Basic Zombie: 3D walking model (Walking_1_.fbx) pre-rendered to sprites: 8 facing directions (rows) x 8 walk frames (columns), drawn at half size
-// IMG holds the loaded image files: z = zombie sheet, m = giant zombie sheet, r = player mage sheet, b/h = sword blade and hilt.
-const IMG = { b: new Image(), h: new Image(), r: new Image(), z: new Image(), m: new Image() };
+// Restless (the basic enemy): 3D models pre-rendered to sprite sheets, 16 directions (rows) x 8 frames (columns), 79 x 108 per frame, drawn at half size.
+// IMG holds the loaded image files: m = giant zombie sheet, r = player mage sheet, b/h = sword blade and hilt.
+const IMG = { b: new Image(), h: new Image(), r: new Image(), m: new Image() };
 
-// ZOM = zombie sheet layout; ZV / ZP / BPX = tinted or pixelated copies of the zombie and boss sheets (built once the images load).
-const ZOM = { cw: 79, ch: 108, ox: 39.67, oy: 88.67, pw: 20, ph: 27 };
+// ZOM = Restless sheet layout (frame size, centre column of the feet, tallest anchor used for the health bar, pixelated frame size).
+// Rows are the 16 screen directions in steps of 22.5 degrees, starting at "facing the viewer" (S) and turning towards the left (S, SSW, SW, WSW, W ... N ... E ... SSE). restRow(angle) turns a screen angle (atan2(screenY, screenX), the way the Restless should face) into a row.
+const ZOM = { cw: 79, ch: 108, ox: 39.5, oy: 90, pw: 20, ph: 27 };
 
-const ZV = {};
+const restRow = th => ((Math.round((th - Math.PI / 2) / (Math.PI / 8)) % 16) + 16) % 16;      // the sheets turn towards the LEFT after row 0 (row 4 = left, 12 = right)
 
-const ZP = {};
+// RS = the Restless sheets (30 frames per row, 2370 x 1728). The new sheets were rendered with the character's ground point at row 95 in every animation, so oy is the same (96) for all of them. oy = the row inside a frame where the feet touch the ground (differs a little per animation, so every animation is lined up on the same ground point).
+// img = the loaded image, px = pixelated copy, w = white copy for the hit flash (px and w are built once the image has loaded).
+const RS = {};
+
+for (const [k, file, oy] of [
+  ['idle', IMAGE_FILES.restlessIdle, 96],
+  ['walk', IMAGE_FILES.restlessWalk, 96],
+  ['atk', IMAGE_FILES.restlessAttack, 96],
+  ['jump', IMAGE_FILES.restlessJump, 96],
+  ['pwalk', IMAGE_FILES.restlessPurpleWalk, 96],
+  ['pcast', IMAGE_FILES.restlessPurpleCast, 96]
+])
+  RS[k] = { img: new Image(), oy, px: null, w: null, wp: null };
 
 const BPX = {};
 
@@ -159,18 +172,24 @@ function pixAtlas(img, cw, ch, fw, fh) {
   return c;
 }
 
-IMG.z.onload = () => {
-  ZV.r = tintAtlas(IMG.z, 'source-atop', 'rgba(150,60,235,.4)');
-  ZV.w = tintAtlas(IMG.z, 'source-in', '#fff');
-  try {
-    ZP.z = pixAtlas(IMG.z, ZOM.cw, ZOM.ch, ZOM.pw, ZOM.ph);
-    ZP.r = tintAtlas(ZP.z, 'source-atop', 'rgba(150,60,235,.4)');
-    ZP.w = tintAtlas(ZP.z, 'source-in', '#fff');
-  }
-  catch (e) { }
-};
+for (const k in RS) {
+  const R = RS[k];
+  R.img.onload = () => {
+    R.w = tintAtlas(R.img, 'source-in', '#fff');
+    try {
+      R.px = pixAtlas(R.img, ZOM.cw, ZOM.ch, ZOM.pw, ZOM.ph);
+      R.wp = tintAtlas(R.px, 'source-in', '#fff');
+    }
+    catch (e) { }
+  };
+}
 
-IMG.z.src = IMAGE_FILES.zombie;
+RS.idle.img.src = IMAGE_FILES.restlessIdle;
+RS.walk.img.src = IMAGE_FILES.restlessWalk;
+RS.atk.img.src = IMAGE_FILES.restlessAttack;
+RS.jump.img.src = IMAGE_FILES.restlessJump;
+RS.pwalk.img.src = IMAGE_FILES.restlessPurpleWalk;
+RS.pcast.img.src = IMAGE_FILES.restlessPurpleCast;
 
 // Giant Zombie boss: Mutant_Run.fbx pre-rendered to sprites (5 directions x 8 run frames; the 3 right-facing directions are mirrored)
 // BSP = giant zombie sheet layout (cell size, anchor, output size); MV = movement-direction lookup used for the boss.

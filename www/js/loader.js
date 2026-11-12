@@ -1,14 +1,19 @@
 // ======================================================================
 // LOADING SCREEN & IMAGE LIST
 // Every image file of the game is listed here ONCE (the sprite code reads its paths from IMAGE_FILES).
-// While the page starts, the loading screen (#loading in index.html) shows a progress bar and a zombie
+// While the page starts, the loading screen (#loading in index.html) shows a progress bar and a Restless
 // that walks towards the mage as the images load, then fades away. Sounds are not part of it: browsers
 // only allow audio after the first tap, so they load right after that (see audio.js).
 // To add a new image: put the file in assets/images, add it to this list and use IMAGE_FILES.yourName in the code.
 // ======================================================================
 
 const IMAGE_FILES = {
-  zombie: 'assets/images/zombie-sheet.png',
+  restlessIdle: 'assets/images/restless-idle.png',                 // Restless sheets: 16 directions (rows) x 30 frames (columns), 79 x 108 per frame (2370 x 1728)
+  restlessWalk: 'assets/images/restless-walk.png',                 // Blue Restless walking
+  restlessAttack: 'assets/images/restless-attack.png',             // Blue Restless melee attack
+  restlessJump: 'assets/images/restless-jump.png',                 // Blue Restless night jump attack
+  restlessPurpleWalk: 'assets/images/restless-purple-walk.png',    // Purple (ranged) Restless walking
+  restlessPurpleCast: 'assets/images/restless-purple-cast.png',    // Purple Restless casting its bolt
   giantZombie: 'assets/images/giant-zombie-sheet.webp',
   mage: 'assets/images/player-mage-sheet.png',
   mageRun: 'assets/images/mage3d-run.png',      // 3D mage run cycle (8 facings x 15 frames, 20 fps)
@@ -89,6 +94,9 @@ const IMAGE_FILES = {
     return;
   const fill = document.getElementById('ldFill');
   const zombie = document.getElementById('ldZombie');
+  const ver = document.getElementById('ldVer');
+  if (ver)
+    ver.textContent = 'v' + GAME_VERSION;      // GAME_VERSION is defined in version.js
   const files = Object.values(IMAGE_FILES);
   const total = files.length + 1;            // every image + the game font
   const MIN_MS = 1000;                       // show the loading screen at least this long (no flicker on fast connections)
@@ -102,7 +110,7 @@ const IMAGE_FILES = {
   function show(fraction) {
     const percent = Math.round(fraction * 100) + '%';
     fill.style.width = percent;
-    zombie.style.left = fraction * 86 + '%';          // the zombie chases the mage but stops just short of it
+    zombie.style.setProperty('--p', fraction);          // the Restless chases the mage but stops just short of it (css: .ld-zombie left)
   }
 
   function oneDone() {
