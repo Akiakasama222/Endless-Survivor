@@ -1,5 +1,13 @@
 /* Limbo - styles. Colours are CSS variables at the top (:root). */
 
+/* Pixel font (Pixelify Sans, SIL Open Font License), bundled so it also works offline */
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("../assets/fonts/PixelifySans.ttf") format("truetype");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
 /* Colour variables used across the game UI */
 :root {
   --bg: #7d8095;
@@ -18,7 +26,7 @@ html,body {
   height: 100%;
   background: var(--bg);
   overflow: hidden;
-  font-family: "Lilita One","Trebuchet MS",Arial,sans-serif;
+  font-family: "Pixelify Sans","Courier New",monospace;
   color: var(--ink);
   touch-action: none;
   user-select: none;
@@ -53,7 +61,7 @@ canvas {
   border: 2px solid #fff;
   background: var(--panel);
   color: #fff;
-  font: 22px "Lilita One",Arial;
+  font-size: 22px;
   display: none;
   cursor: pointer;
   padding: 0;
@@ -756,13 +764,25 @@ textarea.fbin {
   text-shadow: 0 5px 0 #0009;
 }
 
+/* version number at the bottom of the loading screen */
+.ld-ver {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  text-align: center;
+  font-size: 14px;
+  color: #fff;
+  opacity: .6;
+}
+
 /* the walking area: bar at the bottom, zombie and mage standing on it */
 .ld-play {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(66vw, 320px);
-  height: 84px;
+  width: min(90vw, 440px);
+  height: 130px;
   transform: translateX(-50%);
 }
 
@@ -792,38 +812,41 @@ textarea.fbin {
   background-repeat: no-repeat;
 }
 
-/* zombie: row 7 of the zombie sheet (walking right), 8 frames, drawn at half size */
+/* Restless chasing the mage: row 12 of the Restless walk sheet (walking right), 30 frames, shown at full size (79 x 108 per frame, sheet 2370 x 1728, row 12 = -1296px).
+   --p (0 - 1) is the loading progress set by js/loader.js: it runs from the left edge until it is just behind the mage (160px = mage width + a gap + half the Restless). */
 .ld-zombie {
-  left: 0;
-  width: 39.5px;
-  height: 54px;
-  margin-left: -20px;
-  background-image: url(../assets/images/zombie-sheet.png);
-  background-size: 316px 432px;
-  background-position: 0 -378px;
-  animation: ld-walk .8s steps(8) infinite;
+  left: calc(var(--p, 0) * (100% - 160px));
+  width: 79px;
+  height: 108px;
+  bottom: 12px;
+  margin-left: -40px;
+  background-image: url(../assets/images/restless-walk.png);
+  background-size: 2370px 1728px;
+  background-position: 0 -1296px;
+  animation: ld-walk .8s steps(30) infinite;
   transition: left .3s linear;
 }
 
 @keyframes ld-walk {
   to {
-    background-position: -316px -378px;
+    background-position: -2370px -1296px;
   }
 }
 
-/* mage: first frame of the mage sheet, half size, floating */
+/* mage running away to the right (assets/images/loading-mage-run.png: the right-facing row of running.png, 15 frames of 97 x 96) */
 .ld-mage {
-  right: 2%;
-  width: 44px;
-  height: 63px;
-  background-image: url(../assets/images/player-mage-sheet.png);
-  background-size: 352px 63px;
-  animation: ld-float 1.6s ease-in-out infinite;
+  right: 0;
+  bottom: 10px;
+  width: 97px;
+  height: 96px;
+  background-image: url(../assets/images/loading-mage-run.png);
+  background-size: 1455px 96px;
+  animation: ld-run .75s steps(15) infinite;
 }
 
-@keyframes ld-float {
-  50% {
-    transform: translateY(-5px);
+@keyframes ld-run {
+  to {
+    background-position: -1455px 0;
   }
 }
 
@@ -881,6 +904,17 @@ textarea.fbin {
   -webkit-text-stroke: 5px #1b1440;
   paint-order: stroke fill;
   text-shadow: 0 5px 0 #1b1440aa;
+}
+
+/* version number, top right corner of the menu card (stays visible on short screens too) */
+#ov .mver {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  right: 14px;
+  font-size: 13px;
+  color: #fff;
+  opacity: .8;
+  text-shadow: 0 1px 3px #000;
 }
 
 #ov .msub {
@@ -1218,4 +1252,212 @@ textarea.fbin {
 
 .wi.sm {
   image-rendering: auto;
+}
+
+/* ======================================================================
+   PIXEL UI THEME
+   Makes every menu / HUD element match the pixel art of the game: a pixel font, square stepped (notched) corners, flat colours with
+   hard bevels instead of gradients, glows and blur, and segmented bars. This block is the last in the file so it overrides the
+   rounded styles above - delete it to go back to the old look.
+   --px = the size of one UI "pixel" (corner notch). Small elements set a smaller one.
+   ====================================================================== */
+:root {
+  --px: 4px;
+  --notch: polygon(0 var(--px), var(--px) var(--px), var(--px) 0, calc(100% - var(--px)) 0, calc(100% - var(--px)) var(--px), 100% var(--px), 100% calc(100% - var(--px)), calc(100% - var(--px)) calc(100% - var(--px)), calc(100% - var(--px)) 100%, var(--px) 100%, var(--px) calc(100% - var(--px)), 0 calc(100% - var(--px)));
+  --face: #262b45;
+  --face-dark: #1a1d30;
+  --pixfont: "Pixelify Sans","Press Start 2P","Courier New",monospace;
+}
+
+html,body,button,input,textarea,select {
+  font-family: var(--pixfont);
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  letter-spacing: .3px;
+}
+
+/* every rounded box becomes a square, notched box */
+#pb,#lv,#kl,.cd,.opt,.it,.it button,.chip,.opt input[type=number],.ov1,.acts button,.grid,.tl,.bot .back,.bot .chb,.fbchk,.fbin,
+.menu-card,.mbtn,.edgrp,.edin,.edundo,.edtoggle,.bar {
+  border-radius: 0;
+  clip-path: var(--notch);
+  transition: none;
+}
+
+#lv,#kl,.cd,.chip,.it button,.acts button,.opt input[type=number],.edin,.edundo,.edtoggle,.bar {
+  --px: 2px;
+}
+
+.menu-card {
+  --px: 8px;
+}
+
+/* flat faces with a hard bevel (light line on top, dark line at the bottom) instead of gradients and glows */
+.opt,.it,.ov1,.tl,.bot .back,.bot .chb,.fbchk,.edgrp {
+  background: var(--face);
+  border-width: 4px;
+  box-shadow: inset 0 4px 0 #ffffff14, inset 0 -6px 0 #0000004d;
+}
+
+.opt:active,.tl:active,.bot .back:active,.bot .chb:active,.mbtn:active {
+  box-shadow: inset 0 4px 0 #0000004d, inset 0 -2px 0 #ffffff14;
+  transform: translateY(2px);
+}
+
+.mbtn {
+  border-width: 4px;
+  background: #14203e;
+  box-shadow: inset 0 4px 0 #ffffff1a, inset 0 -6px 0 #00000066;
+}
+
+.it button,.chip,.acts button {
+  background: #2f365a;
+  border-width: 2px;
+  box-shadow: inset 0 2px 0 #ffffff1f, inset 0 -3px 0 #00000055;
+}
+
+.grid,.fbin,.edin,.opt input[type=number] {
+  border-width: 3px;
+}
+
+/* selected inventory tile: a white frame inside (an outline would be cut by the notched corners) */
+.tl.on {
+  outline: none;
+  border-color: #fff;
+  box-shadow: inset 0 0 0 3px var(--c),inset 0 -6px 0 #0000004d;
+}
+
+/* HUD pills and cooldown badges */
+#lv,#kl,.cd {
+  background: #1d2033e6;
+  border-width: 2px;
+}
+
+.cd.rdy {
+  box-shadow: none;
+  background: #1d3a2ae6;
+}
+
+/* bars: square, flat fill, cut into pixel segments */
+.bar {
+  border-width: 3px;
+  height: 18px;
+}
+
+.bar i,#hpb i,#bbf {
+  transition: none;
+  background-image: repeating-linear-gradient(90deg,transparent 0 6px,#00000030 6px 8px),linear-gradient(180deg,#ffffff33 0 3px,transparent 3px);
+}
+
+.bar i {
+  background-color: #4cc95a;
+}
+
+#hpb i {
+  background-color: #e0364c;
+}
+
+#bbf {
+  background-color: #b3243a;
+}
+
+/* menu overlay: no blur, a dithered dark screen instead */
+#ov {
+  backdrop-filter: none;
+  background-color: #10121fe6;
+  background-image: linear-gradient(45deg,#00000040 25%,transparent 25%,transparent 75%,#00000040 75%),linear-gradient(45deg,#00000040 25%,transparent 25%,transparent 75%,#00000040 75%);
+  background-size: 4px 4px;
+  background-position: 0 0,2px 2px;
+  animation: none;
+}
+
+#ov h1,#warn b {
+  text-shadow: 3px 3px 0 #000;
+}
+
+/* title card of the main menu: hard bands instead of a smooth fade */
+.menu-card {
+  border-width: 4px;
+  box-shadow: none;
+}
+
+.menu-card::before {
+  background: linear-gradient(to top,#0b0c18d9 0 8%,#0b0c18c4 8% 16%,#0b0c18ad 16% 24%,#0b0c1896 24% 32%,#0b0c1880 32% 40%,#0b0c186a 40% 48%,#0b0c1854 48% 55%,#0b0c183e 55% 62%,transparent 62%);
+}
+
+/* loading screen */
+#loading {
+  background: #1b1a40;
+}
+
+.ld-track,.ld-track i {
+  border-radius: 0;
+}
+
+.ld-track {
+  border: 3px solid #fff;
+  background-image: repeating-linear-gradient(90deg,transparent 0 6px,#00000040 6px 8px);
+}
+
+/* square sliders / checkboxes where the browser allows it */
+input[type=range] {
+  image-rendering: pixelated;
+}
+
+.ess,.wi {
+  image-rendering: pixelated;
+}
+
+/* keep the small tile badges clear of the notched corners */
+.tl em {
+  right: 6px;
+  bottom: 2px;
+}
+
+.tl .tm {
+  left: 6px;
+  top: 2px;
+}
+
+.tl .te {
+  right: 6px;
+  top: 2px;
+}
+
+/* ---- HUD on small / narrow screens (phones) ----
+   The top row, the HP line and the bars scale with the screen width instead of using fixed sizes, and nothing is allowed to wrap onto a second line,
+   so "Lv 2", "10 kills · 5" and the HP line stay on one line like on a bigger screen. (Last in the file so it wins over the rules above.) */
+#row {
+  gap: 6px;
+  font-size: clamp(12px, 4.4vw, 22px);
+  white-space: nowrap;
+}
+
+#lv,#kl,#time {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+#lv,#kl {
+  padding: 2px clamp(6px, 2.4vw, 12px);
+}
+
+#kl .ess,#row .ess {
+  height: 1.05em;
+  width: auto;
+  vertical-align: -.15em;
+}
+
+#hpt {
+  margin-top: 2px;
+  font-size: clamp(9px, 2.9vw, 15px);
+  text-shadow: 0 2px 0 #0007;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#hud .bar {
+  height: clamp(13px, 3.8vw, 18px);
+  margin-top: clamp(4px, 1.4vw, 6px);
 }
