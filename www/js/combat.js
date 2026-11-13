@@ -21,8 +21,8 @@ function nearest(x, y, max, skip) {
   return b;
 }
 
-// Deals d damage to enemy e (q = quiet: no sound / number). Handles the kill healing, kills, drops, Bleed explosions and Death Explosions.
-function hit(e, d, q) {
+// Deals d damage to enemy e (q = quiet: no sound / number, crit = it was a Precision critical strike: the number turns gold with a "!"). Handles the kill healing, kills, drops, Bleed explosions and Death Explosions.
+function hit(e, d, q, crit) {
   if (e.hp <= 0)
     return;
   d *= dnVuln();      // +damage taken during the day (daynight.js)
@@ -31,7 +31,7 @@ function hit(e, d, q) {
   if (!q) {
     sfx('hit');
     e.fl = .1;
-    S.tx.push({ x: e.x, y: e.y - 20, t: .6, s: d < 1 ? +d.toFixed(1) : Math.round(d) });
+    S.tx.push({ x: e.x, y: e.y - 20, t: .6, s: (d < 1 ? +d.toFixed(1) : Math.round(d)) + (crit ? '!' : ''), c: crit ? '#ffd24a' : undefined });
   }
   if (e.hp <= 0) {
     if (e.boss)
@@ -61,8 +61,15 @@ function onHit(e, d) {
   if (S.nbl && e.hp > 0)
     e.bl = { d: d * C.bleedPerLvl * S.nbl, c: e.bl ? e.bl.c : 0 };
   proc(e);
-  if (S.nmi && Math.random() < C.missileChance * S.nmi && S.ms.length < 12)
-    launchMissile(e);
+  if (S.nmi && Math.random() < C.missileChance * S.nmi && S.ms.length < 12 * shots()) {
+    // Multi-Shot: every extra projectile is another missile, fanned out and sent at a different enemy where there is one
+    const used = new Set([e]);
+    for (let i = 0; i < shots(); i++) {
+      const t = i ? nearest(S.x, S.y, 900, used) || e : e;
+      used.add(t);
+      launchMissile(t, shotAng(i), i > 0);
+    }
+  }
 }
 
 // Soul Vortex: while S.vt > 0 every enemy (bosses excepted) is pulled towards the player. Each frame it closes a share of the distance (exponential, so far enemies move fast and near ones gently) and stops just outside touching range, so the pack lands in sword range.
@@ -310,7 +317,7 @@ function mwStep(dt) {
         sfx('swing');
       }
       else {
-        fireVolley(t, gh.a, C.multiwieldDmg, gh.x, gh.y);      // the whole volley (every Multi Knife) from the afterimage's spot
+        fireVolley(t, gh.a, C.multiwieldDmg, gh.x, gh.y);      // the whole volley (every Multi-Shot projectile) from the afterimage's spot
         gh.st0 = S.t;      // its cast animation
         gh.st = 2;
         gh.fade = GH_FADE;
@@ -361,19 +368,23 @@ function dashStep(dt) {
 }
 
 // Swirl (shared special augment, every weapon): every 3rd attack throws a spinning sword at enemy t. It flies out a distance that depends on the weapon's range, hovers for S.swl seconds (1s + 1s per level), then returns.
+// Multi-Shot throws shots() swords at once, fanned out (the first one flies straight at t).
 function launchSwirl(t) {
-  const a = Math.atan2(t.y - S.y, t.x - S.x);
-  S.sws.push({
-    x: S.x,
-    y: S.y,
-    ux: Math.cos(a),
-    uy: Math.sin(a),
-    ph: 0,
-    t: 0,
-    D: S.wp === 'sword' ? weaponRange() * C.swirlDist : C.atkR * C.swirlDistRanged,      // depends on the weapon's range (weaponRange(), above)
-    stay: S.swl * C.swirlStayPerLvl,
-    h: new Map()
-  });
+  const a0 = Math.atan2(t.y - S.y, t.x - S.x);
+  for (let i = 0; i < shots(); i++) {
+    const a = a0 + shotAng(i);
+    S.sws.push({
+      x: S.x,
+      y: S.y,
+      ux: Math.cos(a),
+      uy: Math.sin(a),
+      ph: 0,
+      t: 0,
+      D: S.wp === 'sword' ? weaponRange() * C.swirlDist : C.atkR * C.swirlDistRanged,      // depends on the weapon's range (weaponRange(), above)
+      stay: S.swl * C.swirlStayPerLvl,
+      h: new Map()
+    });
+  }
   sfx('dash');
 }
 

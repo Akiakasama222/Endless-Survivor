@@ -234,7 +234,23 @@ const armorAt = (na, nhd) => Math.round((C.armorPerLvl * (na || 0) + C.hardenArm
 
 const armor = () => armorAt(S.na, S.nhd);
 
+// shots = projectiles per attack: 1 + Multi-Shot (Orb of Power). It applies to the Knife / Grimoire main shot, Homing Explosive Knives and Swirl.
 const shots = () => 1 + S.nm;
+
+// Angle offset (radians) of the i-th projectile of a Multi-Shot group: the first flies straight, the rest alternate to either side (+1, -1, +2, -2 ...).
+const shotAng = i => (i % 2 ? 1 : -1) * Math.ceil(i / 2) * C.multiShotSpread;
+
+// Precision (Rogue augment): Critical Strike Chance = C.critPerLvl per level (can pass 100%).
+const critChance = () => C.critPerLvl * (S.ncr || 0);
+
+// Rolls a critical strike for one hit and returns the damage multiplier: 1 = no crit. A crit deals 1 + C.critDmg times the damage (2x by default); every 1% of
+// Critical Strike Chance above 100% adds C.critOverflow % more crit damage (150% chance = always crits for 2.5x).
+function critMult() {
+  const c = critChance();
+  if (!(c > 0) || Math.random() >= c)
+    return 1;
+  return 1 + C.critDmg + Math.max(0, c - 1) * C.critOverflow;
+}
 
 const need = () => C.xpBase + C.xpLvl * S.lvl;
 
@@ -261,6 +277,7 @@ function init() {
     kills: 0,
     nr: 0,
     nm: 0,
+    ncr: 0,
     nb: 0,
     db: 0,
     nmw: 0,
@@ -334,6 +351,7 @@ function init() {
     cd: 0,
     inv: 0,
     en: [],
+    dd: [],      // dying Restless (death animation, then the body fades): { x, y, row, rg, t0 }
     eb: [],
     bl: [],
     gm: [],

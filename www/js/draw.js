@@ -825,6 +825,33 @@ function draw() {
         g.stroke();
       }
   };
+  // Dying Restless: the death sheet plays once (30 frames over C.eDeathT), the body stays on the ground, then fades out.
+  const dD = e => {
+    const R = RS[e.rg ? 'pdeath' : 'death'];
+    const x = SX(e.x, e.y);
+    const yb = SY(e.x, e.y);
+    if (!R.img.naturalWidth || x < -60 || x > W + 60 || yb < -60 || yb > H + 70)
+      return;
+    const age = Math.max(0, S.t - e.t0);
+    const fr = Math.min(RN_FRAMES - 1, Math.floor(age / C.eDeathT * RN_FRAMES));
+    g.globalAlpha = 1 - Math.max(0, Math.min(1, (age - C.eDeathT - C.eDeathHold) / C.eDeathFade));
+    g.fillStyle = '#0003';
+    g.beginPath();
+    g.ellipse(x, yb - 2, 14 * C.eScale / 1.2, 6 * C.eScale / 1.2, 0, 0, 6.3);
+    g.fill();
+    const dw = ZOM.cw / 2 * C.eScale;
+    const dh = ZOM.ch / 2 * C.eScale;
+    const dxp = x - ZOM.ox / 2 * C.eScale;
+    const ty = yb - R.oy / 2 * C.eScale;
+    if (C.pixEnemies && R.px) {
+      g.imageSmoothingEnabled = false;
+      g.drawImage(R.px, fr * ZOM.pw, e.row * ZOM.ph, ZOM.pw, ZOM.ph, Math.round(dxp), Math.round(ty), dw, dh);
+      g.imageSmoothingEnabled = true;
+    }
+    else
+      g.drawImage(R.img, fr * ZOM.cw, e.row * ZOM.ch, ZOM.cw, ZOM.ch, dxp, ty, dw, dh);
+    g.globalAlpha = 1;
+  };
   const dFx = e => {
     const z = e.z;
     if (hid(z.x, z.y, 10))
@@ -1003,8 +1030,8 @@ function draw() {
   const rh = ROBO.ch * ROBO.sc;
   // player's on-screen box (slightly shrunk) - a tree turns see-through only when it overlaps this
   const PL = { ps: S.x + S.y, l: px - rw * .35, r: px + rw * .35, t: py - 4 - rh * .9, b: py - 4 - rh * .05 };
-  const EL = S.en.concat(fxs);
-  const dX = e => e.trk ? trDraw(g, e, SX, SY, PL) : e.chk ? chDraw(g, e, SX, SY) : e.orbk ? orbDraw(g, e, SX, SY) : e.fxk >= 0 ? dFx(e) : dE(e);
+  const EL = S.en.concat(S.dd, fxs);
+  const dX = e => e.dk ? dD(e) : e.trk ? trDraw(g, e, SX, SY, PL) : e.chk ? chDraw(g, e, SX, SY) : e.orbk ? orbDraw(g, e, SX, SY) : e.fxk >= 0 ? dFx(e) : dE(e);
   // depth order: enemies behind the player first, then the player, then enemies in front
   const ps = S.x + S.y;
   EL.sort((a, b) => (a.x + a.y) - (b.x + b.y));
@@ -1256,7 +1283,7 @@ function draw() {
   if (SHOW_HB)
     hbDraw(g, SX, SY);
   g.lineCap = 'butt';
-  g.font = '18px "Pixelify Sans","Courier New",monospace';
+  g.font = Math.round(18 * TXT) + 'px "Pixelify Sans","Courier New",monospace';      // damage numbers follow Settings -> Text size
   g.textAlign = 'center';
   g.lineWidth = 4;
   g.strokeStyle = '#000';

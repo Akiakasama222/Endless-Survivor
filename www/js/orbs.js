@@ -305,7 +305,7 @@ const orbOverlay = (g, SX, SY) => {
     else if (d < ORB.labelDist) {
       // The cost is written with the Essence picture (ESI) instead of a coin emoji: '@' marks where the picture goes.
       const s = afford ? (d <= C.orbRadius ? 'Hold still…' : ORBT[h.kind].n + ' · @ ' + orbPrice()) : ORBT[h.kind].n + ' · needs @ ' + orbPrice() + ' (' + S.coins + '/' + orbPrice() + ')';
-      g.font = '14px "Pixelify Sans","Courier New",monospace';
+      g.font = Math.round(14 * TXT) + 'px "Pixelify Sans","Courier New",monospace';
       g.lineWidth = 4;
       g.lineJoin = 'round';
       g.strokeStyle = '#000b';

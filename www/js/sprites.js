@@ -111,7 +111,9 @@ for (const [k, file, oy] of [
   ['atk', IMAGE_FILES.restlessAttack, 96],
   ['jump', IMAGE_FILES.restlessJump, 96],
   ['pwalk', IMAGE_FILES.restlessPurpleWalk, 96],
-  ['pcast', IMAGE_FILES.restlessPurpleCast, 96]
+  ['pcast', IMAGE_FILES.restlessPurpleCast, 96],
+  ['death', IMAGE_FILES.restlessDeath, 96],
+  ['pdeath', IMAGE_FILES.restlessPurpleDeath, 96]
 ])
   RS[k] = { img: new Image(), oy, px: null, w: null, wp: null };
 
@@ -190,6 +192,8 @@ RS.atk.img.src = IMAGE_FILES.restlessAttack;
 RS.jump.img.src = IMAGE_FILES.restlessJump;
 RS.pwalk.img.src = IMAGE_FILES.restlessPurpleWalk;
 RS.pcast.img.src = IMAGE_FILES.restlessPurpleCast;
+RS.death.img.src = IMAGE_FILES.restlessDeath;
+RS.pdeath.img.src = IMAGE_FILES.restlessPurpleDeath;
 
 // Giant Zombie boss: Mutant_Run.fbx pre-rendered to sprites (5 directions x 8 run frames; the 3 right-facing directions are mirrored)
 // BSP = giant zombie sheet layout (cell size, anchor, output size); MV = movement-direction lookup used for the boss.

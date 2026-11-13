@@ -29,7 +29,7 @@ let devChN = 10;
 function devSettings(from) {
   const o = $('ov');
   o.style.display = 'flex';
-  o.innerHTML = '<div class="inv"><h1>Developer</h1><p style="font-size:15px;opacity:.8">Testing tools. They take effect on your next run.</p><button class="opt" id="edm" style="border-color:#ffc94a"><b style="color:#ffc94a">Editor mode</b><span>Edit weapon damage, enemies, bosses, multipliers and augments</span></button><div class="opt" style="border-color:#fff8"><b style="color:#fff;display:flex;justify-content:space-between;align-items:center">Starting level <input id="dn" type="number" min="1" max="500" value="' + DEV.lvl + '"></b><input id="ds" type="range" min="1" max="200" value="' + Math.min(200, DEV.lvl) + '"><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' + [1, 10, 14, 29, 49, 99, 149].map(v => '<button class="chip" data-v="' + v + '">' + v + '</button>').join('') + '</div></div><button class="opt" id="drw" style="border-color:#fff8"><b style="color:#fff">Rewards in dev runs: ' + (DEV.rew ? 'ON' : 'OFF') + '</b><span>When OFF, runs that start above level 1 give no chests and do not change your records or stats</span></button><div class="opt" style="border-color:#fff8"><b style="color:#fff;display:flex;justify-content:space-between;align-items:center">Give chests <input id="dcn" type="number" min="1" max="100000" value="' + devChN + '"></b><span>You have ' + PD.chests + ' chest' + (PD.chests === 1 ? '' : 's') + '. ' + devMsg + '</span><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="chip" id="dgc">Give chests</button></div></div><button class="opt" id="dpr" style="border-color:#ff6b6b"><b style="color:#ff6b6b">Player reset</b><span>Erase inventory, chests, stats and records</span></button><button class="opt" id="dbk" style="border-color:#fff8"><b style="color:#fff">Back</b></button></div>';
+  o.innerHTML = '<div class="inv"><h1>Developer</h1><p style="font-size:calc(15px * var(--fs,1));opacity:.8">Testing tools. They take effect on your next run.</p><button class="opt" id="edm" style="border-color:#ffc94a"><b style="color:#ffc94a">Editor mode</b><span>Edit weapon damage, enemies, bosses, multipliers and augments</span></button><div class="opt" style="border-color:#fff8"><b style="color:#fff;display:flex;justify-content:space-between;align-items:center">Starting level <input id="dn" type="number" min="1" max="500" value="' + DEV.lvl + '"></b><input id="ds" type="range" min="1" max="200" value="' + Math.min(200, DEV.lvl) + '"><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' + [1, 10, 14, 29, 49, 99, 149].map(v => '<button class="chip" data-v="' + v + '">' + v + '</button>').join('') + '</div></div><button class="opt" id="drw" style="border-color:#fff8"><b style="color:#fff">Rewards in dev runs: ' + (DEV.rew ? 'ON' : 'OFF') + '</b><span>When OFF, runs that start above level 1 give no chests and do not change your records or stats</span></button><div class="opt" style="border-color:#fff8"><b style="color:#fff;display:flex;justify-content:space-between;align-items:center">Give chests <input id="dcn" type="number" min="1" max="100000" value="' + devChN + '"></b><span>You have ' + PD.chests + ' chest' + (PD.chests === 1 ? '' : 's') + '. ' + devMsg + '</span><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="chip" id="dgc">Give chests</button></div></div><button class="opt" id="dpr" style="border-color:#ff6b6b"><b style="color:#ff6b6b">Player reset</b><span>Erase inventory, chests, stats and records</span></button><button class="opt" id="dbk" style="border-color:#fff8"><b style="color:#fff">Back</b></button></div>';
   const set = v => {
     DEV.lvl = Math.max(1, Math.min(500, Math.round(+v) || 1));
     $('dn').value = DEV.lvl;
@@ -120,35 +120,26 @@ function cycleFps() {
   catch (e) { }
 }
 
-// Pixel size (retro resolution) shown in Settings: sets C.pixelScale (see rs() in state.js). 1 = sharpest, higher = chunkier pixels.
-// The choice is saved on this device and overrides the default in config.js (and any value set in the Editor).
-const PIX_MIN = 1;
-const PIX_MAX = 4;
-const PIX_STEP = .5;
+// Text size (Settings -> Text size): 1 = normal. It scales every font in the menus and the HUD (css: --fs) and the numbers / labels drawn on the game screen (TXT). Saved on this device.
+const TXT_MIN = .8;
+const TXT_MAX = 1.3;
+let TXT = 1;
 
 try {
-  const v = parseFloat(localStorage.getItem('esPix'));
-  if (isFinite(v))
-    C.pixelScale = Math.max(PIX_MIN, Math.min(PIX_MAX, v));
+  const v = parseFloat(localStorage.getItem('esTxt'));
+  if (v >= TXT_MIN && v <= TXT_MAX)
+    TXT = v;
 }
 catch (e) { }
 
-// Text under the Pixel size slider.
-function pixLabel(v) {
-  return v <= 1 ? 'Sharpest (full resolution)' : v >= 3 ? 'Very chunky retro pixels' : v >= 2 ? 'Chunky retro pixels' : 'Light retro look';
+// Hands the current text size to the stylesheet (the top HUD row stops growing at 115% so it still fits on a phone).
+function applyTxt() {
+  const r = document.documentElement.style;
+  r.setProperty('--fs', TXT);
+  r.setProperty('--fsh', Math.min(TXT, 1.15));
 }
 
-// Sets the pixel size, resizes the canvas at once and optionally saves it.
-function setPixelScale(v, save) {
-  C.pixelScale = Math.max(PIX_MIN, Math.min(PIX_MAX, Math.round(v / PIX_STEP) * PIX_STEP));
-  rs();
-  if (save) {
-    try {
-      localStorage.setItem('esPix', String(C.pixelScale));
-    }
-    catch (e) { }
-  }
-}
+applyTxt();
 
 // Applies the saved volumes to the audio channels (squared so the sliders feel natural).
 function applyVol() {
@@ -174,7 +165,7 @@ function settings(from) {
   const o = $('ov');
   o.style.display = 'flex';
   const pc = v => Math.round(v * 100);
-  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Ambience <span id="av">' + pc(vol.amb) + '%</span></b><input id="sr3" type="range" min="0" max="100" value="' + pc(vol.amb) + '"></div><button class="opt" id="fps" style="border-color:#fff8"><b style="color:#fff">Frame rate: ' + FPS_OPTS[fpsIdx()][1] + '</b><span>' + FPS_OPTS[fpsIdx()][2] + '. Tap to change.</span></button><div class="opt" style="border-color:#fff8"><b style="color:#fff">Pixel size <span id="pxv">' + C.pixelScale + '×</span></b><input id="pxr" type="range" min="' + PIX_MIN + '" max="' + PIX_MAX + '" step="' + PIX_STEP + '" value="' + C.pixelScale + '"><span id="pxt">' + pixLabel(C.pixelScale) + '. Higher = chunkier pixels, also faster on slow phones.</span></div><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button>' + (DEV_TOOLS ? '<button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level, Editor mode and test options</span></button>' : '') + '<button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
+  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Ambience <span id="av">' + pc(vol.amb) + '%</span></b><input id="sr3" type="range" min="0" max="100" value="' + pc(vol.amb) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Text size <span id="tv">' + Math.round(TXT * 100) + '%</span></b><input id="sr4" type="range" min="' + TXT_MIN * 100 + '" max="' + TXT_MAX * 100 + '" step="5" value="' + Math.round(TXT * 100) + '"><span>Makes the text bigger or smaller. 100% is normal.</span></div><button class="opt" id="fps" style="border-color:#fff8"><b style="color:#fff">Frame rate: ' + FPS_OPTS[fpsIdx()][1] + '</b><span>' + FPS_OPTS[fpsIdx()][2] + '. Tap to change.</span></button><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button>' + (DEV_TOOLS ? '<button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level, Editor mode and test options</span></button>' : '') + '<button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
   $('sr1').oninput = e => {
     vol.sfx = e.target.value / 100;
     $('sv').textContent = e.target.value + '%';
@@ -197,17 +188,22 @@ function settings(from) {
     applyVol();
   };
   $('sr3').onchange = saveVol;
+  $('sr4').oninput = e => {
+    TXT = e.target.value / 100;
+    $('tv').textContent = e.target.value + '%';
+    applyTxt();
+  };
+  $('sr4').onchange = () => {
+    try {
+      localStorage.setItem('esTxt', String(TXT));
+    }
+    catch (e) { }
+  };
   $('fps').onclick = () => {
     cycleFps();
     sfx('click');
     settings(from);
   };
-  $('pxr').oninput = e => {
-    setPixelScale(+e.target.value, false);
-    $('pxv').textContent = C.pixelScale + '×';
-    $('pxt').textContent = pixLabel(C.pixelScale) + '. Higher = chunkier pixels, also faster on slow phones.';
-  };
-  $('pxr').onchange = () => setPixelScale(C.pixelScale, true);
   $('snt').onclick = () => toggleSnd(() => settings(from));
   $('sdv').onclick = () => saveData(from);
   if (DEV_TOOLS)

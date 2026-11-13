@@ -14,6 +14,8 @@ const IMAGE_FILES = {
   restlessJump: 'assets/images/restless-jump.png',                 // Blue Restless night jump attack
   restlessPurpleWalk: 'assets/images/restless-purple-walk.png',    // Purple (ranged) Restless walking
   restlessPurpleCast: 'assets/images/restless-purple-cast.png',    // Purple Restless casting its bolt
+  restlessDeath: 'assets/images/restless-death.png',               // Blue Restless dying (played once when it is killed, 30 frames)
+  restlessPurpleDeath: 'assets/images/restless-purple-death.png',  // Purple Restless dying
   giantZombie: 'assets/images/giant-zombie-sheet.webp',
   mage: 'assets/images/player-mage-sheet.png',
   mageRun: 'assets/images/mage3d-run.png',      // 3D mage run cycle (8 facings x 15 frames, 20 fps)
@@ -81,7 +83,27 @@ const IMAGE_FILES = {
   guideGiant: 'assets/images/guide-giant-zombie.png',
   swordSlash: 'assets/images/fx-sword-slash.png',
   augRogueRate: 'assets/images/aug-rogue-fire-rate.png',
-  augRogueMulti: 'assets/images/aug-rogue-multi-knives.png',
+  augRoguePrecision: 'assets/images/aug-rogue-precision.png',
+  // Orb augment icons (Orb of Power = red, Orb of Perseverance = blue, Orb of Practice = green)
+  orbSharpen: 'assets/images/orb-power-sharpen.png',
+  orbMultiWield: 'assets/images/orb-power-multiwield.png',
+  orbMultiShot: 'assets/images/orb-power-multishot.png',
+  orbHaste: 'assets/images/orb-power-haste.png',
+  orbSwirl: 'assets/images/orb-power-swirl.png',
+  orbBleed: 'assets/images/orb-power-bleed.png',
+  orbHarden: 'assets/images/orb-perseverance-harden.png',
+  orbShield: 'assets/images/orb-perseverance-shield.png',
+  orbDance: 'assets/images/orb-perseverance-dance.png',
+  orbLifesteal: 'assets/images/orb-perseverance-lifesteal.png',
+  orbRegen: 'assets/images/orb-perseverance-regen.png',
+  orbSiphon: 'assets/images/orb-perseverance-siphon.png',
+  orbMoveSpeed: 'assets/images/orb-practice-movespeed.png',
+  orbMagnet: 'assets/images/orb-practice-magnet.png',
+  orbHoming: 'assets/images/orb-practice-homing.png',
+  orbDeathBoom: 'assets/images/orb-practice-deathboom.png',
+  orbThunder: 'assets/images/orb-practice-thunder.png',
+  orbVortex: 'assets/images/orb-practice-vortex.png',
+  orbDash: 'assets/images/orb-practice-dash.png',
   augRogueBounce: 'assets/images/aug-rogue-bounce.png',
   augGrimoireFire: 'assets/images/aug-grimoire-fire.png',
   augGrimoireLightning: 'assets/images/aug-grimoire-lightning.png',

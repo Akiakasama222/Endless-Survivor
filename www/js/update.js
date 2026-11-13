@@ -201,7 +201,7 @@ function newShot(t, o, dm, ox, oy) {
   };
 }
 
-// Fires one whole volley at enemy t (angle a): every knife / orb you own (Multi Knives), each with damage multiplier dm, starting at (ox, oy) (default: the player). Used by the normal attack and by MultiWield afterimages.
+// Fires one whole volley at enemy t (angle a): every knife / orb you own (Multi-Shot), each with damage multiplier dm, starting at (ox, oy) (default: the player). Used by the normal attack and by MultiWield afterimages.
 function fireVolley(t, a, dm, ox, oy) {
   const n = shots();
   for (let i = 0; i < n; i++) {
@@ -333,12 +333,14 @@ function update(dt) {
     }
     if (hitE) {
       const e = hitE;
-      hit(e, dmg() * b.dm);
+      const cm = critMult();      // Precision: critical strike roll for this hit
+      const hd = dmg() * b.dm * cm;
+      hit(e, hd, false, cm > 1);
       if (!b.orb)
         bloodHit(e);
       if (b.orb)
         arcaneHit(b.x, b.y);
-      onHit(e, dmg() * b.dm);      // Bleed, Thunder Strike, Homing Explosive Knives (combat.js)
+      onHit(e, hd);      // Bleed, Thunder Strike, Homing Explosive Knives (combat.js)
       if (S.ex)
         boom(b.x, b.y, dmg(), 60, e);
       b.h.add(e);
@@ -586,6 +588,18 @@ function update(dt) {
       if (Math.random() < .15)
         S.tr.push({ x: e.x + (Math.random() - .5) * 16, y: e.y + Math.random() * 10, t: .4, m: .4, r: 3, c: '210,20,40' });
     }
+  for (const e of S.en)      // every killed Restless (any weapon, burn, bleed ...) starts its death animation where it stood, facing the way it was facing
+    if (e.hp <= 0 && !e.boss) {
+      const dx = S.x - e.x;
+      const dy = S.y - e.y;
+      S.dd.push({
+        x: e.x, y: e.y, rg: e.rg, dk: 1, t0: S.t,
+        row: e.at ? e.at.row : restRow(Math.atan2((dx + dy) * .5, dx - dy) + (!e.at && e.mv && e.back ? Math.PI : 0))
+      });
+    }
+  if (S.dd.length > 80)      // never keep more than 80 bodies (the oldest go first)
+    S.dd.splice(0, S.dd.length - 80);
+  cull(S.dd, d => S.t - d.t0 < C.eDeathT + C.eDeathHold + C.eDeathFade);
   cull(S.en, e => e.hp > 0);
   bdPush(S, 14, 0);
   for (const e of S.en) {

@@ -1,6 +1,6 @@
 # Limbo
 
-Isometric survivor game (Bow, Sword and Grimoire weapons). Plain HTML + CSS + JavaScript, no build step.
+Isometric survivor game (Dagger, Sword and Grimoire weapons). Plain HTML + CSS + JavaScript, no build step.
 
 ## Run it
 

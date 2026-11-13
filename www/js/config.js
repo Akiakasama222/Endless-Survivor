@@ -100,7 +100,7 @@ const C = {
   rangerChance: .3, // Chance that a spawned zombie is ranged
   rangerRange: 420, // Ranged zombie shooting range
   rangerCd: 2, // Ranged zombie seconds between shots
-  eBulletSpeed: 220, // Enemy bullet speed
+  eBulletSpeed: 300, // Enemy bullet speed
   eScale: 1.6, // Restless: size on screen (1 = half the sheet's pixel size, 1.6 = 60% bigger, 2 = double)
   eAtkRange: 34, // Restless: distance to the player (px) at which it stops and starts its melee attack
   eAtkReach: 48, // Restless: the swing only hurts if the player is still this close (px) when the hit lands, so you can step away
@@ -113,9 +113,12 @@ const C = {
   eJumpMin: 130, // Jump attack: it only jumps when the player is further away than this (px)
   eJumpMax: 360, // Jump attack: ... and closer than this (px)
   eJumpCd: 4, // Jump attack: seconds before the same Restless may jump again
-  eJumpWind: 4, // Jump attack: crouch seconds before it leaps
+  eJumpWind: 2, // Jump attack: crouch seconds before it leaps
   eJumpAir: 1, // Jump attack: seconds in the air
   eJumpRec: .35, // Jump attack: seconds it needs to get up after landing
+  eDeathT: 1.1, // Restless: seconds the death animation lasts (30 frames, played once when it is killed)
+  eDeathHold: 1.2, // Restless: seconds the body stays lying on the ground after falling
+  eDeathFade: .6, // Restless: seconds the body takes to fade away
   eJumpR: 55, // Jump attack: landing shockwave radius (px)
   eJumpDmg: 1.5, // Jump attack: damage as a multiple of a normal Restless hit
   pSpeed: 150, // Player movement speed
@@ -127,7 +130,7 @@ const C = {
   spawnBase: 0.7, // Enemy spawns per second at the start
   spawnGrow: 1 / 60, // Spawn rate growth per second
   arrowStart: 18, // How far in front of the rogue (toward the target) a Rogue knife starts, so it leaves the hand instead of the body
-  pixelScale: 1.5, // Retro resolution: the game is drawn with this many times fewer pixels and stretched with sharp pixels (1 = full sharpness, 1.5 = a bit sharper than half, 2 = half, 3 = a third, 4 = a quarter)
+  pixelScale: 1, // Retro resolution: the game is drawn with this many times fewer pixels and stretched with sharp pixels (1 = full sharpness, 1.5 = a bit sharper than half, 2 = half, 3 = a third, 4 = a quarter)
   fps: 60, // Frame cap for the retro look (update + draw run this many times a second): 30 = retro, 60 = smooth, 0 = no cap (follows your monitor). Keep it at 24 or higher or the game runs in slow motion
   dayNight: 1, // Day / night cycle: 1 = on, 0 = always daytime
   dayLen: 240, // Length of one full day in seconds of play time (sunrise > day > sunset > night)
@@ -151,7 +154,7 @@ const C = {
   trailStart: 6, // Rogue knife trail image: how far behind the knife's center the trail starts (px)
   arrowHeight: 34, // How high above the ground the Rogue knife is drawn (px): raise it if knives look too low, lower it if too high
   bulletSpeed: 1000, // Rogue knife speed (px per second)
-  bulletLife: 1.3, // Rogue knife lifetime in seconds (range = speed x lifetime)
+  bulletLife: .5, // Rogue knife lifetime in seconds (range = speed x lifetime)
   gmShotSpeed: 420, // Grimoire orb speed (px per second)
   gmShotLife: 5, // Grimoire orb lifetime in seconds (range = speed x lifetime)
   gmShotTurn: 5, // Grimoire orb homing strength (0 = flies straight, higher = turns sharper towards enemies)
@@ -176,6 +179,10 @@ const C = {
   missileChance: .1, // Homing Explosive Knives: chance on hit per level
   missileMaxLvl: 10, // Homing Explosive Knives: highest level
   missileDmg: 1, // Homing Explosive Knives: explosion damage as a share of your damage
+  critPerLvl: .1, // Precision (Rogue augment): Critical Strike Chance per level (.1 = +10%, added together: 10%, 20%, 30%...)
+  critDmg: 1, // Precision: extra damage of a critical strike (1 = +100% of the hit's damage, so a crit deals 2x)
+  critOverflow: 1, // Precision: with more than 100% Critical Strike Chance, every 1% of extra chance adds this many % to the crit damage (1 = +1% per 1%)
+  multiShotSpread: .35, // Multi-Shot (Orb of Power): angle in radians between the extra Swirl swords / Homing Explosive Knives and the first one
   deathBoomChance: .1, // Death Explosion: chance per level that an enemy explodes when it dies
   deathBoomDmg: 2, // Death Explosion: explosion damage at level 1 (2 = 200% of your damage)
   deathBoomDmgPerLvl: .5, // Death Explosion: extra damage per level after the first
@@ -196,7 +203,7 @@ const C = {
   vortexT: .5, // Soul Vortex: how long the pull lasts (seconds)
   vortexRate: 5, // Soul Vortex: pull strength (how fast enemies close the distance; higher = faster)
   gmTurAS: .25, // Fire / Lightning / Ice turrets: extra turret attack speed per level after the first (.5 = +50%; stacks with Haste)
-  gmIceRPerLvl: .5, // Ice turret: extra burst radius per level (.01 = +1%)
+  gmIceRPerLvl: 0, // Ice turret: extra burst radius per level (.01 = +1%)
   gmIceDmg: .75, // Ice turret: damage as a share of your damage
   gmChainPerLvl: 1, // Lightning turret: extra chain jumps per level
   gmStun: 1, // Lightning turret: stun seconds (fixed, does not grow with levels)

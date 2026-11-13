@@ -61,7 +61,7 @@ canvas {
   border: 2px solid #fff;
   background: var(--panel);
   color: #fff;
-  font-size: 22px;
+  font-size: calc(22px * var(--fs, 1));
   display: none;
   cursor: pointer;
   padding: 0;
@@ -71,7 +71,7 @@ canvas {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 22px;
+  font-size: calc(22px * var(--fs, 1));
   text-shadow: 0 2px 0 #0007;
 }
 
@@ -129,11 +129,11 @@ canvas {
 
 #warn b {
   font-weight: 400;
-  font-size: 46px;
+  font-size: calc(46px * var(--fs, 1));
 }
 
 #warn span {
-  font-size: 24px;
+  font-size: calc(24px * var(--fs, 1));
   color: #fff;
 }
 
@@ -155,7 +155,7 @@ canvas {
   display: none;
   pointer-events: none;
   text-align: center;
-  font-size: 18px;
+  font-size: calc(18px * var(--fs, 1));
   text-shadow: 0 2px 0 #000a;
 }
 
@@ -180,7 +180,7 @@ canvas {
   border-radius: 999px;
   background: #1d2033cc;
   overflow: hidden;
-  font-size: 14px;
+  font-size: calc(14px * var(--fs, 1));
   text-shadow: 0 1px 0 #000a;
 }
 
@@ -232,7 +232,7 @@ canvas {
   margin: 0 0 4px;
   text-align: center;
   font-weight: 400;
-  font-size: 38px;
+  font-size: calc(38px * var(--fs, 1));
   color: var(--gold);
   text-shadow: 0 4px 0 #0009;
 }
@@ -240,7 +240,7 @@ canvas {
 #ov p {
   margin: 0;
   text-align: center;
-  font-size: 20px;
+  font-size: calc(20px * var(--fs, 1));
 }
 
 /* Big option buttons used in menus and the level-up screen */
@@ -278,12 +278,12 @@ canvas {
 .opt b {
   display: block;
   font-weight: 400;
-  font-size: 24px;
+  font-size: calc(24px * var(--fs, 1));
   color: var(--lime);
 }
 
 .opt span {
-  font-size: 18px;
+  font-size: calc(18px * var(--fs, 1));
   opacity: .85;
 }
 
@@ -316,7 +316,7 @@ canvas {
 }
 
 .it .ic {
-  font-size: 30px;
+  font-size: calc(30px * var(--fs, 1));
 }
 
 .it .tx {
@@ -326,12 +326,12 @@ canvas {
 
 .it .tx b {
   font-weight: 400;
-  font-size: 20px;
+  font-size: calc(20px * var(--fs, 1));
   display: block;
 }
 
 .it .tx span {
-  font-size: 14px;
+  font-size: calc(14px * var(--fs, 1));
   opacity: .8;
 }
 
@@ -343,7 +343,7 @@ canvas {
 
 .it button {
   font: inherit;
-  font-size: 15px;
+  font-size: calc(15px * var(--fs, 1));
   color: #fff;
   background: #2f365a;
   border: 2px solid #fff8;
@@ -354,7 +354,7 @@ canvas {
 
 .chip {
   font: inherit;
-  font-size: 15px;
+  font-size: calc(15px * var(--fs, 1));
   color: #fff;
   background: #2f365a;
   border: 2px solid #fff8;
@@ -366,7 +366,7 @@ canvas {
 .opt input[type=number] {
   width: 84px;
   font: inherit;
-  font-size: 18px;
+  font-size: calc(18px * var(--fs, 1));
   color: #fff;
   background: #10121f;
   border: 2px solid #fff8;
@@ -420,7 +420,7 @@ canvas {
 }
 
 .ovt .big {
-  font-size: 54px;
+  font-size: calc(54px * var(--fs, 1));
   line-height: 1;
   filter: drop-shadow(0 0 10px rgba(var(--rgb),.9));
 }
@@ -433,12 +433,12 @@ canvas {
 .ovt .info b {
   display: block;
   font-weight: 400;
-  font-size: 26px;
+  font-size: calc(26px * var(--fs, 1));
   color: var(--c);
 }
 
 .ovt .info span {
-  font-size: 16px;
+  font-size: calc(16px * var(--fs, 1));
   opacity: .9;
 }
 
@@ -450,7 +450,7 @@ canvas {
 .acts button {
   flex: 1;
   font: inherit;
-  font-size: 17px;
+  font-size: calc(17px * var(--fs, 1));
   color: #fff;
   background: #2f365a;
   border: 2px solid #fff8;
@@ -471,12 +471,12 @@ canvas {
 
 .acts button small {
   opacity: .8;
-  font-size: 12px;
+  font-size: calc(12px * var(--fs, 1));
 }
 
 #ov p.im {
   color: #9be15d;
-  font-size: 15px;
+  font-size: calc(15px * var(--fs, 1));
 }
 
 /* Weapon grid tiles */
@@ -530,7 +530,7 @@ canvas {
   right: 3px;
   bottom: 0;
   font-style: normal;
-  font-size: 12px;
+  font-size: calc(12px * var(--fs, 1));
   text-shadow: 0 1px 0 #000;
 }
 
@@ -539,7 +539,7 @@ canvas {
   left: 3px;
   top: 0;
   font-style: normal;
-  font-size: 11px;
+  font-size: calc(11px * var(--fs, 1));
   color: var(--c);
 }
 
@@ -548,7 +548,7 @@ canvas {
   right: 3px;
   top: 0;
   font-style: normal;
-  font-size: 11px;
+  font-size: calc(11px * var(--fs, 1));
   color: #9be15d;
 }
 
@@ -568,7 +568,7 @@ canvas {
 
 .bot .back {
   font: inherit;
-  font-size: 20px;
+  font-size: calc(20px * var(--fs, 1));
   color: #fff;
   background: linear-gradient(180deg,#2a2f4a,#1d2033);
   border: 3px solid #fff8;
@@ -580,7 +580,7 @@ canvas {
 .bot .chb {
   flex: 1;
   font: inherit;
-  font-size: 18px;
+  font-size: calc(18px * var(--fs, 1));
   color: var(--gold);
   background: linear-gradient(180deg,#2a2f4a,#1d2033);
   border: 3px solid var(--gold);
@@ -592,7 +592,7 @@ canvas {
 .bot .nochest {
   flex: 1;
   text-align: right;
-  font-size: 14px;
+  font-size: calc(14px * var(--fs, 1));
   opacity: .75;
 }
 
@@ -611,7 +611,7 @@ canvas {
 
 .fbhint {
   margin: 0;
-  font-size: 17px;
+  font-size: calc(17px * var(--fs, 1));
   opacity: .85;
   text-align: center;
 }
@@ -630,7 +630,7 @@ canvas {
   background: linear-gradient(180deg,#2a2f4a,#1d2033);
   border: 3px solid #fff4;
   border-radius: 14px;
-  font-size: 18px;
+  font-size: calc(18px * var(--fs, 1));
   cursor: pointer;
 }
 
@@ -644,7 +644,7 @@ canvas {
   box-sizing: border-box;
   width: 100%;
   font: inherit;
-  font-size: 18px;
+  font-size: calc(18px * var(--fs, 1));
   color: #fff;
   background: #10121f;
   border: 2px solid #fff8;
@@ -668,7 +668,7 @@ textarea.fbin {
 
 .fbcount {
   text-align: right;
-  font-size: 14px;
+  font-size: calc(14px * var(--fs, 1));
   opacity: .7;
   margin-top: -6px;
 }
@@ -676,7 +676,7 @@ textarea.fbin {
 .fbmsg {
   margin: 0;
   min-height: 1.3em;
-  font-size: 16px;
+  font-size: calc(16px * var(--fs, 1));
   text-align: center;
   color: var(--hp);
 }
@@ -687,7 +687,7 @@ textarea.fbin {
 
 .fbthanks {
   margin: 18px 0 0;
-  font-size: 40px;
+  font-size: calc(40px * var(--fs, 1));
   text-align: center;
   color: var(--gold);
 }
@@ -711,7 +711,7 @@ textarea.fbin {
   border: 0;
   padding: 0 4px;
   font: inherit;
-  font-size: 46px;
+  font-size: calc(46px * var(--fs, 1));
   line-height: 1;
   color: #5b6082;
   cursor: pointer;
@@ -730,7 +730,7 @@ textarea.fbin {
 
 .fbstarhint {
   text-align: center;
-  font-size: 16px;
+  font-size: calc(16px * var(--fs, 1));
   min-height: 1.3em;
   margin-top: -4px;
   opacity: .85;
@@ -762,18 +762,6 @@ textarea.fbin {
   line-height: 1;
   color: #fbc549;
   text-shadow: 0 5px 0 #0009;
-}
-
-/* version number at the bottom of the loading screen */
-.ld-ver {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  text-align: center;
-  font-size: 14px;
-  color: #fff;
-  opacity: .6;
 }
 
 /* the walking area: bar at the bottom, zombie and mage standing on it */
@@ -898,7 +886,7 @@ textarea.fbin {
 
 #ov .mtitle {
   margin-bottom: 0;
-  font-size: clamp(54px, 16vw, 76px);
+  font-size: calc(clamp(54px, 16vw, 76px) * var(--fs, 1));
   line-height: 1;
   color: #fbc549;
   -webkit-text-stroke: 5px #1b1440;
@@ -906,20 +894,9 @@ textarea.fbin {
   text-shadow: 0 5px 0 #1b1440aa;
 }
 
-/* version number, top right corner of the menu card (stays visible on short screens too) */
-#ov .mver {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
-  right: 14px;
-  font-size: 13px;
-  color: #fff;
-  opacity: .8;
-  text-shadow: 0 1px 3px #000;
-}
-
 #ov .msub {
   margin: 4px 0 18px;
-  font-size: clamp(15px, 4.4vw, 19px);
+  font-size: calc(clamp(15px, 4.4vw, 19px) * var(--fs, 1));
   letter-spacing: .5px;
   color: #fff;
   -webkit-text-stroke: 4px #1b1440;
@@ -932,7 +909,7 @@ textarea.fbin {
   margin-top: 10px;
   padding: 7px 10px 8px;
   font-family: inherit;
-  font-size: clamp(20px, 5.6vw, 26px);
+  font-size: calc(clamp(20px, 5.6vw, 26px) * var(--fs, 1));
   letter-spacing: .5px;
   text-transform: uppercase;
   color: #fff;
@@ -952,7 +929,7 @@ textarea.fbin {
 .mbtn.play {
   margin-top: 4px;
   padding: 8px 10px 10px;
-  font-size: clamp(38px, 11.5vw, 50px);
+  font-size: calc(clamp(38px, 11.5vw, 50px) * var(--fs, 1));
   color: #7ed957;
   border-color: #7ed957;
 }
@@ -975,7 +952,7 @@ textarea.fbin {
   flex: 1;
   margin-top: 0;
   padding: 6px 4px 7px;
-  font-size: clamp(14px, 4vw, 18px);
+  font-size: calc(clamp(14px, 4vw, 18px) * var(--fs, 1));
 }
 
 #ov .minfo {
@@ -984,7 +961,7 @@ textarea.fbin {
   right: 0;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 2.5%);
   margin: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--fs, 1));
   color: #fff;
   opacity: .85;
   text-shadow: 0 1px 3px #000;
@@ -1001,7 +978,7 @@ textarea.fbin {
   }
 
   #ov .mtitle {
-    font-size: 46px;
+    font-size: calc(46px * var(--fs, 1));
   }
 
   #ov .msub {
@@ -1015,30 +992,30 @@ textarea.fbin {
   }
 
   .mbtn.play {
-    font-size: 32px;
+    font-size: calc(32px * var(--fs, 1));
   }
 }
 
 /* very short screens (phone held sideways) */
 @media (max-height: 480px) {
   #ov .mtitle {
-    font-size: 38px;
+    font-size: calc(38px * var(--fs, 1));
   }
 
   #ov .msub {
     margin: 0 0 4px;
-    font-size: 14px;
+    font-size: calc(14px * var(--fs, 1));
   }
 
   .mbtn {
     margin-top: 4px;
     padding-top: 1px;
     padding-bottom: 2px;
-    font-size: 18px;
+    font-size: calc(18px * var(--fs, 1));
   }
 
   .mbtn.play {
-    font-size: 26px;
+    font-size: calc(26px * var(--fs, 1));
   }
 
   .mrow {
@@ -1046,7 +1023,7 @@ textarea.fbin {
   }
 
   .mrow .mbtn {
-    font-size: 14px;
+    font-size: calc(14px * var(--fs, 1));
   }
 }
 
@@ -1055,13 +1032,13 @@ textarea.fbin {
 /* ---------------------------------------------------------------------- */
 .edhint {
   margin: 0;
-  font-size: 15px;
+  font-size: calc(15px * var(--fs, 1));
   text-align: center;
   opacity: .85;
 }
 
 #ov .edhint {
-  font-size: 15px;
+  font-size: calc(15px * var(--fs, 1));
 }
 
 .edsearch {
@@ -1091,14 +1068,14 @@ textarea.fbin {
 
 .edgrp > summary {
   cursor: pointer;
-  font-size: 20px;
+  font-size: calc(20px * var(--fs, 1));
   color: var(--gold);
   padding: 6px 0;
 }
 
 .edtip {
   margin: 0 0 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--fs, 1));
   text-align: left;
   opacity: .75;
 }
@@ -1119,14 +1096,14 @@ textarea.fbin {
 }
 
 .edlab {
-  font-size: 15px;
+  font-size: calc(15px * var(--fs, 1));
   text-align: left;
   overflow-wrap: anywhere;
 }
 
 .edlab small {
   display: block;
-  font-size: 12px;
+  font-size: calc(12px * var(--fs, 1));
   opacity: .6;
 }
 
@@ -1134,7 +1111,7 @@ textarea.fbin {
   box-sizing: border-box;
   width: 100%;
   font: inherit;
-  font-size: 16px;
+  font-size: calc(16px * var(--fs, 1));
   text-align: right;
   color: #fff;
   background: #10121f;
@@ -1154,7 +1131,7 @@ textarea.fbin {
 
 .edundo {
   padding: 2px 0;
-  font-size: 16px;
+  font-size: calc(16px * var(--fs, 1));
   color: #fff;
   background: none;
   border: 2px solid #fff4;
@@ -1164,7 +1141,7 @@ textarea.fbin {
 
 .edcount {
   margin: 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--fs, 1));
   text-align: center;
   opacity: .8;
 }
@@ -1188,21 +1165,21 @@ textarea.fbin {
   max-width: 520px;
   margin: 0 auto;
   font-family: monospace;
-  font-size: 13px;
+  font-size: calc(13px * var(--fs, 1));
   resize: none;
 }
 
 /* (the overlay styles every <p> and <b> bigger, so the Editor needs these more specific rules) */
 #ov .edtip {
   margin: 0 0 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--fs, 1));
   text-align: left;
   opacity: .75;
 }
 
 #ov .edcount {
   margin: 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--fs, 1));
 }
 
 #ov .edbtns .opt {
@@ -1210,7 +1187,7 @@ textarea.fbin {
 }
 
 #ov .edbtns .opt b {
-  font-size: 15px;
+  font-size: calc(15px * var(--fs, 1));
 }
 
 /* Editor mode: "Show hitboxes" switch */
@@ -1429,7 +1406,7 @@ input[type=range] {
    so "Lv 2", "10 kills · 5" and the HP line stay on one line like on a bigger screen. (Last in the file so it wins over the rules above.) */
 #row {
   gap: 6px;
-  font-size: clamp(12px, 4.4vw, 22px);
+  font-size: calc(clamp(12px, 4.4vw, 22px) * var(--fs, 1));
   white-space: nowrap;
 }
 
@@ -1450,7 +1427,7 @@ input[type=range] {
 
 #hpt {
   margin-top: 2px;
-  font-size: clamp(9px, 2.9vw, 15px);
+  font-size: calc(clamp(9px, 2.9vw, 15px) * var(--fs, 1));
   text-shadow: 0 2px 0 #0007;
   white-space: nowrap;
   overflow: hidden;
@@ -1460,4 +1437,37 @@ input[type=range] {
 #hud .bar {
   height: clamp(13px, 3.8vw, 18px);
   margin-top: clamp(4px, 1.4vw, 6px);
+}
+
+/* ---- HUD layout: [menu button] [time] [kills · essence] along the top, the level box under the menu button ----
+   (last in the file so it wins over the earlier #row / #lv rules; index.html is unchanged) */
+#row {
+  justify-content: flex-start;
+  gap: clamp(8px, 2.6vw, 14px);
+}
+
+#hud #lv {
+  position: absolute;
+  left: 8px;
+  top: calc(env(safe-area-inset-top, 0px) + 8px + 42px + 6px);      /* just under the menu button (42px tall, 8px from the top) */
+  box-sizing: border-box;
+  min-width: 42px;      /* as wide as the menu button */
+  padding: 2px 4px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: calc(clamp(11px, 3.4vw, 15px) * var(--fs, 1));
+}
+
+/* ---- Text size setting (Settings -> Text size, js/settings.js) ----
+   Every font size above is multiplied by --fs (1 = normal). The top HUD row only grows up to 115% (--fsh) so it still fits on one line on phones. */
+#row {
+  font-size: calc(clamp(12px, 4.4vw, 22px) * var(--fsh, 1));
+}
+
+#hpt {
+  font-size: calc(clamp(9px, 2.9vw, 15px) * var(--fsh, 1));
+}
+
+#hud #lv {
+  font-size: calc(clamp(11px, 3.4vw, 15px) * var(--fsh, 1));
 }

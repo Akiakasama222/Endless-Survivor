@@ -3,11 +3,12 @@
 // The boss that appears every 50 levels: warning, spawning, behaviour and defeat.
 // ======================================================================
 
-// Fires one homing magic arrow at enemy t.
-function launchMissile(t) {
-  const a = Math.atan2(t.y - S.y, t.x - S.x);
+// Fires one homing magic arrow at enemy t (off = angle offset in radians for Multi-Shot fans, quiet = no sound).
+function launchMissile(t, off, quiet) {
+  const a = Math.atan2(t.y - S.y, t.x - S.x) + (off || 0);
   S.ms.push({ x: S.x + Math.cos(a) * C.arrowStart, y: S.y + Math.sin(a) * C.arrowStart, vx: Math.cos(a) * 240, vy: Math.sin(a) * 240, life: 5, tg: t });
-  sfx('missile');
+  if (!quiet)
+    sfx('missile');
 }
 
 // Shows the big warning banner (title t, subtitle sub, colour col) and hides it after ms milliseconds if given.

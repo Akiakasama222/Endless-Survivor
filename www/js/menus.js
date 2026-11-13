@@ -56,7 +56,7 @@ const WG = [
     d: 'Auto-throws knives at the nearest enemy in range.',
     b: [
       ['Fire Rate +' + pc(C.rateAug) + '%', 'Throws ' + pc(C.rateAug) + '% faster.', IMAGE_FILES.augRogueRate],
-      ['+1 Multi Knives', '+1 knife per throw, with no level cap.', IMAGE_FILES.augRogueMulti],
+      ['Precision', '+' + pc(C.critPerLvl) + '% Critical Strike Chance per level (added together). A critical strike deals +' + pc(C.critDmg) + '% damage. Chance above 100% adds +' + pc(C.critOverflow) + '% crit damage for every 1% of extra chance.', IMAGE_FILES.augRoguePrecision],
       ['+1 Knife Bounce', 'Knives bounce to +1 more enemy on hit.', IMAGE_FILES.augRogueBounce]
     ]
   },
@@ -85,34 +85,35 @@ const ORB_GUIDE = [
   [
     'Orb of Power', 'augments that increase your damage',
     [
-      ['Sharpen', 'Multiplies your current damage by ' + C.sharpenMult + '.'],
-      ['MultiWield', '+1 afterimage per level. Every attack leaves afterimages of you behind; each one repeats the attack from its own spot ' + C.multiwieldDelay + 's later (each level adds another one) for ' + pc(C.multiwieldDmg) + '% of your damage.'],
-      ['Haste', 'Attack speed +' + pc(C.spellcaster) + '% per level for your shots, slashes and turrets.'],
-      ['Swirl', 'Every ' + C.swirlEvery + 'th attack throws a spinning sword, hovers, then returns, hitting enemies in its radius every ' + C.swirlTick + 's. Hovers ' + C.swirlStayPerLvl + 's, +' + C.swirlStayPerLvl + 's per level. Radius is ' + pc(C.swirlRad) + '% of the base sword range. It flies out a distance based on your weapon\'s range: ' + C.swirlDist + 'x the Sword\'s range, or ' + pc(C.swirlDistRanged) + '% of the attack range for the Bow and Grimoire.'],
-      ['Bleed', 'Hits cause bleed until death: ' + pc(C.bleedPerLvl) + '% of damage dealt per level, every ' + C.bleedTick + 's. Bleeding enemies also explode on death for ' + pc(C.bleedBoomDmg) + '% damage (+' + pc(C.bleedBoomPerLvl) + '% per level).']
+      ['Sharpen', 'Multiplies your current damage by ' + C.sharpenMult + '.', IMAGE_FILES.orbSharpen],
+      ['Multi-Shot', '+1 extra projectile per level for your main attack (the Bow\'s knives, the Grimoire\'s arcane bolt, not its turrets), Homing Explosive Knives and Swirl. The Sword\'s own slash is not a projectile, so it only helps Swirl and Homing Explosive Knives there.', IMAGE_FILES.orbMultiShot],
+      ['MultiWield', '+1 afterimage per level. Every attack leaves afterimages of you behind; each one repeats the attack from its own spot ' + C.multiwieldDelay + 's later (each level adds another one) for ' + pc(C.multiwieldDmg) + '% of your damage.', IMAGE_FILES.orbMultiWield],
+      ['Haste', 'Attack speed +' + pc(C.spellcaster) + '% per level for your shots, slashes and turrets.', IMAGE_FILES.orbHaste],
+      ['Swirl', 'Every ' + C.swirlEvery + 'th attack throws a spinning sword, hovers, then returns, hitting enemies in its radius every ' + C.swirlTick + 's. Hovers ' + C.swirlStayPerLvl + 's, +' + C.swirlStayPerLvl + 's per level. Radius is ' + pc(C.swirlRad) + '% of the base sword range. It flies out a distance based on your weapon\'s range: ' + C.swirlDist + 'x the Sword\'s range, or ' + pc(C.swirlDistRanged) + '% of the attack range for the Bow and Grimoire.', IMAGE_FILES.orbSwirl],
+      ['Bleed', 'Hits cause bleed until death: ' + pc(C.bleedPerLvl) + '% of damage dealt per level, every ' + C.bleedTick + 's. Bleeding enemies also explode on death for ' + pc(C.bleedBoomDmg) + '% damage (+' + pc(C.bleedBoomPerLvl) + '% per level).', IMAGE_FILES.orbBleed]
     ]
   ],
   [
     'Orb of Perseverance', 'augments that increase your defenses',
     [
-      ['Harden', 'Gain +' + C.hardenArmor + ' armor per level, then increase your total armor by ' + pc(C.hardenPerLvl) + '% per level (added together).'],
-      ['Shield +1', 'Blocks 1 hit. +1 charge regained per ' + C.shieldKills + ' kills. Max charges +1 per level.'],
-      ['Dance with Death', 'Damage you take becomes damage over time, split into ' + C.ddTicksPerLvl + ' ticks per level (one tick every ' + C.dwdTick + 's).'],
-      ['Lifesteal +' + pc(C.killHeal) + '% on kill', 'Killing an enemy heals ' + pc(C.killHeal) + '% of its max health per level. Excess healing becomes a burst laser (damage = the excess).'],
-      ['Regeneration +' + pc(C.regenPct) + '%', 'Regenerate ' + pc(C.regenPct) + '% of your max health per second, per level.'],
-      ['Health Siphon', 'Drains all enemies in your weapon\'s range (the Sword\'s reach, or the Bow / Grimoire attack range) for ' + pc(C.siphonDmg) + '% of your damage at your attack speed. Red tethers link you to every drained enemy and carry the HP back to you. Drain damage +' + pc(C.siphonPerLvl) + '% per level. Excess healing becomes a burst laser.']
+      ['Harden', 'Gain +' + C.hardenArmor + ' armor per level, then increase your total armor by ' + pc(C.hardenPerLvl) + '% per level (added together).', IMAGE_FILES.orbHarden],
+      ['Shield +1', 'Blocks 1 hit. +1 charge regained per ' + C.shieldKills + ' kills. Max charges +1 per level.', IMAGE_FILES.orbShield],
+      ['Dance with Death', 'Damage you take becomes damage over time, split into ' + C.ddTicksPerLvl + ' ticks per level (one tick every ' + C.dwdTick + 's).', IMAGE_FILES.orbDance],
+      ['Lifesteal +' + pc(C.killHeal) + '% on kill', 'Killing an enemy heals ' + pc(C.killHeal) + '% of its max health per level. Excess healing becomes a burst laser (damage = the excess).', IMAGE_FILES.orbLifesteal],
+      ['Regeneration +' + pc(C.regenPct) + '%', 'Regenerate ' + pc(C.regenPct) + '% of your max health per second, per level.', IMAGE_FILES.orbRegen],
+      ['Health Siphon', 'Drains all enemies in your weapon\'s range (the Sword\'s reach, or the Bow / Grimoire attack range) for ' + pc(C.siphonDmg) + '% of your damage at your attack speed. Red tethers link you to every drained enemy and carry the HP back to you. Drain damage +' + pc(C.siphonPerLvl) + '% per level. Excess healing becomes a burst laser.', IMAGE_FILES.orbSiphon]
     ]
   ],
   [
     'Orb of Practice', 'utility: chance-based triggers, move speed and more',
     [
-      ['Move Speed +' + pc(C.moveSpeedPerLvl) + '%', '+' + pc(C.moveSpeedPerLvl) + '% movement speed per level.'],
-      ['Magnet', 'EXP pickup range +' + pc(C.magnetPerLvl) + '% per level.'],
-      ['Homing Explosive Knives', 'Hits have a +' + pc(C.missileChance) + '% chance per level (max ' + C.missileMaxLvl + ' levels) to launch a homing explosive knife that explodes for ' + pc(C.missileDmg) + '% damage.'],
-      ['Death Explosion', pc(C.deathBoomChance) + '% chance per level for enemies to explode on death for ' + pc(C.deathBoomDmg) + '% damage (+' + pc(C.deathBoomDmgPerLvl) + '% per level).'],
-      ['Thunder Strike', '+' + pc(C.thunderChance) + '% chance per level (max ' + C.thunderMaxLvl + ' levels) on hit to call lightning from above (AOE, ' + pc(C.thunderDmg) + '% damage).'],
-      ['Soul Vortex', 'Killing an enemy has a ' + pc(C.vortexChance) + '% chance per level to pull all enemies towards you.'],
-      ['Dash', 'Auto-dash while moving, damaging enemies you pass through. Cooldown shrinks with each level.']
+      ['Move Speed +' + pc(C.moveSpeedPerLvl) + '%', '+' + pc(C.moveSpeedPerLvl) + '% movement speed per level.', IMAGE_FILES.orbMoveSpeed],
+      ['Magnet', 'EXP pickup range +' + pc(C.magnetPerLvl) + '% per level.', IMAGE_FILES.orbMagnet],
+      ['Homing Explosive Knives', 'Hits have a +' + pc(C.missileChance) + '% chance per level (max ' + C.missileMaxLvl + ' levels) to launch a homing explosive knife that explodes for ' + pc(C.missileDmg) + '% damage.', IMAGE_FILES.orbHoming],
+      ['Death Explosion', pc(C.deathBoomChance) + '% chance per level for enemies to explode on death for ' + pc(C.deathBoomDmg) + '% damage (+' + pc(C.deathBoomDmgPerLvl) + '% per level).', IMAGE_FILES.orbDeathBoom],
+      ['Thunder Strike', '+' + pc(C.thunderChance) + '% chance per level (max ' + C.thunderMaxLvl + ' levels) on hit to call lightning from above (AOE, ' + pc(C.thunderDmg) + '% damage).', IMAGE_FILES.orbThunder],
+      ['Soul Vortex', 'Killing an enemy has a ' + pc(C.vortexChance) + '% chance per level to pull all enemies towards you.', IMAGE_FILES.orbVortex],
+      ['Dash', 'Auto-dash while moving, damaging enemies you pass through. Cooldown shrinks with each level.', IMAGE_FILES.orbDash]
     ]
   ]
 ];
@@ -121,8 +122,8 @@ const ORB_GUIDE = [
 function weaponGuide(from) {
   const o = $('ov');
   o.style.display = 'flex';
-  const sec = (h, a) => '<div style="font-size:15px;color:#9be15d;margin:10px 0 4px;letter-spacing:.5px">' + h + '</div>' + a.map(x => '<div class="opt' + (x[2] ? ' aug' : '') + '" style="border-color:#fff4;padding:10px 14px;cursor:default;margin-bottom:6px">' + (x[2] ? '<img class="aicon" src="' + x[2] + '" alt=""><div>' : '') + '<b style="color:#fff">' + x[0] + '</b><span style="display:block;font-size:14px;opacity:.85;margin-top:2px">' + x[1] + '</span>' + (x[2] ? '</div>' : '') + '</div>').join('');
-  o.innerHTML = '<h1>Weapon Guide</h1><div style="flex:1;min-height:0;overflow-y:auto;width:100%;max-width:520px;margin:0 auto">' + WG.map(w => '<div style="margin-bottom:18px"><div style="font-size:26px;color:var(--gold)">' + TY[w.t].i + ' ' + TY[w.t].n + '</div><div style="font-size:15px;opacity:.85;margin-bottom:2px">' + w.d + '</div>' + sec('BASIC AUGMENTS (every level)', w.b) + '</div>').join('') + '<div style="margin-bottom:18px"><div style="font-size:26px;color:var(--gold)">🔮 Orbs</div><div style="font-size:15px;opacity:.85;margin-bottom:2px">Special augments come from Orbs (first one ' + C.orbCost + ' Essence, +' + C.orbCostStep + ' more after every Orb you open). All weapons share the same pool; each kind of Orb only offers its own type of augment.</div>' + ORB_GUIDE.map(k => sec(k[0].toUpperCase() + ' · ' + k[1], k[2])).join('') + '</div>' + '</div><button class="opt" id="wgb" style="border-color:#fff8;max-width:520px;width:100%;margin:0 auto;text-align:center"><b style="color:#fff">Back</b></button>';
+  const sec = (h, a) => '<div style="font-size:calc(15px * var(--fs,1));color:#9be15d;margin:10px 0 4px;letter-spacing:.5px">' + h + '</div>' + a.map(x => '<div class="opt' + (x[2] ? ' aug' : '') + '" style="border-color:#fff4;padding:10px 14px;cursor:default;margin-bottom:6px">' + (x[2] ? '<img class="aicon" src="' + x[2] + '" alt=""><div>' : '') + '<b style="color:#fff">' + x[0] + '</b><span style="display:block;font-size:calc(14px * var(--fs,1));opacity:.85;margin-top:2px">' + x[1] + '</span>' + (x[2] ? '</div>' : '') + '</div>').join('');
+  o.innerHTML = '<h1>Weapon Guide</h1><div style="flex:1;min-height:0;overflow-y:auto;width:100%;max-width:520px;margin:0 auto">' + WG.map(w => '<div style="margin-bottom:18px"><div style="font-size:calc(26px * var(--fs,1));color:var(--gold)">' + TY[w.t].i + ' ' + TY[w.t].n + '</div><div style="font-size:calc(15px * var(--fs,1));opacity:.85;margin-bottom:2px">' + w.d + '</div>' + sec('BASIC AUGMENTS (every level)', w.b) + '</div>').join('') + '<div style="margin-bottom:18px"><div style="font-size:calc(26px * var(--fs,1));color:var(--gold)">🔮 Orbs</div><div style="font-size:calc(15px * var(--fs,1));opacity:.85;margin-bottom:2px">Special augments come from Orbs (first one ' + C.orbCost + ' Essence, +' + C.orbCostStep + ' more after every Orb you open). All weapons share the same pool; each kind of Orb only offers its own type of augment.</div>' + ORB_GUIDE.map(k => sec(k[0].toUpperCase() + ' · ' + k[1], k[2])).join('') + '</div>' + '</div><button class="opt" id="wgb" style="border-color:#fff8;max-width:520px;width:100%;margin:0 auto;text-align:center"><b style="color:#fff">Back</b></button>';
   $('wgb').onclick = () => {
     if (from === 'pause') {
       S.state = 'play';
@@ -137,9 +138,9 @@ function weaponGuide(from) {
 function enemyGuide(from) {
   const o = $('ov');
   o.style.display = 'flex';
-  const row = (a, b) => '<div class="opt" style="border-color:#fff4;padding:10px 14px;cursor:default;margin-bottom:6px"><b style="color:#fff">' + a + '</b><span style="display:block;font-size:14px;opacity:.85;margin-top:2px">' + b + '</span></div>';
-  const head = (icon, name, text) => '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 8px"><img class="aicon" src="' + icon + '" alt=""><div><div style="font-size:26px;color:var(--gold)">' + name + '</div><div style="font-size:15px;opacity:.85">' + text + '</div></div></div>';
-  const sec = h => '<div style="font-size:15px;color:#9be15d;margin:16px 0 4px;letter-spacing:.5px">' + h + '</div>';
+  const row = (a, b) => '<div class="opt" style="border-color:#fff4;padding:10px 14px;cursor:default;margin-bottom:6px"><b style="color:#fff">' + a + '</b><span style="display:block;font-size:calc(14px * var(--fs,1));opacity:.85;margin-top:2px">' + b + '</span></div>';
+  const head = (icon, name, text) => '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 8px"><img class="aicon" src="' + icon + '" alt=""><div><div style="font-size:calc(26px * var(--fs,1));color:var(--gold)">' + name + '</div><div style="font-size:calc(15px * var(--fs,1));opacity:.85">' + text + '</div></div></div>';
+  const sec = h => '<div style="font-size:calc(15px * var(--fs,1));color:#9be15d;margin:16px 0 4px;letter-spacing:.5px">' + h + '</div>';
   const sp = pc(C.eSpeedStep);
   const html =
     sec('ALL ENEMIES GROW STRONGER') +
@@ -185,7 +186,6 @@ function menu() {
   o.style.display = 'flex';
   // Full-screen art with the title and buttons on top (styles: .menu-card, .mbtn ... in css/style.css)
   o.innerHTML = '<div class="menu-card">' +
-    '<span class="mver">v' + GAME_VERSION + '</span>' +
     '<h1 class="mtitle">Limbo</h1>' +
     '<p class="msub">Oblivion Survivor</p>' +
     '<button class="mbtn play" id="pl">Play</button>' +
@@ -254,7 +254,7 @@ function inventory() {
     const e = PD.eq.t === w.t && PD.eq.r === w.r;
     return '<button class="tl' + (on ? ' on' : '') + '" data-s="' + w.t + '_' + w.r + '" style="--c:' + c.c + ';--rgb:' + c.rgb + '"><span class="ti">' + TY[w.t].i + '</span>' + (w.r >= 5 ? '<i class="tm">M' + (w.r - 4) + '</i>' : '') + (e ? '<i class="te">✓</i>' : '') + '<em>×' + PD.inv[w.t][w.r] + '</em></button>';
   }).join('');
-  const top = '<div class="ov1" style="--c:' + R.c + ';--rgb:' + R.rgb + '"><div class="ovt"><span class="big">' + TY[sel.t].i + '</span><div class="info"><b>' + R.n + ' ' + TY[sel.t].n + '</b><span>' + R.d + ' base damage · ×' + n + '</span><br><span style="opacity:.6;font-size:13px">Runs ' + PD.runs + ' · Total kills ' + PD.kills + '</span></div></div><div class="acts"><button class="' + (eq ? 'on' : '') + '" data-e="1"' + (eq ? ' disabled' : '') + '>' + (eq ? 'Equipped' : 'Equip') + '</button>' + mg + am + '</div>' + (invMsg ? '<p class="im">' + invMsg + '</p>' : '') + '</div>';
+  const top = '<div class="ov1" style="--c:' + R.c + ';--rgb:' + R.rgb + '"><div class="ovt"><span class="big">' + TY[sel.t].i + '</span><div class="info"><b>' + R.n + ' ' + TY[sel.t].n + '</b><span>' + R.d + ' base damage · ×' + n + '</span><br><span style="opacity:.6;font-size:calc(13px * var(--fs,1))">Runs ' + PD.runs + ' · Total kills ' + PD.kills + '</span></div></div><div class="acts"><button class="' + (eq ? 'on' : '') + '" data-e="1"' + (eq ? ' disabled' : '') + '>' + (eq ? 'Equipped' : 'Equip') + '</button>' + mg + am + '</div>' + (invMsg ? '<p class="im">' + invMsg + '</p>' : '') + '</div>';
   const bot = '<div class="bot"><button class="back" id="bk">Back</button>' + (PD.chests > 0 ? '<button class="chb" id="oc">🎁 Open chest (' + PD.chests + ')</button>' : '<span class="nochest">🎁 No chests · earn one every ' + C.chestLvl + ' levels</span>') + '</div>';
   const old = $('ig');
   const st = old ? old.scrollTop : 0;
@@ -362,14 +362,14 @@ function openChest(n) {
     }).sort((x, y) => y.r - x.r || (x.t < y.t ? -1 : 1));
     res = '<h1>' + n + ' chests opened!</h1><div style="display:flex;flex-direction:column;gap:8px;max-height:42vh;overflow-y:auto">' + rows.map(w => {
       const R = RAR[w.r];
-      return '<div class="it" style="border-color:' + R.c + '"><span class="ic">' + TY[w.t].i + '</span><div class="tx"><b style="color:' + R.c + '">' + R.n + ' ' + TY[w.t].n + '</b><span>you now own ×' + PD.inv[w.t][w.r] + '</span></div><b style="font-weight:400;font-size:24px;color:' + R.c + '">×' + w.c + '</b></div>';
+      return '<div class="it" style="border-color:' + R.c + '"><span class="ic">' + TY[w.t].i + '</span><div class="tx"><b style="color:' + R.c + '">' + R.n + ' ' + TY[w.t].n + '</b><span>you now own ×' + PD.inv[w.t][w.r] + '</span></div><b style="font-weight:400;font-size:calc(24px * var(--fs,1));color:' + R.c + '">×' + w.c + '</b></div>';
     }).join('') + '</div>';
   }
   let more = '';
   if (PD.chests > 0) {
     chestN = Math.max(1, Math.min(chestN, PD.chests));
     more = '<button class="opt" id="oc2" style="border-color:#ffc94a"><b style="color:#ffc94a">Open another (' + PD.chests + ' left)</b></button>' +
-      '<div class="opt" style="border-color:#ffc94a"><b style="color:#ffc94a;display:flex;justify-content:space-between;align-items:center">Open multiple <input id="ocn" type="number" min="1" max="' + PD.chests + '" value="' + chestN + '"></b><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="chip" data-n="5">5</button><button class="chip" data-n="10">10</button><button class="chip" data-n="25">25</button><button class="chip" data-n="' + PD.chests + '">All (' + PD.chests + ')</button></div><button class="chip" id="ocg" style="margin-top:10px;width:100%;font-size:18px;border-color:#ffc94a;color:#ffc94a">Open chests</button></div>';
+      '<div class="opt" style="border-color:#ffc94a"><b style="color:#ffc94a;display:flex;justify-content:space-between;align-items:center">Open multiple <input id="ocn" type="number" min="1" max="' + PD.chests + '" value="' + chestN + '"></b><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="chip" data-n="5">5</button><button class="chip" data-n="10">10</button><button class="chip" data-n="25">25</button><button class="chip" data-n="' + PD.chests + '">All (' + PD.chests + ')</button></div><button class="chip" id="ocg" style="margin-top:10px;width:100%;font-size:calc(18px * var(--fs,1));border-color:#ffc94a;color:#ffc94a">Open chests</button></div>';
   }
   o.innerHTML = '<div class="inv">' + res + more + '<button class="opt" id="bk2b" style="border-color:#fff8"><b style="color:#fff">Inventory</b></button></div>';
   if ($('oc2'))
