@@ -21,6 +21,12 @@ jobs:
         run: cp -r android-res/. android/app/src/main/res/
       - name: Lock to portrait
         run: sed -i 's/<activity/<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
+      - name: Hide status bar and navigation buttons (immersive mode)
+        run: |
+          F=$(find android/app/src/main/java -name MainActivity.java | head -n 1)
+          PKG=$(grep -m1 '^package ' "$F" | sed 's/package \(.*\);/\1/')
+          echo "Replacing $F (package $PKG)"
+          sed "s/PACKAGE_NAME/$PKG/" android-src/MainActivity.java > "$F"
       - run: npx cap sync android
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
