@@ -1,0 +1,42 @@
+name: Build Limbo APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm install
+      - run: npx cap add android
+      - name: Install app icon
+        run: cp -r android-res/. android/app/src/main/res/
+      - name: Lock to portrait
+        run: sed -i 's/<activity/<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
+      - name: Hide status bar and navigation buttons (immersive mode)
+        run: |
+          F=$(find android/app/src/main/java -name MainActivity.java | head -n 1)
+          PKG=$(grep -m1 '^package ' "$F" | sed 's/package \(.*\);/\1/')
+          echo "Replacing $F (package $PKG)"
+          sed "s/PACKAGE_NAME/$PKG/" android-src/MainActivity.java > "$F"
+      - run: npx cap sync android
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Name the APK Limbo.apk
+        run: |
+          APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          echo "Built: $APK"
+          if [ "$APK" != "android/app/build/outputs/apk/debug/Limbo.apk" ]; then mv "$APK" android/app/build/outputs/apk/debug/Limbo.apk; fi
+          ls -la android/app/build/outputs/apk/debug/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Limbo-apk
+          path: android/app/build/outputs/apk/debug/Limbo.apk
