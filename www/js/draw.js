@@ -26,7 +26,9 @@ function draw() {
   const i1 = Math.ceil((S.x + B) / T);
   const j0 = Math.floor((S.y - B) / T);
   const j1 = Math.ceil((S.y + B) / T);
-  if (!bioDrawGround(g, W, H, SX, SY, T, i0, i1, j0, j1)) {   // biome.js grass images; plain colour ground if they are missing
+  if (S.story)
+    storyGround(g, SX, SY, W, H);      // Story mode: one small empty arena (story.js)
+  else if (!bioDrawGround(g, W, H, SX, SY, T, i0, i1, j0, j1)) {   // biome.js grass images; plain colour ground if they are missing
   g.fillStyle = 'rgb(90, 173, 97)';
   for (let i = i0; i < i1; i++)
     for (let j = j0; j < j1; j++) {
@@ -472,7 +474,7 @@ function draw() {
         g.save();
         g.transform(k * (nx - ny), k * (nx + ny) * .5, -k * (fx - fy), -k * (fx + fy) * .5, px + SLASH.dist * (fx - fy), by + SLASH.dist * (fx + fy) * .5);      // dist moves the slash forward along the swing direction
         g.rotate(-SLASH.rot);
-        g.drawImage(slashTinted(RAR[PD.eq.r].rgb), (fi % SLASH.cols) * SLASH.cw, Math.floor(fi / SLASH.cols) * SLASH.cw, SLASH.cw, SLASH.cw, -SLASH.cx, -SLASH.cy, SLASH.cw, SLASH.cw);
+        g.drawImage(slashTinted(RAR[eqR()].rgb), (fi % SLASH.cols) * SLASH.cw, Math.floor(fi / SLASH.cols) * SLASH.cw, SLASH.cw, SLASH.cw, -SLASH.cx, -SLASH.cy, SLASH.cw, SLASH.cw);
         g.restore();
       };
       const sweep = (a0, a1, al) => {
@@ -484,7 +486,7 @@ function draw() {
           const u1 = a0 + (a1 - a0) * (i + 1) / N + (a1 >= a0 ? .007 : -.007);
           const k = (i + 1) / N;
           const k2 = k * k * al;
-          g.fillStyle = 'rgba(' + RAR[PD.eq.r].rgb + ',' + (.3 * k2) + ')';
+          g.fillStyle = 'rgba(' + RAR[eqR()].rgb + ',' + (.3 * k2) + ')';
           g.beginPath();
           g.moveTo(px, by);
           for (let j = 0; j <= 3; j++) {
@@ -598,7 +600,7 @@ function draw() {
         g.translate(0, 8);
         g.lineCap = 'round';
         {
-          const rc = RAR[PD.eq.r].rgb;
+          const rc = RAR[eqR()].rgb;
           g.strokeStyle = 'rgba(' + rc + ',' + (sw0 ? .35 : .22) + ')';
           g.lineWidth = sw0 ? 18 : 14;
           g.beginPath();
@@ -622,7 +624,7 @@ function draw() {
     };
     const dGl = () => {
       if (S.wp === 'grimoire') {      // the rarity glow is only kept for the Grimoire (removed for the Bow)
-        const t = nearest(S.x, S.y, C.atkR);
+        const t = S.story ? S.aimTg : nearest(S.x, S.y, C.atkR);
         let th = S.fd === undefined ? Math.PI / 2 : S.fd;
         if (t) {
           const a = Math.atan2(t.y - S.y, t.x - S.x);
@@ -630,7 +632,7 @@ function draw() {
         }
         const gx = px + Math.cos(th) * 17;
         const gy = by + Math.sin(th) * 9 + 2;
-        const rc = RAR[PD.eq.r].rgb;
+        const rc = RAR[eqR()].rgb;
         const gr = g.createRadialGradient(gx, gy, 1, gx, gy, 16);
         gr.addColorStop(0, 'rgba(' + rc + ',.9)');
         gr.addColorStop(1, 'rgba(' + rc + ',0)');
@@ -981,11 +983,11 @@ function draw() {
           // trail image (head up, fading downwards): turned so the head points the way the arrow flies and the tail streams behind it
           g.save();
           g.rotate(th + Math.PI / 2);
-          g.drawImage(TRL.br[PD.eq.r], -C.trailW / 2, C.trailStart, C.trailW, C.trailLen);
+          g.drawImage(TRL.br[eqR()], -C.trailW / 2, C.trailStart, C.trailW, C.trailLen);
           g.restore();
         }
         g.rotate(th);
-        g.drawImage(SPR.br[PD.eq.r], -20, -20, 40, 40);     // Bow: arrow tinted by the weapon's rarity
+        g.drawImage(SPR.br[eqR()], -20, -20, 40, 40);     // Bow: arrow tinted by the weapon's rarity
       }
       g.restore();
     }
@@ -1077,8 +1079,11 @@ function draw() {
   chOverlay(g, SX, SY);             // chest progress ring / twinkle hint (chests.js)
   orbOverlay(g, SX, SY);            // orb progress ring, label and edge arrow (orbs.js)
   vortexDraw(g, SX, SY);            // Soul Vortex swirl (combat.js)
-  atmDraw(g, W, H, SX, SY);        // wind streaks and flying leaves (atmosphere.js)
-  dnDraw(g, W, H, SX, SY);          // day / night tint and the light around the player (daynight.js)
+  storyDraw(g, SX, SY);             // Story mode: aim line and Barrier ring (story.js)
+  if (!S.story) {      // (the blank Story world has no wind, leaves or day / night)
+    atmDraw(g, W, H, SX, SY);        // wind streaks and flying leaves (atmosphere.js)
+    dnDraw(g, W, H, SX, SY);          // day / night tint and the light around the player (daynight.js)
+  }
   for (const p of S.tr) {
     if (hid(p.x, p.y, 18))
       continue;
@@ -1115,7 +1120,7 @@ function draw() {
     const x = SX(w.x, w.y);
     const y = SY(w.x, w.y) - 18;
     const rad = C.swordR * (1 + C.swordRangePerLvl * S.sr) * C.swirlRad;
-    const rc = RAR[PD.eq.r].rgb;
+    const rc = RAR[eqR()].rgb;
     g.strokeStyle = 'rgba(' + rc + ',.6)';
     g.lineWidth = 2;
     g.fillStyle = 'rgba(' + rc + ',.14)';
@@ -1303,7 +1308,7 @@ function draw() {
     g.fillStyle = gr;
     g.fillRect(0, 0, W, H);
   }
-  if (joy) {
+  if (joy && !S.story) {      // (Story mode has its own on-screen sticks)
     g.strokeStyle = '#fff9';
     g.lineWidth = 3;
     g.beginPath();
@@ -1350,7 +1355,11 @@ function hbDraw(g, SX, SY) {
 function facingAngle() {
   const R = C.atkR;
   let tg = S.aimTg;
-  if (!tg || tg.hp <= 0 || (tg.x - S.x) ** 2 + (tg.y - S.y) ** 2 > R * R * 1.3 || S.t - S.aimT > C.aimHold) {
+  if (S.story) {
+    if (tg && S.t - S.aimT > C.storyFaceHold)      // Story mode: the character faces where you aim, and keeps doing so for a moment after you let go
+      tg = S.aimTg = null;
+  }
+  else if (!tg || tg.hp <= 0 || (tg.x - S.x) ** 2 + (tg.y - S.y) ** 2 > R * R * 1.3 || S.t - S.aimT > C.aimHold) {
     tg = nearest(S.x, S.y, R) || null;
     S.aimTg = tg;
     S.aimT = S.t;
@@ -1548,7 +1557,7 @@ function ghostDraw(g, x, y, z) {
     g.globalAlpha = .75;
     g.transform(k * (nx - ny), k * (nx + ny) * .5, -k * (dx - dy), -k * (dx + dy) * .5, x + SLASH.dist * (dx - dy), y - 30 + SLASH.dist * (dx + dy) * .5);
     g.rotate(-SLASH.rot);
-    g.drawImage(slashTinted(RAR[PD.eq.r].rgb), (fi % SLASH.cols) * SLASH.cw, Math.floor(fi / SLASH.cols) * SLASH.cw, SLASH.cw, SLASH.cw, -SLASH.cx, -SLASH.cy, SLASH.cw, SLASH.cw);
+    g.drawImage(slashTinted(RAR[eqR()].rgb), (fi % SLASH.cols) * SLASH.cw, Math.floor(fi / SLASH.cols) * SLASH.cw, SLASH.cw, SLASH.cw, -SLASH.cx, -SLASH.cy, SLASH.cw, SLASH.cw);
     g.restore();
   }
 }

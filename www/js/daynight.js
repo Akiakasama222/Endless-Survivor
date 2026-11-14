@@ -50,7 +50,7 @@ const dnDark = p => dnDarkRaw(p) * C.nightDark;
 // ---- what the time of day does to the enemies ------------------------------------------------------------------------
 // "Night" = the dark part of the cycle (a little after sunset until a little before sunrise, about 40% of a day), "day" = the rest.
 // It does not depend on C.nightDark, so turning the tint down does not change the game rules. With C.dayNight = 0 or C.dayNightFx = 0 nothing changes.
-const dnFx = () => C.dayNight && C.dayNightFx;
+const dnFx = () => !(S && S.story) && C.dayNight && C.dayNightFx;
 const dnNight = () => dnFx() && dnDarkRaw(dnPhase()) >= .5;
 const dnEnemySpd = () => dnNight() ? 1 + C.nightSpeed : 1;               // multiplier on enemy movement speed
 const dnEnemyDmg = () => dnNight() ? 1 + C.nightDmg : 1;                 // multiplier on the damage enemies deal to the player
@@ -98,7 +98,7 @@ const dnCollect = (SX, SY, W, H) => {
   const P = (o, lift) => [SX(o.x, o.y), SY(o.x, o.y) - (lift || 0)];
   const on = (x, y, r) => x > -r * 1.5 && x < W + r * 1.5 && y > -r * 1.5 && y < H + r * 1.5;
   const add = (x, y, r, a, c) => on(x, y, r) && dnAdd(x, y, r, a, c);
-  const arrowC = RAR[PD.eq.r] ? RAR[PD.eq.r].rgb : '255,226,122';
+  const arrowC = RAR[eqR()] ? RAR[eqR()].rgb : '255,226,122';
   orbLights(SX, SY, add);      // orbs glow at night (orbs.js)
   // main shots: Bow arrows (colour of the weapon rarity) and Grimoire orbs (purple)
   for (const b of S.bl) {

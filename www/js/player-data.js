@@ -176,9 +176,15 @@ function savePD() {
   catch (e) { }
 }
 
+// Story mode runs and developer test runs do not touch the Survival records, chests or stats.
+const rewOff = () => !!(S && (S.dev || S.story));
+
+// Rarity index of the equipped weapon as the run sees it: Story mode weapons are always Common (index 0).
+const eqR = () => (S && S.story ? 0 : PD.eq.r);
+
 // Counts a finished run (runs and kills) once, unless it was a developer test run.
 function endRun() {
-  if (!S || S.counted || S.dev)
+  if (!S || S.counted || rewOff())
     return;
   S.counted = 1;
   PD.runs++;
@@ -202,7 +208,7 @@ function rollChest() {
 
 // Updates and saves the personal records.
 function saveBest() {
-  if (!S || S.dev)
+  if (!S || rewOff())
     return;
   best.lvl = Math.max(best.lvl, S.lvl);
   best.kills = Math.max(best.kills, S.kills);
@@ -226,7 +232,7 @@ const nat = () => C.baseDmg + C.dmgLvl * (S.lvl - 1);
 
 const dmg = () => nat() + (S.db || 0);
 
-const rate = () => C.fireRate * (1 + C.rateAug * S.nr + C.spellcaster * (S.nsc || 0));
+const rate = () => C.fireRate * (S.story ? C.storyRate : 1) * (1 + C.rateAug * S.nr + C.spellcaster * (S.nsc || 0));
 
 // Armor: flat damage blocked from every hit the player takes. Armor augment = C.armorPerLvl per level. Harden adds C.hardenArmor flat armor per level, then the whole total
 // is increased by C.hardenPerLvl per level (additive: x1.5, x2, x2.5...). armorAt(na, nhd) = the armor at those levels (used by the augment texts to show the next value).
@@ -255,17 +261,24 @@ function critMult() {
 const need = () => C.xpBase + C.xpLvl * S.lvl;
 
 // Starts a new run: resets every field of the run state S for the equipped weapon and closes the overlay.
-function init() {
+// init(true) only builds the state shown behind the main menu: it keeps the current landscape (grass, forest and roads) instead of rolling new ones.
+// A new landscape is generated only when a real run starts (Play / Play again call init() without the argument).
+function init(menuOnly) {
+  menuOnly = menuOnly === true;      // (init is also used directly as a click handler, which passes an event)
   $('warn').style.display = 'none';
   $('bb').style.display = 'none';
-  weapon = PD.eq.t;
-  C.baseDmg = RAR[PD.eq.r].d;
-  if (BIO.random) {      // a different world every run: new grass map seed (the roads already pick their own seed)
+  const story = MODE === 'story';
+  weapon = story ? STORY_WEAPON : PD.eq.t;
+  C.baseDmg = story ? C.storyBaseDmg : RAR[PD.eq.r].d;      // Story mode: always Common, 15 base damage
+  if (BIO.random && !menuOnly) {      // a different world every run: new grass map seed (the roads already pick their own seed)
     BIO.seed = 1 + Math.floor(Math.random() * 1e9);
     bioTileCache.clear();
   }
+  if (!menuOnly)
+    autoReset();      // Auto Upgrade locks last for one run only (levelup.js)
   startMusic();
   $('pb').style.display = 'block';
+  $('al').style.display = 'block';
   S = {
     x: 0,
     y: 0,
@@ -311,6 +324,8 @@ function init() {
     vt: 0,
     dc: 0,
     wp: weapon,
+    story: story ? 1 : 0,
+    skcd: [0, 0, 0],      // Story skill cooldowns (story.js)
     fe: [],
     ah: [],
     bh: [],
@@ -361,8 +376,11 @@ function init() {
     sp: 0,
     state: 'play'
   };
+  S.mbg = menuOnly;      // menu background: roads.js and trees.js keep their seeds instead of rolling new ones
   S.hp = maxHp();
+  autoBtn();      // HUD lock button (levelup.js)
   S.dev = DEV.lvl > 1 && !DEV.rew;
+  storyInit();      // shows / hides the Story controls (story.js)
   teleportStart();      // the mage beams in (teleport.js); the run is frozen until the animation is nearly over
   $('ov').style.display = 'none';
   hud(1);

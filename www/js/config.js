@@ -59,6 +59,8 @@ const C = {
   eHitR: 10, // Normal enemy hitbox radius (px): your knives, sword and spells hit when they touch this circle
   eSpeedStep: 0.5, // Enemy speed gained every eSpeedEvery levels
   eSpeedEvery: 10, // Levels between enemy speed increases
+  eArmorStep: 10, // Enemy armor gained every eArmorEvery levels: damage blocked from every hit they take (a hit still deals at least 1)
+  eArmorEvery: 10, // Levels between enemy armor increases (armor arrives AT level 10, 20, 30...)
   capBase: 20, // Base number of enemies allowed at once
   chestLvl: 15, // A chest is earned every this many levels
   orbCost: 10, // Orbs: Essence the first orb takes (you need at least this much to use one)
@@ -111,7 +113,7 @@ const C = {
   eCastHit: .5, // Purple Restless: the moment the bolt leaves, as a share of the cast
   eJumpOn: 1, // Night: 1 = Blue Restless use the Jump attack to close the gap, 0 = off
   eJumpMin: 130, // Jump attack: it only jumps when the player is further away than this (px)
-  eJumpMax: 360, // Jump attack: ... and closer than this (px)
+  eJumpMax: 540, // Jump attack: ... and closer than this (px)
   eJumpCd: 4, // Jump attack: seconds before the same Restless may jump again
   eJumpWind: 2, // Jump attack: crouch seconds before it leaps
   eJumpAir: 1, // Jump attack: seconds in the air
@@ -131,6 +133,14 @@ const C = {
   spawnGrow: 1 / 60, // Spawn rate growth per second
   arrowStart: 18, // How far in front of the rogue (toward the target) a Rogue knife starts, so it leaves the hand instead of the body
   pixelScale: 1, // Retro resolution: the game is drawn with this many times fewer pixels and stretched with sharp pixels (1 = full sharpness, 1.5 = a bit sharper than half, 2 = half, 3 = a third, 4 = a quarter)
+  storyBaseDmg: 15, // Story mode: base damage of the weapon (the weapon is always Common there, whatever rarity you own)
+  storyRate: 1, // Story mode: attack speed multiplier (1 = same as the normal game)
+  storyAimDead: .25, // Story mode: how far (0-1) the aim stick must be pushed before you attack
+  storyFaceHold: .6, // Story mode: seconds the character keeps facing your last aim after you let go
+  storyOrbTurn: 0, // Story mode: how strongly Grimoire orbs steer towards enemies (0 = they fly exactly where you aim, the normal game uses gmShotTurn)
+  storyAimLine: 260, // Story mode: length of the aim line on the ground (px, Rogue / Grimoire; the Sword shows its own reach)
+  storyWorldR: 520, // Story world: half-size of the small square arena (px)
+  storyGrid: 80, // Story world: spacing of the faint floor grid (px)
   fps: 60, // Frame cap for the retro look (update + draw run this many times a second): 30 = retro, 60 = smooth, 0 = no cap (follows your monitor). Keep it at 24 or higher or the game runs in slow motion
   dayNight: 1, // Day / night cycle: 1 = on, 0 = always daytime
   dayLen: 240, // Length of one full day in seconds of play time (sunrise > day > sunset > night)

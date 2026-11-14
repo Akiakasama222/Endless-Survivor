@@ -89,13 +89,13 @@ const chestStep = dt => {
       if (!S.chGot)
         S.chGot = {};
       S.chGot[h.id] = 1;
-      if (!S.dev) {
+      if (!rewOff()) {
         PD.chests++;
         savePD();
         S.chestGot = (S.chestGot || 0) + 1;
       }
-      S.tx.push({ x: h.x, y: h.y, t: .9, s: S.dev ? 'Chest (dev mode: not saved)' : '🎁 Chest found!', c: '#ffc94a' });
-      sfx('level');
+      S.tx.push({ x: h.x, y: h.y, t: .9, s: rewOff() ? 'Chest (not saved in this mode)' : '🎁 Chest found!', c: '#ffc94a' });
+      sfx('chest');
     }
   }
 };

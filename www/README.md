@@ -31,11 +31,12 @@ Any static web host works too (upload the whole folder).
 | sprites.js | loads character / sword art, builds tinted + pixelated sprite sheets |
 | mage3d.js | the live 3D mage (Rogue / Grimoire): poses the Mixamo model every frame and draws it with a small software rasterizer at the game's pixel resolution; upper body aims, legs follow the movement. Settings are in the `LIVE3D` block at the top. If the model file is missing the 16-direction sprite mage is used |
 | audio.js | Web Audio: synthesized beeps, sound files, music, sword swing |
-| settings.js | developer menu, volume settings, save-code export / import |
+| settings.js | developer menu, volume / text size / frame rate / pixel scale settings, save-code export / import |
 | buildings.js | procedural buildings: generation, enemy path steering, collisions |
 | state.js | pre-rendered emoji sprites, canvas resize, the run state `S` |
 | player-data.js | inventory, rarities, saved profile, stat formulas, `init()` (new run) |
 | input.js | touch joystick and keyboard |
+| story.js | Story mode: weapon pick screen, the two sticks, the 3 skill buttons (`STORY_SKILLS`), aim handling, aim line |
 | combat.js | targeting, `hit()`, sword swing, Swirl |
 | boss.js | Giant Zombie boss (every 50 levels) |
 | hud.js | taking damage, damage over time, on-screen HUD |
@@ -49,6 +50,16 @@ Any static web host works too (upload the whole folder).
 | main.js | starts the game and runs the animation loop |
 
 All scripts share one global scope, so keep the order in `index.html`.
+
+## Story mode (base mechanics)
+
+The main menu has a **Story** button. You pick a weapon (Rogue, Sword or Grimoire); in Story mode it is **always Common with 15 base damage** (`storyBaseDmg` in `config.js`), whatever rarity you own.
+
+* **Left stick** moves, **right stick** aims and attacks: the weapon fires / swings where the stick points while it is held (no auto-targeting). Attack speed is the normal one (`storyRate` multiplies it).
+* **3 skill buttons** next to the aim stick. They are **blank for now** (the slots are `STORY_SKILLS` in `js/story.js`; fill a slot with a name, cooldown and `use()` and its cooldown ring, counter and key work).
+* **The world** is one small empty square arena (`storyWorldR` in `config.js`): no trees, chests, orbs, wind or day / night, and **no enemies spawn**. The player cannot leave the arena.
+* Desktop: WASD moves, arrow keys (or holding the mouse button) aim, keys 1 / 2 / 3 are the skill keys.
+* Story runs do not change Survival records, chests or stats. XP, levels and augments are still the normal ones but nothing gives XP yet (no enemies).
 
 ## Restless (basic enemies)
 

@@ -54,15 +54,52 @@ function ac() {
     }
     catch (e) { }
   }
-  if (AC && AC.state === 'suspended')
+  if (AC && AC.state === 'suspended' && !bgHold)
     AC.resume();
   return AC;
 }
+
+// bgHold = the app is in the background (minimized, or another app is open): the audio stays stopped until the game is back on screen.
+let bgHold = false;
+
+// Stops (on = true) or restarts (on = false) all sound. A pause only lowers the music; this really silences everything, so nothing plays in the background.
+function audioSleep(on) {
+  bgHold = !!on;
+  if (!AC)
+    return;
+  try {
+    if (on)
+      AC.suspend();
+    else
+      AC.resume();
+  }
+  catch (e) { }
+}
+
+document.addEventListener('visibilitychange', () => audioSleep(document.hidden));
+addEventListener('pagehide', () => audioSleep(true));
+addEventListener('pageshow', () => audioSleep(document.hidden));
+
+// Inside the Android app (Capacitor) also listen to the app itself going to / coming back from the background.
+try {
+  const capApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (capApp && capApp.addListener)
+    capApp.addListener('appStateChange', st => audioSleep(!st.isActive));
+}
+catch (e) { }
 
 addEventListener('pointerdown', () => {
   if (snd)
     ac();
 });
+
+// Every button click in the game (menus, level-up, pause, the HUD buttons...) plays the button click sound. Capture phase: it runs before the button's own handler,
+// so it still plays when that handler rebuilds the screen. Non-interactive boxes (like the guide rows) are not buttons and stay silent.
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('button, [role="button"], .chip, .tl, .mbtn');
+  if (b && !b.disabled)
+    sfx('click');
+}, true);
 
 // Plays a synthesized beep: frequency f (Hz) for d seconds with waveform `type`, optionally sliding in pitch to `slide` Hz.
 function tone(f, d, type, vol, slide) {
@@ -120,6 +157,7 @@ function sfx(n) {
   const gap = {
     hit: 80,
     gem: 50,
+    essence: 50,
     kill: 120,
     shoot: 70,
     bow: 70,
@@ -133,7 +171,8 @@ function sfx(n) {
     zap: 70,
     eshot: 120,
     hurt: 150,
-    missile: 120
+    missile: 120,
+    click: 70      // the global button listener and a menu's own sfx('click') can fire together: play once
   }[n] || 0;
   if (gap && lastS[n] && now - lastS[n] < gap)
     return;
@@ -212,7 +251,16 @@ function sfx(n) {
       tone(1200, .15, 'triangle', .1, 600);
       break;
     case 'level':
-      [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, .18, 'triangle', .1), i * 90));
+      if (!playBuf('levelUp', .8, 1))
+        [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, .18, 'triangle', .1), i * 90));
+      break;
+    case 'chest':
+      if (!playBuf('chestPickup', .8, 1))
+        [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, .18, 'triangle', .1), i * 90));
+      break;
+    case 'essence':
+      if (!playBuf('essencePickup', .6, .97 + Math.random() * .06))
+        tone(900 + Math.random() * 200, .05, 'sine', .04, undefined);
       break;
     case 'over':
       [392, 330, 262, 196].forEach((f, i) => setTimeout(() => tone(f, .3, 'sawtooth', .08), i * 180));
@@ -231,7 +279,8 @@ function sfx(n) {
       tone(220, .12, 'triangle', .05, 440);
       break;
     case 'click':
-      tone(700, .05, 'square', .05);
+      if (!playBuf('buttonClick', .6, 1))
+        tone(700, .05, 'square', .05);
       break;
   }
 }
@@ -261,7 +310,11 @@ const SOUND_FILES = {
   lightningZap: 'assets/audio/lightning-zap.mp3',
   enemyShot: 'assets/audio/enemy-shot.mp3',
   staffShoot: 'assets/audio/staff-shoot.mp3',
-  bowShoot: 'assets/audio/bow-shoot.mp3'
+  bowShoot: 'assets/audio/bow-shoot.mp3',
+  buttonClick: 'assets/audio/button-click.mp3',
+  levelUp: 'assets/audio/level-up.mp3',
+  essencePickup: 'assets/audio/essence-pickup.mp3',
+  chestPickup: 'assets/audio/chest-pickup.mp3'
 };
 
 // BUF = decoded sound buffers by key; MUS / MG = the playing music source and its gain; musicWanted = music should be playing.

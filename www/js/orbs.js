@@ -76,6 +76,8 @@ const orbClear = (x, y) => {
 
 // The orb (0 or 1) of chunk (ci, cj). Built once per run.
 const orbChunk = (ci, cj) => {
+  if (S && S.story)      // no orbs in the Story world
+    return [];
   trChunk(ci, cj);                 // trees.js: makes sure a new run has picked its forest seed (trSeed) first
   if (orbRunS !== S) {
     orbCache.clear();
@@ -137,7 +139,7 @@ const orbOpen = h => {
   h.prog = 0;
   S.state = 'pick';
   joy = null;
-  sfx('level');
+  sfx('click');
   hud(1);
   const o = $('ov');
   o.style.display = 'flex';

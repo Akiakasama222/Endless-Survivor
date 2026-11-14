@@ -21,10 +21,16 @@ function nearest(x, y, max, skip) {
   return b;
 }
 
+// Enemy armor: +C.eArmorStep every C.eArmorEvery player levels (10 at level 10, 20 at level 20...). Flat damage blocked from every hit an enemy takes.
+const eArmor = () => C.eArmorStep * Math.floor(S.lvl / C.eArmorEvery);
+
 // Deals d damage to enemy e (q = quiet: no sound / number, crit = it was a Precision critical strike: the number turns gold with a "!"). Handles the kill healing, kills, drops, Bleed explosions and Death Explosions.
 function hit(e, d, q, crit) {
   if (e.hp <= 0)
     return;
+  const ea = eArmor();      // enemy armor blocks flat damage from every hit, but a hit never drops below 1 damage (same rule as the player's armor)
+  if (ea > 0)
+    d = Math.max(Math.min(d, 1), d - ea);
   d *= dnVuln();      // +damage taken during the day (daynight.js)
   const a = Math.min(d, e.hp);
   e.hp -= d;
@@ -193,7 +199,16 @@ function swingStep(dt) {
 // Sword weapon logic each frame: aims at the nearest enemy and starts a swing (every 3rd swing also throws a Swirl if owned).
 function sword(dt) {
   const R = C.swordR * (1 + C.swordRangePerLvl * S.sr);
-  if (!(S.sw > 0) && S.t - (S.la === undefined ? -9 : S.la) > 1.2) {
+  const sa = S.story ? storyAimAngle() : null;      // Story mode: the aim stick decides where the sword swings (null = not aiming)
+  if (sa !== null) {
+    storyAimTarget(sa, R);
+    if (!(S.sw > 0)) {
+      let df = sa - (S.ba || 0);
+      df = Math.atan2(Math.sin(df), Math.cos(df));
+      S.ba = (S.ba || 0) + df * Math.min(1, dt * 12);      // the resting blade follows the aim
+    }
+  }
+  else if (!S.story && !(S.sw > 0) && S.t - (S.la === undefined ? -9 : S.la) > 1.2) {
     const tn = nearest(S.x, S.y, C.atkR);
     if (tn) {
       const b = S.ba || 0;
@@ -202,8 +217,10 @@ function sword(dt) {
       S.ba = b + df * Math.min(1, dt * 12);
     }
   }
+  if (S.story && S.cd < 0)
+    S.cd = 0;      // no stored-up swings: letting go of the stick and pushing it again does not skip the cooldown
   if (S.cd <= 0 && !(S.sw > 0)) {
-    const t = nearest(S.x, S.y, R + 30);
+    const t = S.story ? (sa !== null ? S.aimTg : null) : nearest(S.x, S.y, R + 30);
     if (t) {
       const a = Math.atan2(t.y - S.y, t.x - S.x);
       const dd = dmg();
@@ -221,7 +238,7 @@ function sword(dt) {
         launchSwirl(t);
       mwQueue();      // MultiWield: delayed repeats of this attack
     }
-    else
+    else if (!S.story)
       S.cd = 0;
   }
 }
@@ -423,7 +440,7 @@ function swirlStep(dt) {
       if (d < 24)
         w.dead = 1;
     }
-    S.tr.push({ x: w.x, y: w.y, t: .25, m: .25, r: 5, c: RAR[PD.eq.r].rgb });
+    S.tr.push({ x: w.x, y: w.y, t: .25, m: .25, r: 5, c: RAR[eqR()].rgb });
     trSlashCircle(w.x, w.y, rad);        // the Swirl also cuts down trees (trees.js)
     for (const e of S.en) {
       if (e.hp <= 0)

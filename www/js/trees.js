@@ -62,11 +62,16 @@ const trRng = seed => () => {
 };
 
 // Builds (once) the trees of chunk (ci, cj).
+const TR_NONE = [];      // Story mode has no trees (and so no chests, which live inside tree groves)
+
 const trChunk = (ci, cj) => {
+  if (S && S.story)
+    return TR_NONE;
   if (trRunS !== S) {          // new run: forget cached trees (and so which ones were cut / blown up)
     trCache.clear();
     trRunS = S;
-    trSeed = TR.random ? 1 + Math.floor(Math.random() * 1e9) : TR.seed;
+    if (!S.mbg)      // the menu background keeps the last forest
+      trSeed = TR.random ? 1 + Math.floor(Math.random() * 1e9) : TR.seed;
   }
   const key = ci + ',' + cj;
   let c = trCache.get(key);

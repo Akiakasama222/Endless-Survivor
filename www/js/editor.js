@@ -41,6 +41,8 @@ const EDITOR_GROUPS = [
     ['eSpeed', 'Base speed', 'n'],
     ['eSpeedStep', 'Speed gained every N levels', 'n'],
     ['eSpeedEvery', 'Levels between speed increases', 'i'],
+    ['eArmorStep', 'Armor gained every N levels (damage blocked per hit)', 'n'],
+    ['eArmorEvery', 'Levels between armor increases', 'i'],
     ['capBase', 'Enemies allowed at once at the start', 'i'],
     ['capPerLvl', 'Extra enemies allowed per level', 'n'],
     ['spawnBase', 'Spawns per second at the start', 'n'],

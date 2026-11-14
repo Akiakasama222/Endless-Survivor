@@ -17,6 +17,7 @@ function loop(n) {
   const dt = Math.min(.05, el);
   if (S.state === 'play')
     update(dt);
+  storyFrame();      // Story mode controls (story.js)
   draw();
 }
 

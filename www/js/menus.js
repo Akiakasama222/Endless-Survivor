@@ -3,6 +3,20 @@
 // All menu screens (they are drawn into the #ov overlay).
 // ======================================================================
 
+// The Orientation button of the pause menu: shows the current orientation and offers the other one.
+function oriButton() {
+  const cur = innerWidth > innerHeight ? 'landscape' : 'portrait';
+  const other = cur === 'portrait' ? 'Landscape' : 'Portrait';
+  return '<button class="opt" id="ori" style="border-color:#fff8"><b style="color:#fff">Orientation: ' + (cur === 'portrait' ? 'Portrait' : 'Landscape') + '</b><span>' + (isMobile() ? 'Tap to switch to ' + other : 'Phones and tablets only · locks the screen rotation') + '</span></button>';
+}
+
+// Refreshes the Orientation button after a switch. t = the orientation now, ok = false when the device could not switch.
+function oriLabel(t, ok) {
+  const e = $('ori');
+  e.querySelector('b').textContent = 'Orientation: ' + (t === 'portrait' ? 'Portrait' : 'Landscape');
+  e.querySelector('span').textContent = ok ? 'Tap to switch to ' + (t === 'portrait' ? 'Landscape' : 'Portrait') : 'Not supported here · turn on auto-rotate and turn your phone instead';
+}
+
 // Opens the pause menu.
 function pause() {
   if (S.state !== 'play')
@@ -12,16 +26,61 @@ function pause() {
   duckMusic(1);
   const o = $('ov');
   o.style.display = 'flex';
-  o.innerHTML = '<h1>Paused</h1><button class="opt" id="rsm"><b>Resume</b><span>Back to the run</span></button><button class="opt" id="qt" style="border-color:#ff5d63"><b style="color:#ff5d63">Quit run</b><span>Records are saved · go to main menu</span></button><button class="opt" id="wgp" style="border-color:#fff8"><b style="color:#fff">Weapon Guide</b><span>Weapons, basic and special augments</span></button><button class="opt" id="egp" style="border-color:#fff8"><b style="color:#fff">Enemy Guide</b><span>Restless, the boss and day / night</span></button><button class="opt" id="fbp" style="border-color:#fff8"><b style="color:#fff">Feedback</b><span>Tell us what you think of the game</span></button><button class="opt" id="stp" style="border-color:#fff8"><b style="color:#fff">Settings</b></button>';
+  o.innerHTML = '<h1>Paused</h1><button class="opt" id="rsm"><b>Resume</b><span>Back to the run</span></button><button class="opt" id="qt" style="border-color:#ff5d63"><b style="color:#ff5d63">Quit run</b><span>Records are saved · go to main menu</span></button><button class="opt" id="aup" style="border-color:#ffc94a"><b style="color:#ffc94a">Auto Upgrade</b><span>' + (autoKeys().length ? '🔒 ' + autoKeys().map(k => basicInfo(k)[0]).join(', ') : 'Off · pick basic augments yourself') + '</span></button><button class="opt" id="wgp" style="border-color:#fff8"><b style="color:#fff">Weapon Guide</b><span>Weapons, basic and special augments</span></button><button class="opt" id="egp" style="border-color:#fff8"><b style="color:#fff">Enemy Guide</b><span>Restless, the boss and day / night</span></button><button class="opt" id="fbp" style="border-color:#fff8"><b style="color:#fff">Feedback</b><span>Tell us what you think of the game</span></button>' + oriButton() + '<button class="opt" id="stp" style="border-color:#fff8"><b style="color:#fff">Settings</b></button>';
+  $('aup').onclick = () => autoScreen('pause');
   $('wgp').onclick = () => weaponGuide('pause');
   $('egp').onclick = () => enemyGuide('pause');
   $('fbp').onclick = () => feedbackScreen('pause');
   $('stp').onclick = () => settings('pause');
+  if ($('ori'))
+    $('ori').onclick = () => {
+      if (!isMobile())      // a desktop browser has no screen rotation to lock
+        return;
+      const t = innerWidth > innerHeight ? 'portrait' : 'landscape';      // switch to the other one
+      $('ori').querySelector('span').textContent = 'Switching…';
+      setOrientation(t).then(ok => {
+        if (!$('ori'))      // the pause menu was closed meanwhile
+          return;
+        if (ok) {
+          try {
+            localStorage.setItem('esOri', t);
+          }
+          catch (e) { }
+        }
+        oriLabel(ok ? t : (innerWidth > innerHeight ? 'landscape' : 'portrait'), ok);
+      });
+    };
   $('rsm').onclick = resume;
   $('qt').onclick = () => {
     saveBest();
     endRun();
     menu();
+  };
+}
+
+// Auto Upgrade screen (from the pause menu): choose which basic augments of your weapon are picked for you on every level-up. Orb augments are never affected.
+function autoScreen(from) {
+  const o = $('ov');
+  o.style.display = 'flex';
+  const on = autoKeys();
+  o.innerHTML = '<h1>Auto Upgrade</h1><p style="font-size:calc(15px * var(--fs,1));opacity:.8;max-width:520px;margin:0 auto 8px">Lock any of your basic augments (even all three) and each level-up picks one of them for you, without opening the selection screen. With several locked, they are taken in turns: one upgrade per level. Tap a locked one again to unlock it. Orb augments are never affected.</p><div style="width:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:10px">' +
+    BASIC_KEYS[autoWp()].map(k => {
+      const l = on.includes(k);
+      const i = basicInfo(k);
+      return '<button class="opt aug" data-k="' + k + '" style="border-color:' + (l ? '#ffc94a' : '#fff4') + '"><img class="aicon" src="' + i[1] + '" alt=""><div><b>' + i[0] + '</b><span>' + (l ? '🔒 Picked automatically every level-up' : '🔓 Off · you choose') + '</span></div></button>';
+    }).join('') + '</div><button class="opt" id="aub" style="border-color:#fff8;max-width:520px;width:100%;margin:12px auto 0;text-align:center"><b style="color:#fff">Back</b></button>';
+  o.querySelectorAll('.aug').forEach(b => b.onclick = () => {
+    sfx('click');
+    toggleAuto(b.dataset.k);
+    autoScreen(from);
+  });
+  $('aub').onclick = () => {
+    if (from === 'hud')      // opened with the lock button on the screen: Back continues the run
+      resume();
+    else {
+      S.state = 'play';
+      pause();
+    }
   };
 }
 
@@ -35,6 +94,14 @@ function resume() {
 }
 
 $('pb').onclick = pause;
+
+// The lock button under the level box: pauses the run and opens the Auto Upgrade screen (Back continues the run).
+$('al').onclick = () => {
+  if (S.state !== 'play')
+    return;
+  pause();
+  autoScreen('hud');
+};
 
 addEventListener('keydown', e => {
   // typing in the feedback form must not pause / resume the game
@@ -144,7 +211,7 @@ function enemyGuide(from) {
   const sp = pc(C.eSpeedStep);
   const html =
     sec('ALL ENEMIES GROW STRONGER') +
-    row('Level scaling', 'Every level you gain, enemies get +' + C.eHpLvl + ' HP and +' + C.eDmgLvl + ' damage. Every ' + C.eSpeedEvery + ' levels they also move +' + sp + '% faster. Every 50 levels their HP and damage double.') +
+    row('Level scaling', 'Every level you gain, enemies get +' + C.eHpLvl + ' HP and +' + C.eDmgLvl + ' damage. Every ' + C.eSpeedEvery + ' levels they also move +' + sp + '% faster. Every ' + C.eArmorEvery + ' levels they gain +' + C.eArmorStep + ' armor (blocks that much damage from every hit they take, but a hit always deals at least 1). Every 50 levels their HP and damage double.') +
     row('How many', 'Up to ' + C.capBase + ' enemies at once, +' + C.capPerLvl + ' for every level you gain. They walk in from just outside the screen and push each other apart so they do not stack.') +
     head(IMAGE_FILES.guideZombie, 'Restless (Blue)', 'The basic enemy. Walks straight at you, then stops and swings at you.') +
     row('Health', C.eHp + ' (+' + C.eHpLvl + ' per level)') +
@@ -176,11 +243,54 @@ function enemyGuide(from) {
   };
 }
 
+// Asks the browser for full screen (hides the Android status bar and the three navigation buttons; swipe from the screen edge to show them again).
+// Browsers only allow it right after a tap, so it is called from the Play button. Does nothing if it is already full screen or not supported.
+// True on touch-first devices (phones, tablets), false on desktop browsers.
+function isMobile() {
+  return (window.matchMedia && matchMedia('(pointer: coarse)').matches && matchMedia('(hover: none)').matches) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+function goFullscreen() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || !el.requestFullscreen)
+    return;
+  try {
+    const p = el.requestFullscreen({ navigationUI: 'hide' });
+    if (p && p.catch)
+      p.catch(() => { });
+  }
+  catch (e) { }
+}
+
+// Locks the screen to 'portrait' or 'landscape' (the Orientation button in the pause menu). Browsers only allow it in full screen, so full screen is requested first
+// (the tap on the button is the permission). Returns a promise: true = done, false = this device / browser cannot lock the orientation (iPhones, most desktop browsers).
+function setOrientation(t) {
+  goFullscreen();
+  const so = window.screen && screen.orientation;
+  if (!so || !so.lock)
+    return Promise.resolve(false);
+  const go = () => so.lock(t).then(() => true);
+  return go().catch(() => new Promise(r => setTimeout(r, 400)).then(go)).catch(() => false);      // (the full screen request can take a moment, so one retry)
+}
+
+// The orientation the player picked last time ('portrait' / 'landscape' / null), restored by the Play button.
+function savedOrientation() {
+  try {
+    const o = localStorage.getItem('esOri');
+    return o === 'landscape' || o === 'portrait' ? o : null;
+  }
+  catch (e) {
+    return null;
+  }
+}
+
 // Main menu.
 function menu() {
-  init();
+  MODE = 'survival';      // the menu's background world is always a normal run (Story starts from the Story button, story.js)
+  init(true);      // background only: no new landscape until Play is tapped
   stopMusic();
   $('pb').style.display = 'none';
+  $('al').style.display = 'none';
   S.state = 'menu';
   const o = $('ov');
   o.style.display = 'flex';
@@ -189,6 +299,7 @@ function menu() {
     '<h1 class="mtitle">Limbo</h1>' +
     '<p class="msub">Oblivion Survivor</p>' +
     '<button class="mbtn play" id="pl">Play</button>' +
+    '<button class="mbtn" id="sty">Story</button>' +
     '<button class="mbtn" id="inv">Inventory</button>' +
     '<div class="mrow"><button class="mbtn" id="wg">Weapon Guide</button><button class="mbtn" id="eg">Enemy Guide</button></div>' +
     '<div class="mrow"><button class="mbtn" id="fb">Feedback</button><button class="mbtn" id="st">Settings</button></div>' +
@@ -200,17 +311,30 @@ function menu() {
   $('fb').onclick = () => feedbackScreen('menu');
   $('pl').onclick = () => {
     ac();
+    if (isMobile())
+      goFullscreen();      // phones / tablets only: hides the status bar and navigation buttons while you play (needs this tap). Desktop browsers stay windowed.
+    if (isMobile() && savedOrientation() === 'landscape')
+      setOrientation('landscape');      // the player chose landscape in the pause menu last time
     init();
   };
+  $('sty').onclick = storyMenu;
   $('inv').onclick = inventory;
   $('st').onclick = () => settings('menu');
   $('quitBtn').onclick = quitGame;
 }
 
-// Quit button. A browser only lets a page close itself when a script opened it, so if the tab is still here
-// a moment later we show a goodbye screen instead. (In a packaged app, call the app's exit function here.)
+// Quit button. In the Android app it closes the app through Capacitor's App plugin (@capacitor/app, listed in package.json).
+// In a browser a page can only close itself if a script opened it, so if the tab is still here a moment later we show a goodbye screen instead.
 function quitGame() {
   stopMusic();
+  const app = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (app && app.exitApp) {
+    try {
+      app.exitApp();
+      return;
+    }
+    catch (e) { }
+  }
   window.close();
   setTimeout(() => {
     $('ov').innerHTML = '<h1>Thanks for playing!</h1><p>You can close this tab now.</p><button class="opt" id="quitBack"><b>Back to menu</b></button>';
@@ -291,7 +415,7 @@ function inventory() {
       PD.eq = { t, r: r + 1 };
     weapon = PD.eq.t;
     savePD();
-    sfx('level');
+    sfx('click');
     invMsg = 'Merged! You got a ' + RAR[r + 1].n + ' ' + TY[t].n + '.';
     inventory();
   });
@@ -319,7 +443,7 @@ function inventory() {
     }
     weapon = PD.eq.t;
     savePD();
-    sfx('level');
+    sfx('click');
     invMsg = 'Auto merged ' + made + ' time' + (made === 1 ? '' : 's') + '.';
     inventory();
   });
@@ -347,7 +471,7 @@ function openChest(n) {
     one = d;
   }
   savePD();
-  sfx('level');
+  sfx('chest');
   const o = $('ov');
   o.style.display = 'flex';
   let res;

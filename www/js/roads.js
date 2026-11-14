@@ -33,7 +33,8 @@ let rdCache = null;   // the road paths currently built (see rdDraw)
 const rdSync = () => {
   if (rdRunS !== S) {
     rdRunS = S;
-    rdSeed = ROAD.seed ? Math.floor(ROAD.seed) : 1 + Math.floor(Math.random() * 1e6);
+    if (!S.mbg)      // the menu background keeps the last roads
+      rdSeed = ROAD.seed ? Math.floor(ROAD.seed) : 1 + Math.floor(Math.random() * 1e6);
   }
 };
 

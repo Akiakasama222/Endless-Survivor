@@ -103,20 +103,99 @@ function pickAug(k) {
   }
 }
 
+// ---- AUTO UPGRADE ----
+// Lock a BASIC augment (the 3 you are offered on every level-up) and the game picks it for you on each level-up, without opening the selection screen.
+// You can lock several (up to all three) basic augments, but every level-up upgrades only ONE of them: the locked ones are taken in turns. It never touches Orb (special) augments. Kept only for the current run, separately for each weapon: AUTO = { sword: ['na'], gun: [], grimoire: [] }.
+let AUTO = {};
+
+// Locks only last for one run: every new run starts with nothing locked (init() calls this). Also deletes the lock list an older version saved on the device.
+function autoReset() {
+  AUTO = {};
+  try {
+    localStorage.removeItem('esAuto');
+  }
+  catch (e) { }
+}
+autoReset();
+
+// The basic augment keys of each weapon, in the order they are offered ('gun' = the Rogue).
+const BASIC_KEYS = { sword: ['nr', 'hpb', 'na'], gun: ['nr', 'ncr', 'nb'], grimoire: ['nf', 'nl', 'ni'] };
+
+// The key of the weapon used for the lock lists.
+const autoWp = () => S.wp === 'sword' || S.wp === 'grimoire' ? S.wp : 'gun';
+
+// [name, icon] of a basic augment (for the Auto Upgrade screen and the floating text).
+function basicInfo(k) {
+  const m = {
+    nr: S.wp === 'gun' || autoWp() === 'gun' ? ['Fire Rate', IMAGE_FILES.augRogueRate] : ['Attack Speed', IMAGE_FILES.augSwordSpeed],
+    hpb: ['Health Points', IMAGE_FILES.augSwordHealth],
+    na: ['Armor', IMAGE_FILES.augSwordArmor],
+    ncr: ['Precision', IMAGE_FILES.augRoguePrecision],
+    nb: ['Knife Bounce', IMAGE_FILES.augRogueBounce],
+    nf: ['Fire Turret', IMAGE_FILES.augGrimoireFire],
+    nl: ['Lightning Turret', IMAGE_FILES.augGrimoireLightning],
+    ni: ['Ice Turret', IMAGE_FILES.augGrimoireIce]
+  };
+  return m[k] || [k, ''];
+}
+
+// The locked basic augments of the current weapon (in offer order).
+const autoKeys = () => BASIC_KEYS[autoWp()].filter(k => (AUTO[autoWp()] || []).includes(k));
+
+// Locks basic augment k for the current weapon, or unlocks it if it was locked (the other locks stay). Updates the HUD lock button.
+function toggleAuto(k) {
+  const w = autoWp();
+  AUTO[w] = autoKeys().includes(k) ? autoKeys().filter(x => x !== k) : autoKeys().concat(k);
+  autoBtn();
+}
+
+// Shows the state of the HUD lock button (🔒 gold = locked, 🔓 = off). Call it whenever the weapon or the lock changes.
+function autoBtn() {
+  const b = $('al');
+  if (!b || !S)
+    return;
+  const on = autoKeys().length > 0;
+  b.textContent = on ? '🔒' : '🔓';
+  b.className = on ? 'on' : '';
+}
+
+// Picks basic augment k (shared by the level-up screen and Auto Upgrade). More max HP also heals you by the same amount.
+function applyAug(k) {
+  const m0 = maxHp();
+  pickAug(k);
+  if (k === 'hpb') {
+    S.hp += maxHp() - m0;
+    healFx();
+  }
+}
+
 // Level-up: gives chests / starts bosses on milestone levels, restores health and shows the augment choice screen.
 function levelUp() {
   S.lvl++;
-  if (S.lvl % C.chestLvl === 0 && !S.dev) {
+  if (S.lvl % C.chestLvl === 0 && !rewOff()) {
     PD.chests++;
     savePD();
     S.chestGot = (S.chestGot || 0) + 1;
   }
-  if (S.lvl % C.bossEvery === 0 && !(S.cu && S.lvl < S.cu))
+  if (S.lvl % C.bossEvery === 0 && !(S.cu && S.lvl < S.cu) && !S.story)
     startBoss();
   S.xp -= need() - C.xpLvl;
   if (S.hp < maxHp())
     healFx();
   S.hp = maxHp();
+  const ak = autoKeys();
+  if (ak.length) {      // Auto Upgrade: pick the next locked augment without opening the selection screen
+    const k = ak[(S.aui || 0) % ak.length];      // one augment per level-up: the locked ones in turns
+    S.aui = (S.aui || 0) + 1;
+    sfx('level');
+    applyAug(k);
+    S.tx.push({ x: S.x, y: S.y - 54, t: 1, s: 'Auto: ' + basicInfo(k)[0], c: '#9be15d' });
+    if (S.lvl % C.chestLvl === 0 && !rewOff())
+      S.tx.push({ x: S.x, y: S.y - 78, t: 1.2, s: '🎁 Chest earned!', c: '#ffc94a' });
+    S.lu.push({ t: LU_T });
+    hud(1);
+    return;
+  }
   S.state = 'pick';
   sfx('level');
   const r = rate();
@@ -128,15 +207,27 @@ function levelUp() {
       ['ncr', 'Precision', '+' + pc(C.critPerLvl) + '% Critical Strike Chance · ' + pc(C.critPerLvl * S.ncr) + '% → ' + pc(C.critPerLvl * (S.ncr + 1)) + '%. Crits deal +' + pc(C.critDmg) + '% damage' + (C.critPerLvl * (S.ncr + 1) > 1 ? ', and chance above 100% adds even more' : ''), IMAGE_FILES.augRoguePrecision],
       ['nb', '+1 Knife Bounce', S.nb + ' → ' + (S.nb + 1) + ' bounces on hit', IMAGE_FILES.augRogueBounce]
     ].map(a => '<button class="opt aug" data-k="' + a[0] + '"><img class="aicon" src="' + a[3] + '" alt=""><div><b>' + a[1] + '</b><span>' + a[2] + '</span></div></button>').join('');
-  o.innerHTML = '<h1>Level ' + S.lvl + '</h1><p>Choose an augment</p>' + (S.lvl % C.chestLvl === 0 && !S.dev ? '<p style="color:#ffc94a">🎁 You earned a chest! Open it from the Inventory.</p>' : '') + opts;
+  o.innerHTML = '<h1>Level ' + S.lvl + '</h1><p>Choose an augment</p><p style=\"font-size:calc(14px * var(--fs,1));opacity:.75;margin-top:-6px\">Tap 🔓 to Auto Upgrade: locked augments are picked for you, one per level-up, in turns</p>' + (S.lvl % C.chestLvl === 0 && !rewOff() ? '<p style="color:#ffc94a">🎁 You earned a chest! Open it from the Inventory.</p>' : '') + opts;
+  o.querySelectorAll('.opt').forEach(b => {
+    const lk = document.createElement('div');      // Auto Upgrade lock (basic augments only)
+    const show = () => {
+      const on = autoKeys().includes(b.dataset.k);
+      lk.className = 'alock' + (on ? ' on' : '');
+      lk.textContent = on ? '🔒' : '🔓';
+    };
+    lk.onclick = e => {
+      e.stopPropagation();
+      sfx('click');
+      toggleAuto(b.dataset.k);
+      o.querySelectorAll('.opt').forEach(x => x._show && x._show());
+    };
+    b._show = show;
+    show();
+    b.appendChild(lk);
+  });
   o.querySelectorAll('.opt').forEach(b => b.onclick = () => {
     sfx('click');
-    const m0 = maxHp();
-    pickAug(b.dataset.k);
-    if (b.dataset.k === 'hpb') {
-      S.hp += maxHp() - m0;
-      healFx();
-    }
+    applyAug(b.dataset.k);
     o.style.display = 'none';
     S.state = 'play';
     S.lu.push({ t: LU_T });      // level-up effect around the player once the game continues
@@ -155,8 +246,8 @@ function over() {
   $('pb').style.display = 'none';
   S.state = 'over';
   sfx('over');
-  const nl = !S.dev && S.lvl > best.lvl;
-  const nk = !S.dev && S.kills > best.kills;
+  const nl = !rewOff() && S.lvl > best.lvl;
+  const nk = !rewOff() && S.kills > best.kills;
   saveBest();
   const o = $('ov');
   o.style.display = 'flex';

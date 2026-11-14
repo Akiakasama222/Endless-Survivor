@@ -120,6 +120,43 @@ function cycleFps() {
   catch (e) { }
 }
 
+// Pixel scale choices shown in Settings: [C.pixelScale value, label]. 1 = full sharpness; higher = the game is drawn with fewer pixels and stretched with sharp edges (chunkier retro look, and lighter on weak devices).
+// The choice is saved on this device and overrides the pixelScale value in config.js / Editor mode.
+const PIX_OPTS = [
+  [1, '1× (Sharp)'],
+  [1.5, '1.5×'],
+  [2, '2× (Retro)'],
+  [3, '3× (Chunky)'],
+  [4, '4× (Very chunky)']
+];
+
+try {
+  const p = localStorage.getItem('esPix');
+  if (p !== null && PIX_OPTS.some(o => o[0] === +p))
+    C.pixelScale = +p;
+}
+catch (e) { }
+
+// Index of the pixel scale option closest to the one that is active right now.
+function pixIdx() {
+  let b = 0;
+  PIX_OPTS.forEach((o, i) => {
+    if (Math.abs(o[0] - (C.pixelScale || 1)) < Math.abs(PIX_OPTS[b][0] - (C.pixelScale || 1)))
+      b = i;
+  });
+  return b;
+}
+
+// Switches to a pixel scale, saves it and resizes the canvas right away (rs() is in state.js).
+function setPix(v) {
+  C.pixelScale = v;
+  try {
+    localStorage.setItem('esPix', String(v));
+  }
+  catch (e) { }
+  rs();
+}
+
 // Text size (Settings -> Text size): 1 = normal. It scales every font in the menus and the HUD (css: --fs) and the numbers / labels drawn on the game screen (TXT). Saved on this device.
 const TXT_MIN = .8;
 const TXT_MAX = 1.3;
@@ -165,7 +202,15 @@ function settings(from) {
   const o = $('ov');
   o.style.display = 'flex';
   const pc = v => Math.round(v * 100);
-  o.innerHTML = '<h1>Settings</h1><div class="opt" style="border-color:#fff8"><b style="color:#fff">Sound effects <span id="sv">' + pc(vol.sfx) + '%</span></b><input id="sr1" type="range" min="0" max="100" value="' + pc(vol.sfx) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Music <span id="mv">' + pc(vol.mus) + '%</span></b><input id="sr2" type="range" min="0" max="100" value="' + pc(vol.mus) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Ambience <span id="av">' + pc(vol.amb) + '%</span></b><input id="sr3" type="range" min="0" max="100" value="' + pc(vol.amb) + '"></div><div class="opt" style="border-color:#fff8"><b style="color:#fff">Text size <span id="tv">' + Math.round(TXT * 100) + '%</span></b><input id="sr4" type="range" min="' + TXT_MIN * 100 + '" max="' + TXT_MAX * 100 + '" step="5" value="' + Math.round(TXT * 100) + '"><span>Makes the text bigger or smaller. 100% is normal.</span></div><button class="opt" id="fps" style="border-color:#fff8"><b style="color:#fff">Frame rate: ' + FPS_OPTS[fpsIdx()][1] + '</b><span>' + FPS_OPTS[fpsIdx()][2] + '. Tap to change.</span></button><button class="opt" id="snt" style="border-color:#fff8"><b style="color:#fff">' + sndLabel() + '</b></button><button class="opt" id="sdv" style="border-color:#fff8"><b style="color:#fff">Save data</b><span>Back up or restore your progress</span></button>' + (DEV_TOOLS ? '<button class="opt" id="dvb" style="border-color:#fff8"><b style="color:#fff">Developer</b><span>Starting level, Editor mode and test options</span></button>' : '') + '<button class="opt" id="bk2" style="border-color:#fff8"><b style="color:#fff">Back</b></button>';
+  const row = (lbl, vid, id, min, max, step, val, txt) => '<label class="sr"><b>' + lbl + '</b><input id="' + id + '" type="range" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '"><span id="' + vid + '">' + txt + '</span></label>';
+  const pxl = () => PIX_OPTS[pixIdx()][1].split(' ')[0];
+  o.innerHTML = '<div class="inv"><h1>Settings</h1><div class="opt st">' +
+    row('Effects', 'sv', 'sr1', 0, 100, 1, pc(vol.sfx), pc(vol.sfx) + '%') +
+    row('Music', 'mv', 'sr2', 0, 100, 1, pc(vol.mus), pc(vol.mus) + '%') +
+    row('Ambience', 'av', 'sr3', 0, 100, 1, pc(vol.amb), pc(vol.amb) + '%') +
+    row('Text size', 'tv', 'sr4', TXT_MIN * 100, TXT_MAX * 100, 5, Math.round(TXT * 100), Math.round(TXT * 100) + '%') +
+    row('Pixels', 'pxv', 'sr5', 0, PIX_OPTS.length - 1, 1, pixIdx(), pxl()) +
+    '</div><div class="stb"><button class="opt" id="snt">' + sndLabel() + '</button><button class="opt" id="fps">FPS: ' + (FPS_OPTS[fpsIdx()][0] || 'Max') + '</button></div><div class="stb"><button class="opt" id="sdv">Save data</button>' + (DEV_TOOLS ? '<button class="opt" id="dvb">Developer</button>' : '') + '</div><button class="opt" id="bk2"><b style="color:#fff;text-align:center">Back</b></button></div>';
   $('sr1').oninput = e => {
     vol.sfx = e.target.value / 100;
     $('sv').textContent = e.target.value + '%';
@@ -198,6 +243,11 @@ function settings(from) {
       localStorage.setItem('esTxt', String(TXT));
     }
     catch (e) { }
+  };
+  $('sr5').oninput = e => {
+    const o = PIX_OPTS[+e.target.value] || PIX_OPTS[0];
+    $('pxv').textContent = o[1].split(' ')[0];
+    setPix(o[0]);
   };
   $('fps').onclick = () => {
     cycleFps();
@@ -347,7 +397,7 @@ function saveData(from, msg) {
       return say('This will replace your current progress on this device.', 1);
     }
     applySave(d);
-    sfx('level');
+    sfx('click');
     saveData(from, 'Restored! Your progress is back.');
   };
   $('sdb').onclick = () => settings(from);

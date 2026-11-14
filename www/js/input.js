@@ -9,6 +9,8 @@ let joy = null;
 let keys = {};
 
 cv.addEventListener('pointerdown', e => {
+  if (S && S.story)      // Story mode has its own on-screen sticks (story.js)
+    return;
   joy = { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY };
   cv.setPointerCapture(e.pointerId);
 });
@@ -62,8 +64,9 @@ function inputVec() {
       }
     }
   }
-  x += (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0);
-  y += (keys.s || keys.arrowdown ? 1 : 0) - (keys.w || keys.arrowup ? 1 : 0);
+  const ar = !(S && S.story);      // Story mode: the arrow keys aim (story.js), only WASD moves
+  x += (keys.d || (ar && keys.arrowright) ? 1 : 0) - (keys.a || (ar && keys.arrowleft) ? 1 : 0);
+  y += (keys.s || (ar && keys.arrowdown) ? 1 : 0) - (keys.w || (ar && keys.arrowup) ? 1 : 0);
   const l = Math.hypot(x, y);
   if (l < 1e-6)
     return [0, 0];

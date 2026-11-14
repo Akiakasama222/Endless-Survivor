@@ -43,9 +43,23 @@
 <div class="cd" id="cdm"><i></i><span></span></div></div></div>
 
 <button id="pb" aria-label="Menu">☰</button>
+<button id="al" aria-label="Auto Upgrade">🔓</button>
 <div id="warn"><b id="wb">⚠ WARNING ⚠</b><span id="wt"></span></div>
 <div id="bb"><span>Giant Zombie</span>
 <div class="bar"><i id="bbf"></i></div></div>
+<!-- Story mode controls (see js/story.js): left stick = move, right stick = aim and attack, three skill buttons -->
+<div id="sctl">
+  <div id="sjm" class="sj sjmove" aria-label="Move stick">
+    <svg viewBox="0 0 120 120" aria-hidden="true"><g fill="currentColor"><path d="M60 3l12 15H48z"/><path d="M60 117l12-15H48z"/><path d="M3 60l15-12v24z"/><path d="M117 60l-15-12v24z"/><path d="M20 20l17 5-12 12z"/><path d="M100 20l-5 17-12-12z"/><path d="M20 100l5-17 12 12z"/><path d="M100 100l-17-5 12-12z"/></g></svg>
+    <div class="sjk"></div>
+  </div>
+  <div id="sr">
+    <div id="sja" class="sj sjaim" aria-label="Aim stick"><div class="sjk"></div></div>
+    <div class="sk" id="sk0"><i></i><b></b><span></span></div>
+    <div class="sk" id="sk1"><i></i><b></b><span></span></div>
+    <div class="sk" id="sk2"><i></i><b></b><span></span></div>
+  </div>
+</div>
 <div id="ov"></div>
 
 <!--
@@ -74,6 +88,7 @@
 <script src="js/player-data.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/input.js"></script>
+<script src="js/story.js"></script>
 <script src="js/combat.js"></script>
 <script src="js/boss.js"></script>
 <script src="js/hud.js"></script>

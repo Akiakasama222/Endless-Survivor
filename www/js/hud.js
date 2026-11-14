@@ -75,7 +75,7 @@ function hud(f) {
     return;
   hudT = n;
   $('lv').textContent = 'Lv ' + S.lvl + (S.dev ? ' · DEV' : '');
-  $('time').textContent = (C.dayNight ? dnIcon() + ' ' : '') + mmss(S.t);
+  $('time').textContent = (C.dayNight && !S.story ? dnIcon() + ' ' : '') + mmss(S.t);
   const kl = S.kills + ' kills · ' + ESS + ' ' + S.coins;
   if (kl !== hudKl) {      // (only rewritten when it changes, so the icon does not flicker)
     hudKl = kl;

@@ -196,7 +196,7 @@ function newShot(t, o, dm, ox, oy) {
     dm,
     orb,
     intro: orb ? Math.max(.05, Math.min(AB_INTRO, (Math.hypot(t.x - sx, t.y - sy) - (t.hr || C.eHitR)) / speed * .9)) : 0,     // the bolt's stretch-out time, shortened for close targets so it always finishes before the bolt arrives
-    turn: orb ? C.gmShotTurn : 0,     // homing strength (Grimoire orbs home in on enemies, Bow arrows fly straight)
+    turn: orb ? (S.story ? C.storyOrbTurn : C.gmShotTurn) : 0,     // homing strength (Grimoire orbs home in on enemies, Bow arrows fly straight)
     seek: orb ? C.gmShotSeek : 450
   };
 }
@@ -234,8 +234,12 @@ function update(dt) {
   // fire
   S.cd -= dt;
   dashStep(dt);      // Dash special augment (every weapon, combat.js)
+  if (S.story)
+    storyStep(dt);      // Story skill cooldowns (story.js)
   mwStep(dt);      // MultiWield delayed attacks (combat.js)
-  if (S.wp === 'sword')
+  if (S.story && S.wp !== 'sword')
+    storyShoot(dt);      // Story mode: the weapon fires where the aim stick points (story.js)
+  else if (S.wp === 'sword')
     sword(dt);
   else if (S.cd <= 0) {
     const t = nearest(S.x, S.y, C.atkR);
@@ -306,7 +310,7 @@ function update(dt) {
       S.tr.push({ x: b.x, y: b.y, t: .3, m: .3, r: 10, c: '255,255,255' });
     }
     else if (b.orb ? !ABI.naturalWidth : !TRL.br)      // Bow arrows use the trail image and the Grimoire bolt has its own tail in the sprite, so these round puffs are only the fallback
-      S.tr.push({ x: b.x, y: b.y, t: .25, m: .25, r: 5, c: b.orb ? '176,106,255' : RAR[PD.eq.r].rgb, z: b.orb ? 0 : C.arrowHeight - 18 });      // z lifts the Bow's glow trail to the arrow's height
+      S.tr.push({ x: b.x, y: b.y, t: .25, m: .25, r: 5, c: b.orb ? '176,106,255' : RAR[eqR()].rgb, z: b.orb ? 0 : C.arrowHeight - 18 });      // z lifts the Bow's glow trail to the arrow's height
     // Swept hit test: on a slow device one step can be longer than an enemy is wide (knife: 1000 px/s = 50 px per frame at 20 FPS), so testing only the
     // end point let shots fly straight through enemies. Instead the whole line from the old to the new position is tested and the first enemy it touches is hit
     // (the shot is placed at the closest point to that enemy, so explosions / bounces start there). At 60 FPS the result is the same as before.
@@ -457,7 +461,7 @@ function update(dt) {
       spawnBoss();
     }
   }
-  if (!(S.bw > 0) && !S.boss)
+  if (!(S.bw > 0) && !S.boss && !S.story)      // Story mode: no enemies spawn (for now)
     S.sp += dt * (C.spawnBase + S.t * C.spawnGrow);
   while (S.sp >= 1) {
     S.sp--;
@@ -664,7 +668,7 @@ function update(dt) {
       if (S.cf.length > 30)
         S.cf.shift();
       S.cf.push({ x: m.x, y: m.y, t: CF_T, b: m.v > 1 });
-      sfx('gem');
+      sfx('essence');
     }
   }
   cull(S.cn, m => !m.g);
